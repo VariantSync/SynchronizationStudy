@@ -12,6 +12,9 @@
 
 .idea/
 *.iml
+./out/
+./bin/
+./target/
 
 # Package Files #
 *.jar
