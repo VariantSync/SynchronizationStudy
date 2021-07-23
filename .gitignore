@@ -12,9 +12,9 @@
 
 .idea/
 *.iml
-./out/
-./bin/
-./target/
+./out/*
+./bin/*
+./target/*
 
 # Package Files #
 *.jar
