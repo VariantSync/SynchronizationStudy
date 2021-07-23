@@ -12,7 +12,7 @@
 
 .idea/
 *.iml
-./out/
+out/
 ./bin/
 ./target/
 
