@@ -16,16 +16,19 @@ import java.util.function.Consumer;
 
 public class ShellExecutor {
     private final Consumer<String> outputReader;
+    private final Consumer<String> errorReader;
     private final Path workDir;
 
-    public ShellExecutor(Consumer<String> outputReader) {
+    public ShellExecutor(Consumer<String> outputReader, Consumer<String> errorReader) {
         this.workDir = null;
         this.outputReader = outputReader;
+        this.errorReader = errorReader;
     }
 
-    public ShellExecutor(Path workDir, Consumer<String> outputReader) {
+    public ShellExecutor(Consumer<String> outputReader, Consumer<String> errorReader, Path workDir) {
         this.workDir = workDir;
         this.outputReader = outputReader;
+        this.errorReader = errorReader;
     }
 
     public Result<Unit, ShellException> execute(IShellCommand command) {
@@ -38,13 +41,14 @@ public class ShellExecutor {
             builder.directory(workDir.toFile());
         }
         Logger.debug("Executing '" + command + "' in directory " + builder.directory());
-        builder.command(command.commandParts());
+        builder.command(command.parts());
 
 
         Process process;
         try {
             process = builder.start();
             Executors.newSingleThreadExecutor().submit(collectOutput(process.getInputStream(), outputReader));
+            Executors.newSingleThreadExecutor().submit(collectOutput(process.getErrorStream(), outputReader));
         } catch (IOException e) {
             Logger.error("Was not able to execute " + command, e);
             return Result.Failure(new ShellException(e));

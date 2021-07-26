@@ -19,6 +19,11 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ShellExecutorTest {
+    static Consumer<String> errorReader = Logger::error;
+
+    static {
+        Logger.initConsoleLogger();
+    }
 
     @Test
     public void echo() {
@@ -27,8 +32,9 @@ public class ShellExecutorTest {
             Logger.info(s);
             assert testString.equals(s);
         };
+        Logger.info("I am here");
 
-        ShellExecutor shellExecutor = new ShellExecutor(outputReader);
+        ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader);
         shellExecutor.execute(new EchoCommand(testString));
     }
 
@@ -38,7 +44,7 @@ public class ShellExecutorTest {
         List<String> output = new ArrayList<>();
 
         Consumer<String> outputReader = output::add;
-        ShellExecutor shellExecutor = new ShellExecutor(resourcesDir, outputReader);
+        ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
         Path pathA = Paths.get("text-A.txt");
         Path pathB = Paths.get("text-B.txt");
@@ -59,7 +65,7 @@ public class ShellExecutorTest {
         Path outputPath = Files.createTempFile("patch", null);
 
         Consumer<String> outputReader = Logger::info;
-        ShellExecutor shellExecutor = new ShellExecutor(resourcesDir, outputReader);
+        ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
         Path pathA = Paths.get("text-A.txt");
         Path pathB = Paths.get("text-B.txt");
@@ -83,7 +89,7 @@ public class ShellExecutorTest {
         Path outputPath = Files.createTempFile("patch-result", ".txt");
 
         Consumer<String> outputReader = Logger::info;
-        ShellExecutor shellExecutor = new ShellExecutor(resourcesDir, outputReader);
+        ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
         Result<Unit, ShellException> result = shellExecutor.execute(new PatchCommand(Paths.get("diff-A-B.txt")).outfile(outputPath));
         assert result.isSuccess();
@@ -98,7 +104,7 @@ public class ShellExecutorTest {
         Path outputPath = Files.createTempFile("patch", null);
 
         Consumer<String> outputReader = Logger::info;
-        ShellExecutor shellExecutor = new ShellExecutor(resourcesDir, outputReader);
+        ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
         Path pathA = Paths.get("Version-A");
         Path pathB = Paths.get("Version-B");
@@ -122,7 +128,7 @@ public class ShellExecutorTest {
         Path outputPath = Files.createTempDirectory("Version-C");
 
         Consumer<String> outputReader = Logger::info;
-        ShellExecutor shellExecutor = new ShellExecutor(resourcesDir, outputReader);
+        ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
         Result<Unit, ShellException> result = shellExecutor.execute(new PatchCommand(Paths.get("diff-A-B.txt")).outfile(outputPath));
         assert result.isSuccess();

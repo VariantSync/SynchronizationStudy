@@ -11,7 +11,7 @@ public class PatchCommand implements IShellCommand{
     }
 
     @Override
-    public String[] commandParts() {
+    public String[] parts() {
         throw new NotImplementedException();
     }
 
@@ -21,6 +21,6 @@ public class PatchCommand implements IShellCommand{
 
     @Override
     public String toString() {
-        return "patch: " + Arrays.toString(commandParts());
+        return "patch: " + Arrays.toString(parts());
     }
 }

@@ -15,7 +15,7 @@ public class DiffCommand implements IShellCommand {
     }
 
     @Override
-    public String[] commandParts() {
+    public String[] parts() {
         throw new NotImplementedException();
 
     }
@@ -23,6 +23,6 @@ public class DiffCommand implements IShellCommand {
 
     @Override
     public String toString() {
-        return "diff: " + Arrays.toString(commandParts());
+        return "diff: " + Arrays.toString(parts());
     }
 }

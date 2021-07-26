@@ -6,5 +6,5 @@ public interface IShellCommand {
      *
      * @return the parts of the shell command.
      */
-    String[] commandParts();
+    String[] parts();
 }
