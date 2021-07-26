@@ -12,13 +12,13 @@ import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 
-public class Shell {
+public class ShellExecutor {
 
-    public Shell(Consumer<String> outputReader) {
+    public ShellExecutor(Consumer<String> outputReader) {
 
     }
 
-    public Shell(Path resourcesDir, Consumer<String> outputReader) {
+    public ShellExecutor(Path resourcesDir, Consumer<String> outputReader) {
 
     }
 
