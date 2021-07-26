@@ -14,9 +14,14 @@ public class EchoCommand implements IShellCommand {
 
     @Override
     public String[] parts() {
-        args.addFirst(COMMAND);
-        args.addLast(message);
-        return args.toArray(new String[0]);
+        String[] parts = new String[args.size() + 2];
+        parts[0] = COMMAND;
+        int index = 0;
+        for (; index < args.size(); index++) {
+            parts[index+1] = args.get(index);
+        }
+        parts[index+1] = message;
+        return parts;
     }
 
     @Override

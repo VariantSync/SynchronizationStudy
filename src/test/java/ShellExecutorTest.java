@@ -64,14 +64,17 @@ public class ShellExecutorTest {
         Path resourcesDir = Paths.get("src", "test", "resources", "simple-text");
         Path outputPath = Files.createTempFile("patch", null);
 
-        Consumer<String> outputReader = Logger::info;
+        List<String> output = new ArrayList<>();
+        Consumer<String> outputReader = output::add;
+
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
         Path pathA = Paths.get("text-A.txt");
         Path pathB = Paths.get("text-B.txt");
 
-        Result<Unit, ShellException> result = shellExecutor.execute(DiffCommand.Recommended(pathA, pathB, outputPath));
+        Result<Unit, ShellException> result = shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
         assert result.isSuccess();
+        Files.write(outputPath, output);
 
         // Compare the written output with the expected diff
         List<String> expectedDiff = Files.readAllLines(Paths.get(resourcesDir.toString(), "diff-A-B.txt"));
@@ -101,24 +104,24 @@ public class ShellExecutorTest {
     @Test
     public void diffDirectories() throws IOException {
         Path resourcesDir = Paths.get("src", "test", "resources", "versions");
-        Path outputPath = Files.createTempFile("patch", null);
 
-        Consumer<String> outputReader = Logger::info;
+        List<String> actualDiff = new ArrayList<>();
+        Consumer<String> outputReader = actualDiff::add;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
-        Path pathA = Paths.get("Version-A");
-        Path pathB = Paths.get("Version-B");
-        Result<Unit, ShellException> result = shellExecutor.execute(DiffCommand.Recommended(pathA, pathB, outputPath));
+        Path pathA = Paths.get("version-A");
+        Path pathB = Paths.get("version-B");
+        Result<Unit, ShellException> result = shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
+
         assert result.isSuccess();
         // Compare the written output with the expected diff
         List<String> expectedDiff = Files.readAllLines(Paths.get(resourcesDir.toString(), "diff-A-B.txt"));
-        List<String> actualDiff = Files.readAllLines(outputPath);
         assert expectedDiff.size() == actualDiff.size();
         for (int i = 2; i < expectedDiff.size(); i++) {
             if (expectedDiff.get(i).trim().startsWith("+++") || expectedDiff.get(i).trim().startsWith("---")) {
                 continue;
             }
-            Assertions.assertEquals(expectedDiff.get(i), actualDiff.get(i));
+            Assertions.assertEquals(expectedDiff.get(i).trim(), actualDiff.get(i).trim());
         }
     }
 
