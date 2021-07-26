@@ -3,46 +3,63 @@ package de.variantsync.studies.sync.util;
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;
 import de.variantsync.evolution.util.functional.Unit;
-import de.variantsync.studies.sync.exception.ShellException;
+import de.variantsync.studies.sync.error.SetupError;
+import de.variantsync.studies.sync.error.ShellException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 public class ShellExecutor {
+    private final Consumer<String> outputReader;
+    private final Path workDir;
 
     public ShellExecutor(Consumer<String> outputReader) {
-
+        this.workDir = null;
+        this.outputReader = outputReader;
     }
 
-    public ShellExecutor(Path resourcesDir, Consumer<String> outputReader) {
-
+    public ShellExecutor(Path workDir, Consumer<String> outputReader) {
+        this.workDir = workDir;
+        this.outputReader = outputReader;
     }
 
     public Result<Unit, ShellException> execute(IShellCommand command) {
+        if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
+            throw new SetupError("The synchronization study can only be executed under Linux!");
+        }
+
+        ProcessBuilder builder = new ProcessBuilder();
+        if (workDir != null) {
+            builder.directory(workDir.toFile());
+        }
+        Logger.debug("Executing '" + command + "' in directory " + builder.directory());
+        builder.command(command.commandParts());
+
+
+        Process process;
+        try {
+            process = builder.start();
+            Executors.newSingleThreadExecutor().submit(collectOutput(process.getInputStream(), outputReader));
+        } catch (IOException e) {
+            Logger.error("Was not able to execute " + command, e);
+            return Result.Failure(new ShellException(e));
+        }
+
         return Result.Success(Unit.Instance());
     }
 
-
-    private static class StreamGobbler implements Runnable {
-        private InputStream inputStream;
-        private Consumer<String> consumer;
-
-        public StreamGobbler(InputStream inputStream, Consumer<String> consumer) {
-            this.inputStream = inputStream;
-            this.consumer = consumer;
-        }
-
-        @Override
-        public void run() {
-            try(BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+    private Runnable collectOutput(InputStream inputStream, Consumer<String> consumer) {
+        return () -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 reader.lines().forEach(consumer);
             } catch (IOException e) {
                 Logger.error("Exception thrown while reading stream of Shell command.", e);
             }
-        }
+        };
     }
 }

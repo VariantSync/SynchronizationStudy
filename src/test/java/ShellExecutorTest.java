@@ -1,7 +1,7 @@
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;
 import de.variantsync.evolution.util.functional.Unit;
-import de.variantsync.studies.sync.exception.ShellException;
+import de.variantsync.studies.sync.error.ShellException;
 import de.variantsync.studies.sync.util.DiffCommand;
 import de.variantsync.studies.sync.util.EchoCommand;
 import de.variantsync.studies.sync.util.PatchCommand;
