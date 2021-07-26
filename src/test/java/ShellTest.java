@@ -1,11 +1,14 @@
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;
 import de.variantsync.evolution.util.functional.Unit;
+import de.variantsync.studies.sync.exception.ShellException;
+import de.variantsync.studies.sync.util.DiffCommand;
+import de.variantsync.studies.sync.util.EchoCommand;
+import de.variantsync.studies.sync.util.PatchCommand;
 import de.variantsync.studies.sync.util.Shell;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

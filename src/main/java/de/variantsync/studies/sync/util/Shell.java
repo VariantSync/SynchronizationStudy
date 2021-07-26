@@ -1,18 +1,29 @@
 package de.variantsync.studies.sync.util;
 
 import de.variantsync.evolution.util.Logger;
+import de.variantsync.evolution.util.functional.Result;
+import de.variantsync.evolution.util.functional.Unit;
+import de.variantsync.studies.sync.exception.ShellException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 public class Shell {
-    private final static ProcessBuilder BUILDER = new ProcessBuilder();
 
-    private static ProcessBuilder builder() {
+    public Shell(Consumer<String> outputReader) {
 
+    }
+
+    public Shell(Path resourcesDir, Consumer<String> outputReader) {
+
+    }
+
+    public Result<Unit, ShellException> execute(IShellCommand command) {
+        return Result.Success(Unit.Instance());
     }
 
 
