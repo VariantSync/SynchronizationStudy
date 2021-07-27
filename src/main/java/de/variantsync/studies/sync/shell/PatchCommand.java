@@ -67,17 +67,6 @@ public class PatchCommand implements IShellCommand {
         return this;
     }
 
-    /**
-     * Change to the directory dir immediately, before doing anything else.
-     *
-     * @param directory the directory to change to
-     * @return this command
-     */
-    public PatchCommand directory(Path directory) {
-        this.args.add("--directory=" + directory);
-        return this;
-    }
-
     @Override
     public String[] parts() {
         String[] parts = new String[args.size() + 1];
