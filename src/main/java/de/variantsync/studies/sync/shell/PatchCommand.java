@@ -1,4 +1,4 @@
-package de.variantsync.studies.sync.util;
+package de.variantsync.studies.sync.shell;
 
 import java.nio.file.Path;
 import java.util.Arrays;

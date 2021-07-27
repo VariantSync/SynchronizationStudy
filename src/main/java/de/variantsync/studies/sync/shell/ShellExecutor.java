@@ -1,4 +1,4 @@
-package de.variantsync.studies.sync.util;
+package de.variantsync.studies.sync.shell;
 
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;

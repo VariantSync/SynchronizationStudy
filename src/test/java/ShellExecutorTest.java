@@ -2,10 +2,10 @@ import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;
 import de.variantsync.evolution.util.functional.Unit;
 import de.variantsync.studies.sync.error.ShellException;
-import de.variantsync.studies.sync.util.DiffCommand;
-import de.variantsync.studies.sync.util.EchoCommand;
-import de.variantsync.studies.sync.util.PatchCommand;
-import de.variantsync.studies.sync.util.ShellExecutor;
+import de.variantsync.studies.sync.shell.DiffCommand;
+import de.variantsync.studies.sync.shell.EchoCommand;
+import de.variantsync.studies.sync.shell.PatchCommand;
+import de.variantsync.studies.sync.shell.ShellExecutor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -148,6 +148,35 @@ public class ShellExecutorTest {
         Result<Unit, ShellException> result =
                 shellExecutor.execute(
                         PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
+        assert result.isSuccess();
+        List<Path> versionBPaths =
+                Files.list(Paths.get(resourcesDir.toString(), "version-B")).collect(Collectors.toList());
+        List<Path> versionCPaths = Files.list(outputPath).collect(Collectors.toList());
+
+        for (Path pathB : versionBPaths) {
+            for (Path pathC : versionCPaths) {
+                if (pathB.toFile().getName().equals(pathC.toFile().getName())) {
+                    try {
+                        Assertions.assertLinesMatch(Files.readAllLines(pathB), Files.readAllLines(pathC));
+                    } catch (IOException e) {
+                        throw new AssertionError(e);
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void finePatchSameResult() throws IOException {
+        Path resourcesDir = Paths.get("src", "test", "resources", "patch-breakdown");
+        Path outputPath = Files.createTempDirectory("Version-C");
+
+        Consumer<String> outputReader = Logger::info;
+        ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
+
+        Result<Unit, ShellException> result =
+                shellExecutor.execute(
+                        PatchCommand.Recommended(Paths.get("fine-diff-A-B.txt")).outfile(outputPath));
         assert result.isSuccess();
         List<Path> versionBPaths =
                 Files.list(Paths.get(resourcesDir.toString(), "version-B")).collect(Collectors.toList());
