@@ -1,10 +1,8 @@
 package de.variantsync.studies.sync.util;
 
 import java.util.Arrays;
-import java.util.LinkedList;
 
 public class EchoCommand implements IShellCommand {
-    private final LinkedList<String> args = new LinkedList<>();
     private final String COMMAND = "echo";
     private final String message;
 
@@ -14,13 +12,9 @@ public class EchoCommand implements IShellCommand {
 
     @Override
     public String[] parts() {
-        String[] parts = new String[args.size() + 2];
+        String[] parts = new String[2];
         parts[0] = COMMAND;
-        int index = 0;
-        for (; index < args.size(); index++) {
-            parts[index+1] = args.get(index);
-        }
-        parts[index+1] = message;
+        parts[1] = message;
         return parts;
     }
 

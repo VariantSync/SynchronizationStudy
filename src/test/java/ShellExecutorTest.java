@@ -16,7 +16,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 public class ShellExecutorTest {
     static Consumer<String> errorReader = Logger::error;
@@ -94,7 +94,7 @@ public class ShellExecutorTest {
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
-        Result<Unit, ShellException> result = shellExecutor.execute(new PatchCommand(Paths.get("diff-A-B.txt")).outfile(outputPath));
+        Result<Unit, ShellException> result = shellExecutor.execute(PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
         assert result.isSuccess();
         List<String> expectedPatchResult = Files.readAllLines(Paths.get(resourcesDir.toString(), "patch-result.txt"));
         List<String> actualResult = Files.readAllLines(Paths.get(resourcesDir.toString(),"text-B.txt"));
@@ -133,19 +133,21 @@ public class ShellExecutorTest {
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
-        Result<Unit, ShellException> result = shellExecutor.execute(new PatchCommand(Paths.get("diff-A-B.txt")).outfile(outputPath));
+        Result<Unit, ShellException> result = shellExecutor.execute(PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
         assert result.isSuccess();
-        Stream<Path> versionBPaths = Files.list(Paths.get(resourcesDir.toString(), "version-B"));
-        Stream<Path> versionCPaths = Files.list(outputPath);
+        List<Path> versionBPaths = Files.list(Paths.get(resourcesDir.toString(), "version-B")).collect(Collectors.toList());
+        List<Path> versionCPaths = Files.list(outputPath).collect(Collectors.toList());
 
-        versionBPaths.forEach(pathB -> versionCPaths.forEach(pathC -> {
-            if (pathB.toFile().getName().equals(pathC.toFile().getName())) {
-                try {
-                    Assertions.assertLinesMatch(Files.readAllLines(pathB), Files.readAllLines(pathC));
-                } catch (IOException e) {
-                    throw new AssertionError(e);
+        for(Path pathB : versionBPaths) {
+            for (Path pathC : versionCPaths) {
+                if (pathB.toFile().getName().equals(pathC.toFile().getName())) {
+                    try {
+                        Assertions.assertLinesMatch(Files.readAllLines(pathB), Files.readAllLines(pathC));
+                    } catch (IOException e) {
+                        throw new AssertionError(e);
+                    }
                 }
             }
-        }));
+        }
     }
 }
