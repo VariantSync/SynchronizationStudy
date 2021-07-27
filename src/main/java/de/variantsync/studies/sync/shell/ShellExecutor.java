@@ -11,7 +11,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -45,18 +47,29 @@ public class ShellExecutor {
         builder.command(command.parts());
 
         Process process;
+        Future<?> outputFuture;
+        Future<?> errorFuture;
         try {
             process = builder.start();
-            Executors.newSingleThreadExecutor()
+            outputFuture = Executors.newSingleThreadExecutor()
                     .submit(collectOutput(process.getInputStream(), outputReader));
-            Executors.newSingleThreadExecutor()
+            errorFuture = Executors.newSingleThreadExecutor()
                     .submit(collectOutput(process.getErrorStream(), errorReader));
         } catch (IOException e) {
             Logger.error("Was not able to execute " + command, e);
             return Result.Failure(new ShellException(e));
         }
 
-        return Result.Success(Unit.Instance());
+        int exitCode;
+        try {
+            exitCode = process.waitFor();
+            outputFuture.get();
+            errorFuture.get();
+        } catch (InterruptedException | ExecutionException e) {
+            Logger.error("Interrupted while waiting for process to end.", e);
+            return Result.Failure(new ShellException(e));
+        }
+        return command.interpretResult(exitCode);
     }
 
     private Runnable collectOutput(InputStream inputStream, Consumer<String> consumer) {

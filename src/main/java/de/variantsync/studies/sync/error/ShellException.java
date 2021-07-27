@@ -5,4 +5,8 @@ public class ShellException extends Exception {
     public ShellException(Exception e) {
         super(e);
     }
+
+    public ShellException(String s) {
+        super(s);
+    }
 }

@@ -1,5 +1,9 @@
 package de.variantsync.studies.sync.shell;
 
+import de.variantsync.evolution.util.functional.Result;
+import de.variantsync.evolution.util.functional.Unit;
+import de.variantsync.studies.sync.error.ShellException;
+
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -79,5 +83,10 @@ public class DiffCommand implements IShellCommand {
     @Override
     public String toString() {
         return "diff: " + Arrays.toString(parts());
+    }
+
+    @Override
+    public Result<Unit, ShellException> interpretResult(int code) {
+        return code == 0 || code == 1 ? Result.Success(Unit.Instance()) : Result.Failure(new ShellException(String.valueOf(code)));
     }
 }
