@@ -14,7 +14,11 @@ public class DiffCommand implements IShellCommand {
     }
 
     public static DiffCommand Recommended(Path pathA, Path pathB) {
-        return new DiffCommand(pathA.toString(), pathB.toString()).newFile().text().unified().recursive();
+        return new DiffCommand(pathA.toString(), pathB.toString())
+                .newFile()
+                .text()
+                .unified()
+                .recursive();
     }
 
     @Override
@@ -24,16 +28,17 @@ public class DiffCommand implements IShellCommand {
         parts[0] = COMMAND;
         int index = 0;
         for (; index < args.size(); index++) {
-            parts[index+1] = args.get(index);
+            parts[index + 1] = args.get(index);
         }
-        for (;index < args.size() + files.length; index++) {
-            parts[index+1] = files[index-args.size()];
+        for (; index < args.size() + files.length; index++) {
+            parts[index + 1] = files[index - args.size()];
         }
         return parts;
     }
 
     /**
      * Treat absent files as empty
+     *
      * @return this command
      */
     public DiffCommand newFile() {
@@ -43,6 +48,7 @@ public class DiffCommand implements IShellCommand {
 
     /**
      * Treat all files as text
+     *
      * @return this command
      */
     public DiffCommand text() {
@@ -52,6 +58,7 @@ public class DiffCommand implements IShellCommand {
 
     /**
      * Output three lines of unified context
+     *
      * @return this command
      */
     public DiffCommand unified() {
@@ -61,6 +68,7 @@ public class DiffCommand implements IShellCommand {
 
     /**
      * Recursively compare any subdirectories found
+     *
      * @return this command
      */
     public DiffCommand recursive() {

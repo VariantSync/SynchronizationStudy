@@ -28,10 +28,11 @@ public class ShellExecutorTest {
     @Test
     public void echo() {
         String testString = "This is a call from ShellTest.";
-        Consumer<String> outputReader = s -> {
-            Logger.info(s);
-            assert testString.equals(s);
-        };
+        Consumer<String> outputReader =
+                s -> {
+                    Logger.info(s);
+                    assert testString.equals(s);
+                };
         Logger.info("I am here");
 
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader);
@@ -49,10 +50,12 @@ public class ShellExecutorTest {
         Path pathA = Paths.get("text-A.txt");
         Path pathB = Paths.get("text-B.txt");
 
-        Result<Unit, ShellException> result = shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
+        Result<Unit, ShellException> result =
+                shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
 
         assert result.isSuccess();
-        List<String> expectedDiff = Files.readAllLines(Paths.get(resourcesDir.toString(), "diff-A-B.txt"));
+        List<String> expectedDiff =
+                Files.readAllLines(Paths.get(resourcesDir.toString(), "diff-A-B.txt"));
         assert expectedDiff.size() == output.size();
         for (int i = 2; i < expectedDiff.size(); i++) {
             Assertions.assertEquals(expectedDiff.get(i), output.get(i));
@@ -72,12 +75,14 @@ public class ShellExecutorTest {
         Path pathA = Paths.get("text-A.txt");
         Path pathB = Paths.get("text-B.txt");
 
-        Result<Unit, ShellException> result = shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
+        Result<Unit, ShellException> result =
+                shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
         assert result.isSuccess();
         Files.write(outputPath, output);
 
         // Compare the written output with the expected diff
-        List<String> expectedDiff = Files.readAllLines(Paths.get(resourcesDir.toString(), "diff-A-B.txt"));
+        List<String> expectedDiff =
+                Files.readAllLines(Paths.get(resourcesDir.toString(), "diff-A-B.txt"));
         List<String> actualDiff = Files.readAllLines(outputPath);
 
         assert expectedDiff.size() == actualDiff.size();
@@ -94,10 +99,14 @@ public class ShellExecutorTest {
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
-        Result<Unit, ShellException> result = shellExecutor.execute(PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
+        Result<Unit, ShellException> result =
+                shellExecutor.execute(
+                        PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
         assert result.isSuccess();
-        List<String> expectedPatchResult = Files.readAllLines(Paths.get(resourcesDir.toString(), "patch-result.txt"));
-        List<String> actualResult = Files.readAllLines(Paths.get(resourcesDir.toString(),"text-B.txt"));
+        List<String> expectedPatchResult =
+                Files.readAllLines(Paths.get(resourcesDir.toString(), "patch-result.txt"));
+        List<String> actualResult =
+                Files.readAllLines(Paths.get(resourcesDir.toString(), "text-B.txt"));
         Assertions.assertLinesMatch(expectedPatchResult, actualResult);
     }
 
@@ -111,14 +120,17 @@ public class ShellExecutorTest {
 
         Path pathA = Paths.get("version-A");
         Path pathB = Paths.get("version-B");
-        Result<Unit, ShellException> result = shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
+        Result<Unit, ShellException> result =
+                shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
 
         assert result.isSuccess();
         // Compare the written output with the expected diff
-        List<String> expectedDiff = Files.readAllLines(Paths.get(resourcesDir.toString(), "diff-A-B.txt"));
+        List<String> expectedDiff =
+                Files.readAllLines(Paths.get(resourcesDir.toString(), "diff-A-B.txt"));
         assert expectedDiff.size() == actualDiff.size();
         for (int i = 2; i < expectedDiff.size(); i++) {
-            if (expectedDiff.get(i).trim().startsWith("+++") || expectedDiff.get(i).trim().startsWith("---")) {
+            if (expectedDiff.get(i).trim().startsWith("+++")
+                    || expectedDiff.get(i).trim().startsWith("---")) {
                 continue;
             }
             Assertions.assertEquals(expectedDiff.get(i).trim(), actualDiff.get(i).trim());
@@ -133,12 +145,15 @@ public class ShellExecutorTest {
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
-        Result<Unit, ShellException> result = shellExecutor.execute(PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
+        Result<Unit, ShellException> result =
+                shellExecutor.execute(
+                        PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
         assert result.isSuccess();
-        List<Path> versionBPaths = Files.list(Paths.get(resourcesDir.toString(), "version-B")).collect(Collectors.toList());
+        List<Path> versionBPaths =
+                Files.list(Paths.get(resourcesDir.toString(), "version-B")).collect(Collectors.toList());
         List<Path> versionCPaths = Files.list(outputPath).collect(Collectors.toList());
 
-        for(Path pathB : versionBPaths) {
+        for (Path pathB : versionBPaths) {
             for (Path pathC : versionCPaths) {
                 if (pathB.toFile().getName().equals(pathC.toFile().getName())) {
                     try {

@@ -43,12 +43,13 @@ public class ShellExecutor {
         Logger.debug("Executing '" + command + "' in directory " + builder.directory());
         builder.command(command.parts());
 
-
         Process process;
         try {
             process = builder.start();
-            Executors.newSingleThreadExecutor().submit(collectOutput(process.getInputStream(), outputReader));
-            Executors.newSingleThreadExecutor().submit(collectOutput(process.getErrorStream(), outputReader));
+            Executors.newSingleThreadExecutor()
+                    .submit(collectOutput(process.getInputStream(), outputReader));
+            Executors.newSingleThreadExecutor()
+                    .submit(collectOutput(process.getErrorStream(), outputReader));
         } catch (IOException e) {
             Logger.error("Was not able to execute " + command, e);
             return Result.Failure(new ShellException(e));
