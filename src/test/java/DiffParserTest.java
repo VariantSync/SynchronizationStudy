@@ -11,6 +11,14 @@ import java.util.List;
 public class DiffParserTest {
 
     @Test
+    public void parseBackToLines() throws IOException {
+        Path resourceDir = Paths.get("src", "test", "resources", "patch-breakdown");
+        List<String> diffLines = Files.readAllLines(Paths.get(resourceDir.toString(), "diff-A-B.txt"));
+        IDiffComponent originalDiff = DiffParser.toOriginalDiff(diffLines);
+        Assertions.assertEquals(diffLines, originalDiff.toLines());
+    }
+
+    @Test
     public void loadOriginalDiff() throws IOException {
         Path resourceDir = Paths.get("src", "test", "resources", "patch-breakdown");
         List<String> diffLines = Files.readAllLines(Paths.get(resourceDir.toString(), "diff-A-B.txt"));
