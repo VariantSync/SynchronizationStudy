@@ -7,14 +7,9 @@ import java.util.LinkedList;
 public class PatchCommand implements IShellCommand {
     private static final String COMMAND = "patch";
     private final LinkedList<String> args = new LinkedList<>();
-    private final String patchFile;
-
-    public PatchCommand(Path patchFile) {
-        this.patchFile = "< " + patchFile;
-    }
 
     public static PatchCommand Recommended(Path patchFile) {
-        return new PatchCommand(patchFile).forward().strip(1);
+        return new PatchCommand().input(patchFile).forward().strip(1);
     }
 
     /**
@@ -53,20 +48,41 @@ public class PatchCommand implements IShellCommand {
      * @return this command
      */
     public PatchCommand outfile(Path outputPath) {
-        this.args.add("-output=" + outputPath);
+        this.args.add("--output=" + outputPath);
+        return this;
+    }
+
+    /**
+     * Read the patch from patchfile.  If patchfile is -, read from standard input, the default.
+     *
+     * @param patchFile the file to load
+     * @return this command
+     */
+    public PatchCommand input(Path patchFile) {
+        this.args.add("--input=" + patchFile);
+        return this;
+    }
+
+    /**
+     * Change to the directory dir immediately, before doing anything else.
+     *
+     * @param directory the directory to change to
+     * @return this command
+     */
+    public PatchCommand directory(Path directory) {
+        this.args.add("--directory=" + directory);
         return this;
     }
 
     @Override
     public String[] parts() {
-        String[] parts = new String[args.size() + 2];
+        String[] parts = new String[args.size() + 1];
 
         parts[0] = COMMAND;
         int index = 0;
         for (; index < args.size(); index++) {
             parts[index + 1] = args.get(index);
         }
-        parts[index + 1] = patchFile;
         return parts;
     }
 

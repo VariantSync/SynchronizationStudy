@@ -1,11 +1,9 @@
+import de.variantsync.evolution.util.LogLevel;
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;
 import de.variantsync.evolution.util.functional.Unit;
 import de.variantsync.studies.sync.error.ShellException;
-import de.variantsync.studies.sync.shell.DiffCommand;
-import de.variantsync.studies.sync.shell.EchoCommand;
-import de.variantsync.studies.sync.shell.PatchCommand;
-import de.variantsync.studies.sync.shell.ShellExecutor;
+import de.variantsync.studies.sync.shell.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +21,7 @@ public class ShellExecutorTest {
 
     static {
         Logger.initConsoleLogger();
+        Logger.setLogLevel(LogLevel.DEBUG);
     }
 
     @Test
@@ -138,20 +137,24 @@ public class ShellExecutorTest {
     }
 
     @Test
-    public void patchDirectory() throws IOException {
+    public void patchDirectory() throws IOException, InterruptedException {
         Path resourcesDir = Paths.get("src", "test", "resources", "versions");
-        Path outputPath = Files.createTempDirectory("Version-C");
+        Path outputRootDir = Files.createTempDirectory(null);
+        Path outputDir = outputRootDir.resolve("version-A");
 
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
+        Result<Unit, ShellException> copyResult = shellExecutor.execute(new CpCommand(Paths.get("version-A"), outputDir).recursive());
+        assert copyResult.isSuccess();
 
-        Result<Unit, ShellException> result =
-                shellExecutor.execute(
-                        PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
+        shellExecutor = new ShellExecutor(outputReader, errorReader, outputDir);
+        Result<Unit, ShellException> result = shellExecutor.execute(
+                PatchCommand.Recommended(resourcesDir.resolve("diff-A-B.txt").toAbsolutePath()));
         assert result.isSuccess();
         List<Path> versionBPaths =
                 Files.list(Paths.get(resourcesDir.toString(), "version-B")).collect(Collectors.toList());
-        List<Path> versionCPaths = Files.list(outputPath).collect(Collectors.toList());
+        List<Path> versionCPaths = Files.list(outputDir).collect(Collectors.toList());
+        assert versionBPaths.size() == versionCPaths.size();
 
         for (Path pathB : versionBPaths) {
             for (Path pathC : versionCPaths) {
@@ -169,18 +172,22 @@ public class ShellExecutorTest {
     @Test
     public void finePatchSameResult() throws IOException {
         Path resourcesDir = Paths.get("src", "test", "resources", "patch-breakdown");
-        Path outputPath = Files.createTempDirectory("Version-C");
+        Path outputRootDir = Files.createTempDirectory(null);
+        Path outputDir = outputRootDir.resolve("version-A");
 
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
+        Result<Unit, ShellException> copyResult = shellExecutor.execute(new CpCommand(Paths.get("version-A"), outputDir).recursive());
+        assert copyResult.isSuccess();
 
-        Result<Unit, ShellException> result =
-                shellExecutor.execute(
-                        PatchCommand.Recommended(Paths.get("fine-diff-A-B.txt")).outfile(outputPath));
+        shellExecutor = new ShellExecutor(outputReader, errorReader, outputDir);
+        Result<Unit, ShellException> result = shellExecutor.execute(
+                PatchCommand.Recommended(resourcesDir.resolve("fine-diff-A-B.txt").toAbsolutePath()));
         assert result.isSuccess();
         List<Path> versionBPaths =
                 Files.list(Paths.get(resourcesDir.toString(), "version-B")).collect(Collectors.toList());
-        List<Path> versionCPaths = Files.list(outputPath).collect(Collectors.toList());
+        List<Path> versionCPaths = Files.list(outputDir).collect(Collectors.toList());
+        assert versionBPaths.size() <= versionCPaths.size();
 
         for (Path pathB : versionBPaths) {
             for (Path pathC : versionCPaths) {

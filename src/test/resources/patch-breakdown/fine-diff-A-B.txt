@@ -30,9 +30,9 @@ diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
      cars.add("Volvo");
      cars.add("BMW");
 -    cars.add("Ford");
+     cars.add("Mazda");
 
      // Get the iterator
-     Iterator<String> it = cars.iterator();
 \ No newline at end of file
 diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
 --- version-A/second-file.txt   2021-07-26 12:54:22.274422140 +0000
@@ -66,5 +66,86 @@ diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
      // Print the second item
 +    System.out.println(it.next());
    }
+ }
+\ No newline at end of file
+diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
+--- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
++++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
+@@ -1,7 +1,6 @@
+ public class Main {
+   final int x = 10;
+   final double PI = 3.14;
+-
+   public static void main(String[] args) {
+     Main myObj = new Main();
+     myObj.x = 50; // will generate an error: cannot assign a value to a final variable
+\ No newline at end of file
+diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
+--- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
++++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
+@@ -1,7 +1,6 @@
+ public class Main {
+   final int x = 10;
+   final double PI = 3.14;
+-  public static void main(String[] args) {
+     Main myObj = new Main();
+     myObj.x = 50; // will generate an error: cannot assign a value to a final variable
+     myObj.PI = 25; // will generate an error: cannot assign a value to a final variable
+\ No newline at end of file
+diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
+--- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
++++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
+@@ -1,7 +1,6 @@
+ public class Main {
+   final int x = 10;
+   final double PI = 3.14;
+-    Main myObj = new Main();
+     myObj.x = 50; // will generate an error: cannot assign a value to a final variable
+     myObj.PI = 25; // will generate an error: cannot assign a value to a final variable
+     System.out.println(myObj.x);
+\ No newline at end of file
+diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
+--- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
++++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
+@@ -1,7 +1,6 @@
+ public class Main {
+   final int x = 10;
+   final double PI = 3.14;
+-    myObj.x = 50; // will generate an error: cannot assign a value to a final variable
+     myObj.PI = 25; // will generate an error: cannot assign a value to a final variable
+     System.out.println(myObj.x);
+   }
+\ No newline at end of file
+diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
+--- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
++++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
+@@ -1,7 +1,6 @@
+ public class Main {
+   final int x = 10;
+   final double PI = 3.14;
+-    myObj.PI = 25; // will generate an error: cannot assign a value to a final variable
+     System.out.println(myObj.x);
+   }
+ }
+\ No newline at end of file
+diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
+--- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
++++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
+@@ -1,6 +1,5 @@
+ public class Main {
+   final int x = 10;
+   final double PI = 3.14;
+-    System.out.println(myObj.x);
+   }
+ }
+\ No newline at end of file
+diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
+--- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
++++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
+@@ -1,5 +1,4 @@
+ public class Main {
+   final int x = 10;
+   final double PI = 3.14;
+-  }
  }
 \ No newline at end of file

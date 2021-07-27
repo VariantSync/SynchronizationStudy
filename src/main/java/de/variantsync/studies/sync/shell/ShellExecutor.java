@@ -13,6 +13,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class ShellExecutor {
     private final Consumer<String> outputReader;
@@ -49,7 +50,7 @@ public class ShellExecutor {
             Executors.newSingleThreadExecutor()
                     .submit(collectOutput(process.getInputStream(), outputReader));
             Executors.newSingleThreadExecutor()
-                    .submit(collectOutput(process.getErrorStream(), outputReader));
+                    .submit(collectOutput(process.getErrorStream(), errorReader));
         } catch (IOException e) {
             Logger.error("Was not able to execute " + command, e);
             return Result.Failure(new ShellException(e));
