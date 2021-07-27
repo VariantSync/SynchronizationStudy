@@ -84,8 +84,4 @@ public class PatchCommand implements IShellCommand {
         return "patch: " + Arrays.toString(parts());
     }
 
-    @Override
-    public Result<Unit, ShellException> interpretResult(int code) {
-        return code == 0 || code == 1 ? Result.Success(Unit.Instance()) : Result.Failure(new ShellException(String.valueOf(code)));
-    }
 }
