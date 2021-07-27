@@ -16,14 +16,16 @@ public class DiffParserTest {
         List<String> diffLines = Files.readAllLines(Paths.get(resourceDir.toString(), "diff-A-B.txt"));
         OriginalDiff originalDiff = DiffParser.toOriginalDiff(diffLines);
 
-        List<DiffHunk> hunks = originalDiff.hunks();
-        assert hunks.size() == 3;
+        List<FileDiff> fileDiffs = originalDiff.fileDiffs();
 
-        for (int i = 0; i < hunks.size(); i++) {
-            DiffHunk hunk = hunks.get(i);
+        assert fileDiffs.size() == 3;
+
+        for (int i = 0; i < fileDiffs.size(); i++) {
+            assert fileDiffs.get(i).hunks().size() == 1;
+            Hunk hunk = fileDiffs.get(i).hunks().get(0);
             HunkLocation sourceLocation = hunk.sourceLocation();
             HunkLocation targetLocation = hunk.targetLocation();
-            List<DiffLine> hunkContent = hunk.content();
+            List<Line> hunkContent = hunk.content();
 
             switch (i) {
                 case 0 -> {

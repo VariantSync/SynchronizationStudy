@@ -1,9 +1,9 @@
 package de.variantsync.studies.sync.diff;
 
-public abstract class DiffLine {
+public abstract class Line {
     private final String line;
 
-    protected DiffLine(String line) {
+    protected Line(String line) {
         this.line = line;
     }
 
