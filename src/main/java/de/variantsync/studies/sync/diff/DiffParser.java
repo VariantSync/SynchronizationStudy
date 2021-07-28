@@ -92,7 +92,7 @@ public class DiffParser {
 
     private static Hunk parseHunk(List<String> lines) {
         // Parse the header
-        LocationPair locationPair = parseHunkHeader(lines.get(0));
+        HunkLocation location = parseHunkHeader(lines.get(0));
         List<Line> content = new LinkedList<>();
         for (int i = 1; i < lines.size(); i++) {
             String line = lines.get(i);
@@ -106,22 +106,14 @@ public class DiffParser {
                 content.add(new ContextLine(line));
             }
         }
-        return new Hunk(locationPair.sourceLocation, locationPair.targetLocation, content);
+        return new Hunk(location, content);
     }
 
-    private static LocationPair parseHunkHeader(String line) {
+    private static HunkLocation parseHunkHeader(String line) {
         String[] parts = line.split("\\s+");
         String sourceLocationString = parts[1].substring(1);
         String targetLocationString = parts[2].substring(1);
 
-        parts = sourceLocationString.split(",");
-        HunkLocation source = new HunkLocation(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
-
-        parts = targetLocationString.split(",");
-        HunkLocation target = new HunkLocation(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]));
-        return new LocationPair(source, target);
-    }
-
-    private record LocationPair(HunkLocation sourceLocation, HunkLocation targetLocation) {
+        return new HunkLocation(Integer.parseInt(sourceLocationString.split(",")[0]), Integer.parseInt(targetLocationString.split(",")[0]));
     }
 }

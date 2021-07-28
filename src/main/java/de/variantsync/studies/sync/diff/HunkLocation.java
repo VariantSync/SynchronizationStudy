@@ -1,4 +1,4 @@
 package de.variantsync.studies.sync.diff;
 
-public record HunkLocation(int startLine, int size) {
+public record HunkLocation(int startLineSource, int startLineTarget) {
 }

@@ -31,8 +31,8 @@ public class DiffSplitterTest {
     }
 
     @Test
-    public void splitToEditSizedHunks() throws IOException {
-        Path pathToExpectedResult = resourceDir.resolve("splitToEditSizedHunks.txt");
+    public void splitToBasicFineDiff() throws IOException {
+        Path pathToExpectedResult = resourceDir.getParent().resolve("fine-diff-A-B.txt");
         runComparison(pathToExpectedResult);
     }
 
