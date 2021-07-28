@@ -1,6 +1,4 @@
-import de.variantsync.studies.sync.diff.DiffParser;
-import de.variantsync.studies.sync.diff.DiffSplitter;
-import de.variantsync.studies.sync.diff.FineDiff;
+import de.variantsync.studies.sync.diff.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -11,13 +9,126 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class DiffSplitterTest {
-    @Test
-    public void exampleDiffParsedCorrectly() throws IOException {
-        Path resourceDir = Paths.get("src", "test", "resources", "patch-breakdown");
-        List<String> diffLines = Files.readAllLines(Paths.get(resourceDir.toString(), "diff-A-B.txt"));
-        FineDiff fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines));
+    Path resourceDir = Paths.get("src", "test", "resources", "patch-breakdown", "splits");
 
-        List<String> expectedResult = Files.readAllLines(Paths.get(resourceDir.toString(), "fine-diff-A-B.txt"));
-        Assertions.assertEquals(expectedResult, fineDiff.toLines());
+    private void runComparison(Path pathToExpectedResult, IContextProvider contextProvider, IFileDiffFilter fileDiffFilter, ILineFilter lineFilter) throws IOException {
+        List<String> diffLines = Files.readAllLines(Paths.get(resourceDir.toString(), "diff-A-B.txt"));
+        FineDiff fineDiff;
+        if (contextProvider == null && fileDiffFilter == null && lineFilter == null) {
+            fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines));
+        } else if (contextProvider != null && fileDiffFilter != null && lineFilter != null) {
+            fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), contextProvider, fileDiffFilter, lineFilter);
+        } else {
+            throw new IllegalArgumentException();
+        }
+
+        List<String> expectedLines = Files.readAllLines(pathToExpectedResult);
+        Assertions.assertEquals(expectedLines, fineDiff.toLines());
+    }
+
+    private void runComparison(Path pathToExpectedResult) throws IOException {
+        runComparison(pathToExpectedResult, null, null, null);
+    }
+
+    @Test
+    public void splitToEditSizedHunks() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("splitToEditSizedHunks.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterAllFiles() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterAllFiles.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterFirstFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterFirstFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterEmptyLineOfThirdFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterEmptyLineOfThirdFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterAllHunksOfSecondFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterAllHunksOfSecondFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterMyObjEditsInThirdFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterMyObjEditsInThirdFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterZumZumInsertionInFirstFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterZumZumInsertionInFirstFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterBlablaInsertionInFirstFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterBlablaInsertionInFirstFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterFordDeletionInSecondFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterFordDeletionInSecondFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterMazdaDeletionInSecondFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterMazdaDeletionInSecondFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterOneLineOfLeadingContextOfFirstFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterOneLineOfLeadingContextOfFirstFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterTwoLinesOfLeadingContextOfFirstFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterTwoLinesOfLeadingContextOfFirstFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterAllLinesOfLeadingContextOfFirstFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterAllLinesOfLeadingContextOfFirstFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterOneLineOfContextBetweenEditsOfSecondFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterOneLineOfContextBetweenEditsOfSecondFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterThreeLinesOfContextBetweenEditsOfSecondFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterThreeLinesOfContextBetweenEditsOfSecondFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterAllContextBetweenEditsOfSecondFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterAllContextBetweenEditsOfSecondFile.txt");
+        runComparison(pathToExpectedResult);
+    }
+
+    @Test
+    public void filterTrailingContextOfThirdFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterTrailingContextOfThirdFile.txt");
+        runComparison(pathToExpectedResult);
     }
 }
