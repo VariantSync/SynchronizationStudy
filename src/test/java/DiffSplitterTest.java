@@ -16,19 +16,17 @@ public class DiffSplitterTest {
         FineDiff fineDiff;
         if (contextProvider == null && fileDiffFilter == null && lineFilter == null) {
             fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines));
-        } else if (contextProvider != null && fileDiffFilter != null && lineFilter != null) {
-            fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), fileDiffFilter, lineFilter, contextProvider);
         } else {
-            throw new IllegalArgumentException();
+            fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), fileDiffFilter, lineFilter, contextProvider);
         }
 
         List<String> expectedLines = Files.readAllLines(pathToExpectedResult);
         List<String> actualLines = fineDiff.toLines();
-        Assertions.assertEquals(actualLines.size(), expectedLines.size());
+        Assertions.assertEquals(expectedLines.size(), actualLines.size());
         for (int i = 0; i < expectedLines.size(); i++) {
-            String expectedLine = expectedLines.get(i);
             String actualLine = actualLines.get(i);
-            Assertions.assertEquals(expectedLine, actualLine);
+            String expectedLine = expectedLines.get(i);
+            Assertions.assertEquals(actualLine, expectedLine);
         }
     }
 
@@ -51,7 +49,7 @@ public class DiffSplitterTest {
     @Test
     public void filterFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterFirstFile.txt");
-        runComparison(pathToExpectedResult);
+        runComparison(pathToExpectedResult, null, f -> !f.oldFile().contains("first-file.txt"), null);
     }
 
     @Test

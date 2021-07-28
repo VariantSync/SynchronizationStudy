@@ -7,10 +7,14 @@ import java.util.List;
 public class DiffSplitter {
 
     public static FineDiff split(OriginalDiff diff) {
-        return split(diff, f -> true, l -> true, new DefaultContextProvider());
+        return split(diff, null, null, null);
     }
 
     public static FineDiff split(OriginalDiff originalDiff, IFileDiffFilter fileFilter, ILineFilter lineFilter, IContextProvider contextProvider) {
+        fileFilter = fileFilter == null ? f -> true : fileFilter;
+        lineFilter = lineFilter == null ? l -> true : lineFilter;
+        contextProvider = contextProvider == null ? new DefaultContextProvider() : contextProvider;
+
         // The list in which we will collect the
         List<FileDiff> splitFileDiffs = new LinkedList<>();
 
