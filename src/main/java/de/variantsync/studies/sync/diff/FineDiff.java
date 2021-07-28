@@ -1,7 +1,6 @@
 package de.variantsync.studies.sync.diff;
 
-import de.variantsync.evolution.util.NotImplementedException;
-
+import java.util.LinkedList;
 import java.util.List;
 
 public class FineDiff implements IDiffComponent {
@@ -14,6 +13,8 @@ public class FineDiff implements IDiffComponent {
 
     @Override
     public List<String> toLines() {
-        throw new NotImplementedException();
+        List<String> lines = new LinkedList<>();
+        content.stream().map(IDiffComponent::toLines).forEach(lines::addAll);
+        return lines;
     }
 }

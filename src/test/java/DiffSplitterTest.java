@@ -23,7 +23,13 @@ public class DiffSplitterTest {
         }
 
         List<String> expectedLines = Files.readAllLines(pathToExpectedResult);
-        Assertions.assertEquals(expectedLines, fineDiff.toLines());
+        List<String> actualLines = fineDiff.toLines();
+        Assertions.assertEquals(actualLines.size(), expectedLines.size());
+        for (int i = 0; i < expectedLines.size(); i++) {
+            String expectedLine = expectedLines.get(i);
+            String actualLine = actualLines.get(i);
+            Assertions.assertEquals(expectedLine, actualLine);
+        }
     }
 
     private void runComparison(Path pathToExpectedResult) throws IOException {

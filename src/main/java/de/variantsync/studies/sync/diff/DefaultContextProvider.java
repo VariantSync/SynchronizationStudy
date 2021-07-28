@@ -1,23 +1,61 @@
 package de.variantsync.studies.sync.diff;
 
-import de.variantsync.evolution.util.NotImplementedException;
-
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 public class DefaultContextProvider implements IContextProvider {
-    private final OriginalDiff originalDiff;
+    private final int contextSize;
 
-    public DefaultContextProvider(OriginalDiff originalDiff) {
-        this.originalDiff = originalDiff;
+    public DefaultContextProvider() {
+        // Three is the default size set in unix diff
+        this(3);
+    }
+
+    public DefaultContextProvider(int contextSize) {
+        this.contextSize = contextSize;
     }
 
     @Override
-    public List<ContextLine> leadingContext(String filePath, int lineNumber, Line line) {
-        throw new NotImplementedException();
+    public List<Line> leadingContext(String filePath, Hunk hunk, int lineNumber) {
+        List<Line> lines = new LinkedList<>();
+        for (int i = lineNumber - 1; i >= 0; i--) {
+            Line currentLine = hunk.content().get(i);
+            if (currentLine instanceof MetaLine metaLine) {
+                lines.add(metaLine);
+            } else {
+                if (lines.size() >= contextSize) {
+                    break;
+                }
+                if (currentLine instanceof ContextLine contextLine) {
+                    lines.add(contextLine);
+                } else if (currentLine instanceof AddedLine addedLine) {
+                    lines.add(new ContextLine(addedLine));
+                }
+            }
+        }
+        Collections.reverse(lines);
+        return lines;
     }
 
     @Override
-    public List<ContextLine> trailingContext(String filePath, int lineNumber, Line line) {
-        throw new NotImplementedException();
+    public List<Line> trailingContext(String filePath, Hunk hunk, int lineNumber) {
+        List<Line> lines = new LinkedList<>();
+        for (int i = lineNumber + 1; i < hunk.content().size(); i++) {
+            Line currentLine = hunk.content().get(i);
+            if (currentLine instanceof MetaLine metaLine) {
+                lines.add(metaLine);
+            } else {
+                if (lines.size() >= contextSize) {
+                    break;
+                }
+                if (currentLine instanceof ContextLine contextLine) {
+                    lines.add(contextLine);
+                } else if (currentLine instanceof RemovedLine removedLine) {
+                    lines.add(new ContextLine(removedLine));
+                }
+            }
+        }
+        return lines;
     }
 }
