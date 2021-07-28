@@ -1,16 +1,12 @@
-package de.variantsync.studies.sync.diff;
+package de.variantsync.studies.sync.diff.lines;
 
 public class ContextLine extends Line {
-    protected ContextLine(String line) {
+    public ContextLine(String line) {
         super(line);
     }
 
-    protected ContextLine(AddedLine line) {
+    public ContextLine(AddedLine line) {
         super(line.line().replaceFirst("\\+", " "));
-    }
-
-    protected ContextLine(MetaLine line) {
-        super(line.line());
     }
 
     public ContextLine(RemovedLine removedLine) {

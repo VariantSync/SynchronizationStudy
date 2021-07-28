@@ -1,4 +1,9 @@
-package de.variantsync.studies.sync.diff;
+package de.variantsync.studies.sync.diff.components;
+
+import de.variantsync.studies.sync.diff.lines.AddedLine;
+import de.variantsync.studies.sync.diff.lines.Line;
+import de.variantsync.studies.sync.diff.lines.MetaLine;
+import de.variantsync.studies.sync.diff.lines.RemovedLine;
 
 import java.util.LinkedList;
 import java.util.List;

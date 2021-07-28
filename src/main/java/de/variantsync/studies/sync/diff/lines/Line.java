@@ -1,4 +1,4 @@
-package de.variantsync.studies.sync.diff;
+package de.variantsync.studies.sync.diff.lines;
 
 public abstract class Line {
     private final String line;

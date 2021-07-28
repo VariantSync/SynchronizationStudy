@@ -1,4 +1,8 @@
-package de.variantsync.studies.sync.diff;
+package de.variantsync.studies.sync.diff.splitting;
+
+import de.variantsync.studies.sync.diff.components.FileDiff;
+import de.variantsync.studies.sync.diff.components.Hunk;
+import de.variantsync.studies.sync.diff.lines.Line;
 
 import java.util.List;
 

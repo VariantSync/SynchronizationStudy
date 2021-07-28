@@ -1,4 +1,9 @@
-package de.variantsync.studies.sync.diff;
+package de.variantsync.studies.sync.diff.splitting;
+
+import de.variantsync.studies.sync.diff.components.*;
+import de.variantsync.studies.sync.diff.lines.AddedLine;
+import de.variantsync.studies.sync.diff.lines.Line;
+import de.variantsync.studies.sync.diff.lines.RemovedLine;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -11,8 +16,8 @@ public class DiffSplitter {
     }
 
     public static FineDiff split(OriginalDiff originalDiff, IFileDiffFilter fileFilter, ILineFilter lineFilter, IContextProvider contextProvider) {
-        fileFilter = fileFilter == null ? f -> true : fileFilter;
-        lineFilter = lineFilter == null ? (f, h, i) -> true : lineFilter;
+        fileFilter = fileFilter == null ? new DefaultFileDiffFilter() : fileFilter;
+        lineFilter = lineFilter == null ? new DefaultLineFilter() : lineFilter;
         contextProvider = contextProvider == null ? new DefaultContextProvider() : contextProvider;
 
         // The list in which we will collect the
@@ -21,7 +26,7 @@ public class DiffSplitter {
         // Go over all FileDiff in diff
         for (FileDiff fileDiff : originalDiff.fileDiffs()) {
             // Only process file diffs that should be taken into account according to the filter
-            if (fileFilter.apply(fileDiff)) {
+            if (fileFilter.shouldKeep(fileDiff)) {
                 // Split FileDiff into edit-sized FileDiffs
                 splitFileDiffs.addAll(split(fileDiff, contextProvider, lineFilter));
             }

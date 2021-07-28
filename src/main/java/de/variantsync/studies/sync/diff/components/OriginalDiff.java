@@ -1,4 +1,4 @@
-package de.variantsync.studies.sync.diff;
+package de.variantsync.studies.sync.diff.components;
 
 import java.util.LinkedList;
 import java.util.List;

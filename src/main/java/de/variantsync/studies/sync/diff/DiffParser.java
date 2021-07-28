@@ -1,5 +1,11 @@
 package de.variantsync.studies.sync.diff;
 
+import de.variantsync.studies.sync.diff.components.FileDiff;
+import de.variantsync.studies.sync.diff.components.Hunk;
+import de.variantsync.studies.sync.diff.components.HunkLocation;
+import de.variantsync.studies.sync.diff.components.OriginalDiff;
+import de.variantsync.studies.sync.diff.lines.*;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;

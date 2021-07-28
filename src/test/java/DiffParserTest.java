@@ -1,4 +1,9 @@
 import de.variantsync.studies.sync.diff.*;
+import de.variantsync.studies.sync.diff.components.*;
+import de.variantsync.studies.sync.diff.lines.AddedLine;
+import de.variantsync.studies.sync.diff.lines.ContextLine;
+import de.variantsync.studies.sync.diff.lines.Line;
+import de.variantsync.studies.sync.diff.lines.RemovedLine;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

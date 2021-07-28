@@ -1,4 +1,4 @@
-package de.variantsync.studies.sync.diff;
+package de.variantsync.studies.sync.diff.components;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -6,8 +6,7 @@ import java.util.List;
 public class FineDiff implements IDiffComponent {
     private final List<FileDiff> content;
 
-    // Package private as it should not be possible to create a FineDiff manually
-    FineDiff(List<FileDiff> content) {
+    public FineDiff(List<FileDiff> content) {
         this.content = content;
     }
 
