@@ -12,7 +12,7 @@ public class DiffSplitterTest {
     Path resourceDir = Paths.get("src", "test", "resources", "patch-breakdown", "splits");
 
     private void runComparison(Path pathToExpectedResult, IContextProvider contextProvider, IFileDiffFilter fileDiffFilter, ILineFilter lineFilter) throws IOException {
-        List<String> diffLines = Files.readAllLines(Paths.get(resourceDir.toString(), "diff-A-B.txt"));
+        List<String> diffLines = Files.readAllLines(resourceDir.getParent().resolve("diff-A-B.txt"));
         FineDiff fineDiff;
         if (contextProvider == null && fileDiffFilter == null && lineFilter == null) {
             fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines));
