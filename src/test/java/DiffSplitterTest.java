@@ -17,7 +17,7 @@ public class DiffSplitterTest {
         if (contextProvider == null && fileDiffFilter == null && lineFilter == null) {
             fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines));
         } else if (contextProvider != null && fileDiffFilter != null && lineFilter != null) {
-            fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), contextProvider, fileDiffFilter, lineFilter);
+            fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), fileDiffFilter, lineFilter, contextProvider);
         } else {
             throw new IllegalArgumentException();
         }
