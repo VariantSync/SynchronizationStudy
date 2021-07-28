@@ -55,7 +55,8 @@ public class DiffSplitterTest {
     @Test
     public void filterEmptyLineOfThirdFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterEmptyLineOfThirdFile.txt");
-        runComparison(pathToExpectedResult);
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("third-file.txt") && i == 3);
+        runComparison(pathToExpectedResult, null, null, lineFilter);
     }
 
     @Test
