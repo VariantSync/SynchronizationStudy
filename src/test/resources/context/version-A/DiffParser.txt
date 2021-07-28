@@ -6,7 +6,6 @@ import de.variantsync.studies.sync.diff.components.HunkLocation;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.lines.*;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -85,8 +84,9 @@ public class DiffParser {
                 if (nextLine.startsWith(HUNK_START)) {
                     hunks.add(parseHunk(hunkLines));
                     hunkLines = new LinkedList<>();
+                } else {
+                    hunkLines.add(nextLine);
                 }
-                hunkLines.add(nextLine);
             }
             // Parse the content of the last hunk
             hunks.add(parseHunk(hunkLines));
@@ -111,7 +111,6 @@ public class DiffParser {
                 content.add(new ContextLine(line));
             }
         }
-        return new Hunk(location, content);
     }
 
     private static HunkLocation parseHunkHeader(String line) {

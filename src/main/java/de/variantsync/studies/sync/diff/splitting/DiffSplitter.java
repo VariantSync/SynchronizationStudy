@@ -38,11 +38,13 @@ public class DiffSplitter {
     private static List<FileDiff> split(FileDiff fileDiff, IContextProvider contextProvider, ILineFilter lineFilter) {
         List<FileDiff> fileDiffs = new LinkedList<>();
 
+        // Offset for the start of all HunkLocations associated with the fileDiff, which decreases with each removed or ignored line
+        int fileDiffOffset = 0;
         for (Hunk hunk : fileDiff.hunks()) {
             // Index that points to the location of the current line in the current hunk
             int index = 0;
             // Offset for the start of the HunkLocation, which decreases with each removed or ignored line
-            int offset = 0;
+            int offset = fileDiffOffset;
             for (Line line : hunk.content()) {
                 if (lineFilter.shouldKeep(fileDiff, hunk, index)) {
                     if (line instanceof AddedLine || line instanceof RemovedLine) {
@@ -57,7 +59,9 @@ public class DiffSplitter {
 
                         Hunk miniHunk = new Hunk(location, content);
                         fileDiffs.add(new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.oldFile(), fileDiff.newFile()));
-                        offset += line instanceof RemovedLine ? -1 : 0;
+                        offset -= line instanceof RemovedLine ? 1 : 0;
+                        // The fileDiffOffset changes on addedLines
+                        fileDiffOffset += line instanceof AddedLine ? 1 : 0;
                     }
                 } else {
                     offset -= 1;
@@ -65,6 +69,8 @@ public class DiffSplitter {
                 // Increase the index
                 index++;
             }
+            // The fileDiffOffset gets modified by the offset of the previous hunk
+            fileDiffOffset += offset;
         }
         return fileDiffs;
     }

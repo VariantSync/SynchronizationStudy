@@ -14,13 +14,28 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class SourceFileContextProviderTest {
-    Path resourceDir = Paths.get("src", "test", "resources", "patch-breakdown", "context");
+    Path resourceDir = Paths.get("src", "test", "resources", "context");
 
     private void runComparison(Path pathToExpectedResult, IFileDiffFilter fileDiffFilter, ILineFilter lineFilter) throws IOException {
-        List<String> diffLines = Files.readAllLines(resourceDir.getParent().resolve("diff-A-B.txt"));
+        List<String> diffLines = Files.readAllLines(resourceDir.resolve("diff-A-B.txt"));
         FineDiff fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), fileDiffFilter, lineFilter, null);
 
         List<String> expectedLines = Files.readAllLines(pathToExpectedResult);
+        List<String> actualLines = fineDiff.toLines();
+        Assertions.assertEquals(expectedLines.size(), actualLines.size());
+        for (int i = 0; i < expectedLines.size(); i++) {
+            String expectedLine = expectedLines.get(i);
+            String actualLine = actualLines.get(i);
+            Assertions.assertEquals(expectedLine, actualLine);
+        }
+    }
+
+    @Test
+    public void basicValidation() throws IOException {
+        List<String> diffLines = Files.readAllLines(resourceDir.resolve("diff-A-B.txt"));
+        FineDiff fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), null, null, null);
+
+        List<String> expectedLines = Files.readAllLines(resourceDir.resolve("fine-diff-A-B.txt"));
         List<String> actualLines = fineDiff.toLines();
         Assertions.assertEquals(expectedLines.size(), actualLines.size());
         for (int i = 0; i < expectedLines.size(); i++) {
@@ -35,38 +50,66 @@ public class SourceFileContextProviderTest {
      */
 
     @Test
-    public void firstLeadingContextLineCut() {
-        throw new NotImplementedException();
+    public void firstLeadingContextLineCut() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void secondLeadingContextLineCut() {
-        throw new NotImplementedException();
+    public void secondLeadingContextLineCut() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void AllLeadingContextLineCut() {
-        throw new NotImplementedException();
+    public void AllLeadingContextLineCut() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void leadingContextCutAndFirstLineInSourceContext() {
-        throw new NotImplementedException();
+    public void leadingContextCutAndFirstLineInSourceContext() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void leadingContextCutAndSecondLineInSourceContext() {
-        throw new NotImplementedException();
+    public void leadingContextCutAndSecondLineInSourceContext() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void leadingContextCutAndAllSourceContext() {
-        throw new NotImplementedException();
+    public void leadingContextCutAndAllSourceContext() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void leadingContextCutAndStartOfSource() {
-        throw new NotImplementedException();
+    public void leadingContextCutAndStartOfSource() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     /***
@@ -74,42 +117,74 @@ public class SourceFileContextProviderTest {
      */
 
     @Test
-    public void firstTrailingContextLineCut() {
-        throw new NotImplementedException();
+    public void firstTrailingContextLineCut() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void secondTrailingContextLineCut() {
-        throw new NotImplementedException();
+    public void secondTrailingContextLineCut() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void AllTrailingContextLineCut() {
-        throw new NotImplementedException();
+    public void AllTrailingContextLineCut() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void trailingContextCutAndFirstLineInSourceContext() {
-        throw new NotImplementedException();
+    public void trailingContextCutAndFirstLineInSourceContext() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void trailingContextCutAndSecondLineInSourceContext() {
-        throw new NotImplementedException();
+    public void trailingContextCutAndSecondLineInSourceContext() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void trailingContextCutAndOneLineInSourceContextEOFNext() {
-        throw new NotImplementedException();
+    public void trailingContextCutAndOneLineInSourceContextEOFNext() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void trailingContextCutAndAllSourceContext() {
-        throw new NotImplementedException();
+    public void trailingContextCutAndAllSourceContext() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
-    public void trailingContextCutAndEndOfSource() {
-        throw new NotImplementedException();
+    public void trailingContextCutAndEndOfSource() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("balbalablablabalabla.txt");
+        ILineFilter lineFilter = (f, h, i) -> {
+            throw new NotImplementedException();
+        };
+        runComparison(pathToExpectedResult, null, lineFilter);
     }
 }

@@ -46,7 +46,6 @@ public class DiffParser {
         // Parse the content of the last file diff
         fileDiffs.add(parseFileDiff(fileDiffContent));
 
-        return new OriginalDiff(fileDiffs);
     }
 
     private static FileDiff parseFileDiff(List<String> fileDiffContent) {
@@ -85,8 +84,9 @@ public class DiffParser {
                 if (nextLine.startsWith(HUNK_START)) {
                     hunks.add(parseHunk(hunkLines));
                     hunkLines = new LinkedList<>();
+                } else {
+                    hunkLines.add(nextLine);
                 }
-                hunkLines.add(nextLine);
             }
             // Parse the content of the last hunk
             hunks.add(parseHunk(hunkLines));
