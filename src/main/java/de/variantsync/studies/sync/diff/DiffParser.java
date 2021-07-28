@@ -67,11 +67,11 @@ public class DiffParser {
                     newFile = nextLine.split("\\s")[1];
                 }
                 header.add(nextLine);
+                index++;
                 nextLine = fileDiffContent.get(index);
                 if (nextLine.startsWith(HUNK_START)) {
                     atHeader = false;
                 }
-                index++;
             }
         }
 
@@ -79,12 +79,14 @@ public class DiffParser {
         List<Hunk> hunks = new LinkedList<>();
         {
             List<String> hunkLines = new LinkedList<>();
-            for (; index < fileDiffContent.size(); index++) {
-                hunkLines.add(nextLine);
+            hunkLines.add(nextLine);
+            for (index += 1; index < fileDiffContent.size(); index++) {
                 nextLine = fileDiffContent.get(index);
                 if (nextLine.startsWith(HUNK_START)) {
                     hunks.add(parseHunk(hunkLines));
                     hunkLines = new LinkedList<>();
+                } else {
+                    hunkLines.add(nextLine);
                 }
             }
             // Parse the content of the last hunk
@@ -104,6 +106,8 @@ public class DiffParser {
                 content.add(new AddedLine(line));
             } else if (line.startsWith("-")) {
                 content.add(new RemovedLine(line));
+            } else if (line.startsWith("\\")) {
+                content.add(new MetaLine(line));
             } else {
                 content.add(new ContextLine(line));
             }

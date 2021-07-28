@@ -7,7 +7,7 @@ public abstract class Line {
         this.line = line;
     }
 
-    public String getLine() {
+    public String line() {
         return line;
     }
 }

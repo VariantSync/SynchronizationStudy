@@ -44,7 +44,7 @@ public class DiffParserTest {
                     assert sourceLocation.size() == 6;
                     assert targetLocation.startLine() == 9;
                     assert targetLocation.size() == 8;
-                    assert hunkContent.size() == 8;
+                    assert hunkContent.size() == 9;
                     assert hunkContent.stream().filter(l -> l instanceof ContextLine).count() == 6;
                     assert hunkContent.stream().filter(l -> l instanceof AddedLine).count() == 2;
                     assert hunkContent.stream().noneMatch(l -> l instanceof RemovedLine);
@@ -56,7 +56,7 @@ public class DiffParserTest {
                     assert sourceLocation.size() == 13;
                     assert targetLocation.startLine() == 9;
                     assert targetLocation.size() == 13;
-                    assert hunkContent.size() == 15;
+                    assert hunkContent.size() == 16;
                     assert hunkContent.stream().filter(l -> l instanceof ContextLine).count() == 11;
                     assert hunkContent.stream().filter(l -> l instanceof AddedLine).count() == 2;
                     assert hunkContent.stream().filter(l -> l instanceof RemovedLine).count() == 2;
@@ -68,7 +68,7 @@ public class DiffParserTest {
                     assert sourceLocation.size() == 11;
                     assert targetLocation.startLine() == 1;
                     assert targetLocation.size() == 4;
-                    assert hunkContent.size() == 11;
+                    assert hunkContent.size() == 12;
                     assert hunkContent.stream().filter(l -> l instanceof ContextLine).count() == 4;
                     assert hunkContent.stream().noneMatch(l -> l instanceof AddedLine);
                     assert hunkContent.stream().filter(l -> l instanceof RemovedLine).count() == 7;
@@ -85,6 +85,6 @@ public class DiffParserTest {
         FineDiff fineDiff = DiffParser.toFineDiff(DiffParser.toOriginalDiff(diffLines));
 
         List<String> expectedResult = Files.readAllLines(Paths.get(resourceDir.toString(), "fine-diff-A-B.txt"));
-        Assertions.assertEquals(expectedResult, fineDiff.content());
+        Assertions.assertEquals(expectedResult, fineDiff.toLines());
     }
 }
