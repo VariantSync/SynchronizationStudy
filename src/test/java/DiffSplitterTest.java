@@ -24,9 +24,9 @@ public class DiffSplitterTest {
         List<String> actualLines = fineDiff.toLines();
         Assertions.assertEquals(expectedLines.size(), actualLines.size());
         for (int i = 0; i < expectedLines.size(); i++) {
-            String actualLine = actualLines.get(i);
             String expectedLine = expectedLines.get(i);
-            Assertions.assertEquals(actualLine, expectedLine);
+            String actualLine = actualLines.get(i);
+            Assertions.assertEquals(expectedLine, actualLine);
         }
     }
 
@@ -127,7 +127,8 @@ public class DiffSplitterTest {
     @Test
     public void filterAllContextBetweenEditsOfSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterAllContextBetweenEditsOfSecondFile.txt");
-        runComparison(pathToExpectedResult);
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && i > 4 && i < 11);
+        runComparison(pathToExpectedResult, null, null, lineFilter);
     }
 
     @Test

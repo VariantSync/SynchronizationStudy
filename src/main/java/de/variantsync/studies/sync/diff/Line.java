@@ -10,4 +10,9 @@ public abstract class Line {
     public String line() {
         return line;
     }
+
+    @Override
+    public String toString() {
+        return this.line;
+    }
 }

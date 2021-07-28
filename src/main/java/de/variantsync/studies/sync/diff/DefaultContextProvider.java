@@ -1,5 +1,7 @@
 package de.variantsync.studies.sync.diff;
 
+import de.variantsync.studies.sync.util.Pair;
+
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,45 +19,55 @@ public class DefaultContextProvider implements IContextProvider {
     }
 
     @Override
-    public List<Line> leadingContext(String filePath, Hunk hunk, int lineNumber) {
+    public Pair<List<Line>, NumIgnoredLines> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int lineNumber) {
         List<Line> lines = new LinkedList<>();
+        int ignoredCount = 0;
         for (int i = lineNumber - 1; i >= 0; i--) {
             Line currentLine = hunk.content().get(i);
-            if (currentLine instanceof MetaLine metaLine) {
-                lines.add(metaLine);
+            if (lineFilter.shouldKeep(fileDiff, hunk, i)) {
+                if (currentLine instanceof MetaLine metaLine) {
+                    lines.add(metaLine);
+                } else {
+                    if (lines.size() >= contextSize) {
+                        break;
+                    }
+                    if (currentLine instanceof ContextLine contextLine) {
+                        lines.add(contextLine);
+                    } else if (currentLine instanceof AddedLine addedLine) {
+                        lines.add(new ContextLine(addedLine));
+                    }
+                }
             } else {
-                if (lines.size() >= contextSize) {
-                    break;
-                }
-                if (currentLine instanceof ContextLine contextLine) {
-                    lines.add(contextLine);
-                } else if (currentLine instanceof AddedLine addedLine) {
-                    lines.add(new ContextLine(addedLine));
-                }
+                ignoredCount++;
             }
         }
         Collections.reverse(lines);
-        return lines;
+        return new Pair<>(lines, new NumIgnoredLines(ignoredCount));
     }
 
     @Override
-    public List<Line> trailingContext(String filePath, Hunk hunk, int lineNumber) {
+    public Pair<List<Line>, NumIgnoredLines> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int lineNumber) {
         List<Line> lines = new LinkedList<>();
+        int ignoredCount = 0;
         for (int i = lineNumber + 1; i < hunk.content().size(); i++) {
             Line currentLine = hunk.content().get(i);
-            if (currentLine instanceof MetaLine metaLine) {
-                lines.add(metaLine);
+            if (lineFilter.shouldKeep(fileDiff, hunk, i)) {
+                if (currentLine instanceof MetaLine metaLine) {
+                    lines.add(metaLine);
+                } else {
+                    if (lines.size() >= contextSize) {
+                        break;
+                    }
+                    if (currentLine instanceof ContextLine contextLine) {
+                        lines.add(contextLine);
+                    } else if (currentLine instanceof RemovedLine removedLine) {
+                        lines.add(new ContextLine(removedLine));
+                    }
+                }
             } else {
-                if (lines.size() >= contextSize) {
-                    break;
-                }
-                if (currentLine instanceof ContextLine contextLine) {
-                    lines.add(contextLine);
-                } else if (currentLine instanceof RemovedLine removedLine) {
-                    lines.add(new ContextLine(removedLine));
-                }
+                ignoredCount++;
             }
         }
-        return lines;
+        return new Pair<>(lines, new NumIgnoredLines(ignoredCount));
     }
 }

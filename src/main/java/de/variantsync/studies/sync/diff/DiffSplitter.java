@@ -1,5 +1,7 @@
 package de.variantsync.studies.sync.diff;
 
+import de.variantsync.studies.sync.util.Pair;
+
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,7 +14,7 @@ public class DiffSplitter {
 
     public static FineDiff split(OriginalDiff originalDiff, IFileDiffFilter fileFilter, ILineFilter lineFilter, IContextProvider contextProvider) {
         fileFilter = fileFilter == null ? f -> true : fileFilter;
-        lineFilter = lineFilter == null ? l -> true : lineFilter;
+        lineFilter = lineFilter == null ? (f, h, i) -> true : lineFilter;
         contextProvider = contextProvider == null ? new DefaultContextProvider() : contextProvider;
 
         // The list in which we will collect the
@@ -32,7 +34,6 @@ public class DiffSplitter {
 
     private static List<FileDiff> split(FileDiff fileDiff, IContextProvider contextProvider, ILineFilter lineFilter) {
         List<FileDiff> fileDiffs = new LinkedList<>();
-        String filePath = fileDiff.oldFile();
 
         for (Hunk hunk : fileDiff.hunks()) {
             // Index that points to the location of the current line in the current hunk
@@ -40,15 +41,15 @@ public class DiffSplitter {
             // Offset for the start of the HunkLocation, which decreases with each removed line
             int offset = 0;
             for (Line line : hunk.content()) {
-                if (lineFilter.apply(line)) {
+                if (lineFilter.shouldKeep(fileDiff, hunk, index)) {
                     if (line instanceof AddedLine || line instanceof RemovedLine) {
-                        List<Line> leadingContext = contextProvider.leadingContext(filePath, hunk, index);
-                        List<Line> trailingContext = contextProvider.trailingContext(filePath, hunk, index);
-                        List<Line> content = new LinkedList<>(leadingContext);
+                        Pair<List<Line>, NumIgnoredLines> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, hunk, index);
+                        Pair<List<Line>, NumIgnoredLines> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, hunk, index);
+                        List<Line> content = new LinkedList<>(leadingContext.first());
                         content.add(line);
-                        content.addAll(trailingContext);
+                        content.addAll(trailingContext.first());
 
-                        int startLine = hunk.location().startLineSource() - leadingContext.size() + index + offset;
+                        int startLine = hunk.location().startLineSource() - leadingContext.first().size() - leadingContext.second().value() + index + offset;
                         HunkLocation location = new HunkLocation(startLine, startLine);
 
                         Hunk miniHunk = new Hunk(location, content);
