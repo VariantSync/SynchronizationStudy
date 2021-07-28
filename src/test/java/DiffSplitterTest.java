@@ -74,6 +74,13 @@ public class DiffSplitterTest {
     }
 
     @Test
+    public void filterCommentsInSecondFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterCommentsInSecondFile.txt");
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && h.content().get(i).line().contains("// "));
+        runComparison(pathToExpectedResult, null, null, lineFilter);
+    }
+
+    @Test
     public void filterZumZumInsertionInFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterZumZumInsertionInFirstFile.txt");
         runComparison(pathToExpectedResult);
