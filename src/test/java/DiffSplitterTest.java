@@ -62,7 +62,8 @@ public class DiffSplitterTest {
     @Test
     public void filterAllHunksOfSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterAllHunksOfSecondFile.txt");
-        runComparison(pathToExpectedResult);
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt"));
+        runComparison(pathToExpectedResult, null, null, lineFilter);
     }
 
     @Test
