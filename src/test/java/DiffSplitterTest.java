@@ -104,7 +104,8 @@ public class DiffSplitterTest {
     @Test
     public void filterMazdaDeletionInSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterMazdaDeletionInSecondFile.txt");
-        runComparison(pathToExpectedResult);
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && h.content().get(i).line().contains("Mazda"));
+        runComparison(pathToExpectedResult, null, null, lineFilter);
     }
 
     @Test
