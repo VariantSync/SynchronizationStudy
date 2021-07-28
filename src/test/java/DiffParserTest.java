@@ -77,14 +77,4 @@ public class DiffParserTest {
             }
         }
     }
-
-    @Test
-    public void exampleDiffParsedCorrectly() throws IOException {
-        Path resourceDir = Paths.get("src", "test", "resources", "patch-breakdown");
-        List<String> diffLines = Files.readAllLines(Paths.get(resourceDir.toString(), "diff-A-B.txt"));
-        FineDiff fineDiff = DiffParser.toFineDiff(DiffParser.toOriginalDiff(diffLines));
-
-        List<String> expectedResult = Files.readAllLines(Paths.get(resourceDir.toString(), "fine-diff-A-B.txt"));
-        Assertions.assertEquals(expectedResult, fineDiff.toLines());
-    }
 }
