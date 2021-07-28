@@ -33,7 +33,6 @@ diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
      cars.add("Mazda");
 
      // Get the iterator
-\ No newline at end of file
 diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
 --- version-A/second-file.txt   2021-07-26 12:54:22.274422140 +0000
 +++ version-B/second-file.txt   2021-07-26 12:56:29.514417547 +0000
@@ -45,7 +44,6 @@ diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
 
      // Get the iterator
      Iterator<String> it = cars.iterator();
-\ No newline at end of file
 diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
 --- version-A/second-file.txt   2021-07-26 12:54:22.274422140 +0000
 +++ version-B/second-file.txt   2021-07-26 12:56:29.514417547 +0000
@@ -79,7 +77,6 @@ diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
    public static void main(String[] args) {
      Main myObj = new Main();
      myObj.x = 50; // will generate an error: cannot assign a value to a final variable
-\ No newline at end of file
 diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
 --- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
 +++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
@@ -91,7 +88,6 @@ diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
      Main myObj = new Main();
      myObj.x = 50; // will generate an error: cannot assign a value to a final variable
      myObj.PI = 25; // will generate an error: cannot assign a value to a final variable
-\ No newline at end of file
 diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
 --- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
 +++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
@@ -103,7 +99,6 @@ diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
      myObj.x = 50; // will generate an error: cannot assign a value to a final variable
      myObj.PI = 25; // will generate an error: cannot assign a value to a final variable
      System.out.println(myObj.x);
-\ No newline at end of file
 diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
 --- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
 +++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
@@ -115,7 +110,6 @@ diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
      myObj.PI = 25; // will generate an error: cannot assign a value to a final variable
      System.out.println(myObj.x);
    }
-\ No newline at end of file
 diff -N -a -u -r version-A/third-file.txt version-B/third-file.txt
 --- version-A/third-file.txt    2021-07-26 12:54:44.457754653 +0000
 +++ version-B/third-file.txt    2021-07-26 12:56:29.524417548 +0000
