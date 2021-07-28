@@ -69,7 +69,8 @@ public class DiffSplitterTest {
     @Test
     public void filterMyObjEditsInThirdFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterMyObjEditsInThirdFile.txt");
-        runComparison(pathToExpectedResult);
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("third-file.txt") && (i == 6 || i == 7));
+        runComparison(pathToExpectedResult, null, null, lineFilter);
     }
 
     @Test
