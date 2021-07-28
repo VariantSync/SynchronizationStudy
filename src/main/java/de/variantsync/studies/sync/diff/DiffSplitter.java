@@ -1,7 +1,5 @@
 package de.variantsync.studies.sync.diff;
 
-import de.variantsync.studies.sync.util.Pair;
-
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,24 +36,26 @@ public class DiffSplitter {
         for (Hunk hunk : fileDiff.hunks()) {
             // Index that points to the location of the current line in the current hunk
             int index = 0;
-            // Offset for the start of the HunkLocation, which decreases with each removed line
+            // Offset for the start of the HunkLocation, which decreases with each removed or ignored line
             int offset = 0;
             for (Line line : hunk.content()) {
                 if (lineFilter.shouldKeep(fileDiff, hunk, index)) {
                     if (line instanceof AddedLine || line instanceof RemovedLine) {
-                        Pair<List<Line>, NumIgnoredLines> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, hunk, index);
-                        Pair<List<Line>, NumIgnoredLines> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, hunk, index);
-                        List<Line> content = new LinkedList<>(leadingContext.first());
+                        List<Line> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, hunk, index);
+                        List<Line> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, hunk, index);
+                        List<Line> content = new LinkedList<>(leadingContext);
                         content.add(line);
-                        content.addAll(trailingContext.first());
+                        content.addAll(trailingContext);
 
-                        int startLine = hunk.location().startLineSource() - leadingContext.first().size() - leadingContext.second().value() + index + offset;
+                        int startLine = hunk.location().startLineSource() - leadingContext.size() + index + offset;
                         HunkLocation location = new HunkLocation(startLine, startLine);
 
                         Hunk miniHunk = new Hunk(location, content);
                         fileDiffs.add(new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.oldFile(), fileDiff.newFile()));
                         offset += line instanceof RemovedLine ? -1 : 0;
                     }
+                } else {
+                    offset -= 1;
                 }
                 // Increase the index
                 index++;

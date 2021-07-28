@@ -1,7 +1,5 @@
 package de.variantsync.studies.sync.diff;
 
-import de.variantsync.studies.sync.util.Pair;
-
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,9 +17,8 @@ public class DefaultContextProvider implements IContextProvider {
     }
 
     @Override
-    public Pair<List<Line>, NumIgnoredLines> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int lineNumber) {
+    public List<Line> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int lineNumber) {
         List<Line> lines = new LinkedList<>();
-        int ignoredCount = 0;
         for (int i = lineNumber - 1; i >= 0; i--) {
             Line currentLine = hunk.content().get(i);
             if (lineFilter.shouldKeep(fileDiff, hunk, i)) {
@@ -37,18 +34,15 @@ public class DefaultContextProvider implements IContextProvider {
                         lines.add(new ContextLine(addedLine));
                     }
                 }
-            } else {
-                ignoredCount++;
             }
         }
         Collections.reverse(lines);
-        return new Pair<>(lines, new NumIgnoredLines(ignoredCount));
+        return lines;
     }
 
     @Override
-    public Pair<List<Line>, NumIgnoredLines> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int lineNumber) {
+    public List<Line> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int lineNumber) {
         List<Line> lines = new LinkedList<>();
-        int ignoredCount = 0;
         for (int i = lineNumber + 1; i < hunk.content().size(); i++) {
             Line currentLine = hunk.content().get(i);
             if (lineFilter.shouldKeep(fileDiff, hunk, i)) {
@@ -64,10 +58,8 @@ public class DefaultContextProvider implements IContextProvider {
                         lines.add(new ContextLine(removedLine));
                     }
                 }
-            } else {
-                ignoredCount++;
             }
         }
-        return new Pair<>(lines, new NumIgnoredLines(ignoredCount));
+        return lines;
     }
 }
