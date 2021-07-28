@@ -83,13 +83,15 @@ public class DiffSplitterTest {
     @Test
     public void filterZumZumInsertionInFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterZumZumInsertionInFirstFile.txt");
-        runComparison(pathToExpectedResult);
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("first-file.txt") && h.content().get(i).line().contains("ZumZum"));
+        runComparison(pathToExpectedResult, null, null, lineFilter);
     }
 
     @Test
     public void filterBlablaInsertionInFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterBlablaInsertionInFirstFile.txt");
-        runComparison(pathToExpectedResult);
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("first-file.txt") && h.content().get(i).line().contains("Blabla"));
+        runComparison(pathToExpectedResult, null, null, lineFilter);
     }
 
     @Test
