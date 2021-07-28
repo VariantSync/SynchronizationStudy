@@ -113,6 +113,13 @@ public class DiffSplitterTest {
     }
 
     @Test
+    public void filterDeletionInSecondFile() throws IOException {
+        Path pathToExpectedResult = resourceDir.resolve("filterDeletionInSecondFile.txt");
+        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && (i == 3 || i ==4));
+        runComparison(pathToExpectedResult, null, lineFilter);
+    }
+
+    @Test
     public void filterOneLineOfLeadingContextOfFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterOneLineOfLeadingContextOfFirstFile.txt");
         ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("first-file.txt") && h.content().get(i).line().contains("Ford"));
