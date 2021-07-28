@@ -43,7 +43,7 @@ public class DiffSplitterTest {
     @Test
     public void filterAllFiles() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterAllFiles.txt");
-        runComparison(pathToExpectedResult);
+        runComparison(pathToExpectedResult, null, f -> false, null);
     }
 
     @Test
