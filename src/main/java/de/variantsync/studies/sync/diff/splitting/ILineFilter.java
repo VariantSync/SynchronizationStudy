@@ -1,7 +1,7 @@
 package de.variantsync.studies.sync.diff.splitting;
 
-import de.variantsync.studies.sync.diff.components.Hunk;
+import java.nio.file.Path;
 
 public interface ILineFilter{
-    Boolean shouldKeep(String filePath, Hunk hunk, int index);
+    Boolean shouldKeep(Path filePath, int index);
 }

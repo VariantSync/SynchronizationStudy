@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+// TODO: Remove once the SourceFileFilter is ready
 public class DefaultContextProvider implements IContextProvider {
     private final int contextSize;
 
@@ -25,7 +26,7 @@ public class DefaultContextProvider implements IContextProvider {
         List<Line> lines = new LinkedList<>();
         for (int i = lineNumber - 1; i >= 0; i--) {
             Line currentLine = hunk.content().get(i);
-            if (lineFilter.shouldKeep(fileDiff.newFile(), hunk, i)) {
+            if (lineFilter.shouldKeep(fileDiff.targetFile(), i)) {
                 if (currentLine instanceof MetaLine metaLine) {
                     lines.add(metaLine);
                 } else {
@@ -49,7 +50,7 @@ public class DefaultContextProvider implements IContextProvider {
         List<Line> lines = new LinkedList<>();
         for (int i = lineNumber + 1; i < hunk.content().size(); i++) {
             Line currentLine = hunk.content().get(i);
-            if (lineFilter.shouldKeep(fileDiff.oldFile(), hunk, i)) {
+            if (lineFilter.shouldKeep(fileDiff.sourceFile(), i)) {
                 if (currentLine instanceof MetaLine metaLine) {
                     lines.add(metaLine);
                 } else {

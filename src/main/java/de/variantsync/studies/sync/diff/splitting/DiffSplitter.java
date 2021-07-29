@@ -43,11 +43,11 @@ public class DiffSplitter {
             int index = 0;
             for (Line line : hunk.content()) {
                 if (line instanceof RemovedLine) {
-                    if (lineFilter.shouldKeep(fileDiff.oldFile(), hunk, index)) {
+                    if (lineFilter.shouldKeep(fileDiff.sourceFile(), hunk.location().startLineSource() + index)) {
                         fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, index));
                     }
                 } else if (line instanceof AddedLine) {
-                    if (lineFilter.shouldKeep(fileDiff.newFile(), hunk, index)) {
+                    if (lineFilter.shouldKeep(fileDiff.targetFile(), hunk.location().startLineTarget() + index)) {
                         fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, index));
                     }
                 }
@@ -69,7 +69,7 @@ public class DiffSplitter {
         HunkLocation location = new HunkLocation(hunk.location().startLineSource(), hunk.location().startLineTarget());
 
         Hunk miniHunk = new Hunk(location, content);
-        return new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.oldFile(), fileDiff.newFile());
+        return new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.sourceFile(), fileDiff.targetFile());
 
     }
 }
