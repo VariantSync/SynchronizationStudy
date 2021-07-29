@@ -1,6 +1,10 @@
 package de.variantsync.studies.sync.diff.splitting;
 
 import de.variantsync.studies.sync.diff.components.*;
+import de.variantsync.studies.sync.diff.filter.DefaultFileDiffFilter;
+import de.variantsync.studies.sync.diff.filter.DefaultLineFilter;
+import de.variantsync.studies.sync.diff.filter.IFileDiffFilter;
+import de.variantsync.studies.sync.diff.filter.ILineFilter;
 import de.variantsync.studies.sync.diff.lines.AddedLine;
 import de.variantsync.studies.sync.diff.lines.ContextLine;
 import de.variantsync.studies.sync.diff.lines.Line;

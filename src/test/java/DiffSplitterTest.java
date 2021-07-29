@@ -1,5 +1,7 @@
 import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FineDiff;
+import de.variantsync.studies.sync.diff.filter.IFileDiffFilter;
+import de.variantsync.studies.sync.diff.filter.ILineFilter;
 import de.variantsync.studies.sync.diff.splitting.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

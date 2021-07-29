@@ -2,6 +2,7 @@ package de.variantsync.studies.sync.diff.splitting;
 
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.studies.sync.diff.components.FileDiff;
+import de.variantsync.studies.sync.diff.filter.ILineFilter;
 import de.variantsync.studies.sync.diff.lines.*;
 
 import java.io.IOException;
@@ -11,7 +12,6 @@ import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 
-// TODO: Remove once the SourceFileFilter is ready
 public class DefaultContextProvider implements IContextProvider {
     private final int contextSize;
     private final Path rootDir;

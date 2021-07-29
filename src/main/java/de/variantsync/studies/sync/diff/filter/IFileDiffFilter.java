@@ -1,4 +1,4 @@
-package de.variantsync.studies.sync.diff.splitting;
+package de.variantsync.studies.sync.diff.filter;
 
 import de.variantsync.studies.sync.diff.components.FileDiff;
 
