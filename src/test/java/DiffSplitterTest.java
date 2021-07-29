@@ -53,7 +53,7 @@ public class DiffSplitterTest {
     @Test
     public void filterFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterFirstFile.txt");
-        runComparison(pathToExpectedResult, f -> !f.sourceFile().toString().contains("first-file.txt"), null);
+        runComparison(pathToExpectedResult, f -> !f.oldFile().toString().contains("first-file.txt"), null);
     }
 
     @Test

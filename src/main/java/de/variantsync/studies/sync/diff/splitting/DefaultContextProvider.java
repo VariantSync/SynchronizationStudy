@@ -31,10 +31,10 @@ public class DefaultContextProvider implements IContextProvider {
         LinkedList<Line> context = new LinkedList<>();
         List<String> lines;
         try {
-            lines = Files.readAllLines(rootDir.resolve(fileDiff.targetFile()));
+            lines = Files.readAllLines(rootDir.resolve(fileDiff.newFile()));
             for (int i = index - 1; i >= 0; i--) {
                 String currentLine = " " + lines.get(i);
-                if (lineFilter.shouldKeep(fileDiff.targetFile(), i+1)) {
+                if (lineFilter.shouldKeep(fileDiff.newFile(), i+1)) {
                     if (context.size() >= contextSize) {
                         break;
                     }
@@ -43,7 +43,7 @@ public class DefaultContextProvider implements IContextProvider {
             }
             return context;
         } catch (IOException e) {
-            Logger.error("Was not able to load file:" + rootDir.resolve(fileDiff.targetFile()), e);
+            Logger.error("Was not able to load file:" + rootDir.resolve(fileDiff.newFile()), e);
             throw new UncheckedIOException(e);
         }
     }
@@ -53,7 +53,7 @@ public class DefaultContextProvider implements IContextProvider {
 //        List<Line> lines = new LinkedList<>();
 //        for (int i = indexInHunk - 1; i >= 0; i--) {
 //            Line currentLine = hunk.content().get(i);
-//            if (lineFilter.shouldKeep(fileDiff.targetFile(), hunk.location().startLineTarget() + i)) {
+//            if (lineFilter.shouldKeep(fileDiff.newFile(), hunk.location().startLineTarget() + i)) {
 //                if (currentLine instanceof MetaLine metaLine) {
 //                    lines.add(metaLine);
 //                } else {
@@ -77,10 +77,10 @@ public class DefaultContextProvider implements IContextProvider {
         LinkedList<Line> context = new LinkedList<>();
         List<String> lines;
         try {
-            lines = Files.readAllLines(rootDir.resolve(fileDiff.sourceFile()));
+            lines = Files.readAllLines(rootDir.resolve(fileDiff.oldFile()));
             for (int i = index-1; i < lines.size(); i++) {
                 String currentLine = " " + lines.get(i);
-                if (lineFilter.shouldKeep(fileDiff.sourceFile(), i+1)) {
+                if (lineFilter.shouldKeep(fileDiff.oldFile(), i+1)) {
                     if (context.size() >= contextSize) {
                         break;
                     }
@@ -93,7 +93,7 @@ public class DefaultContextProvider implements IContextProvider {
             }
             return context;
         } catch (IOException e) {
-            Logger.error("Was not able to load file:" + rootDir.resolve(fileDiff.targetFile()), e);
+            Logger.error("Was not able to load file:" + rootDir.resolve(fileDiff.newFile()), e);
             throw new UncheckedIOException(e);
         }
     }
@@ -103,7 +103,7 @@ public class DefaultContextProvider implements IContextProvider {
 //        List<Line> lines = new LinkedList<>();
 //        for (int i = indexInHunk + 1; i < hunk.content().size(); i++) {
 //            Line currentLine = hunk.content().get(i);
-//            if (lineFilter.shouldKeep(fileDiff.sourceFile(), hunk.location().startLineSource() + i)) {
+//            if (lineFilter.shouldKeep(fileDiff.oldFile(), hunk.location().startLineSource() + i)) {
 //                if (currentLine instanceof MetaLine metaLine) {
 //                    lines.add(metaLine);
 //                } else {

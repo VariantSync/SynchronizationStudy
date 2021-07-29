@@ -44,27 +44,27 @@ public class DiffSplitter {
 
         for (Hunk hunk : fileDiff.hunks()) {
             // Index that points to the location of the current line in the current hunk
-            int sourceIndex = 0;
-            int targetIndex = 0;
+            int oldIndex = 0;
+            int newIndex = 0;
             for (Line line : hunk.content()) {
                 if (line instanceof RemovedLine) {
-                    if (lineFilter.shouldKeep(fileDiff.sourceFile(), hunk.location().startLineSource() + sourceIndex)) {
-                        int leadContextStart = hunk.location().startLineTarget() + targetIndex - 1;
-                        int trailContextStart = hunk.location().startLineSource() + sourceIndex + 1;
+                    if (lineFilter.shouldKeep(fileDiff.oldFile(), hunk.location().startLineSource() + oldIndex)) {
+                        int leadContextStart = hunk.location().startLineTarget() + newIndex - 1;
+                        int trailContextStart = hunk.location().startLineSource() + oldIndex + 1;
                         fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, trailContextStart, leadContextStart));
                     }
-                    sourceIndex++;
+                    oldIndex++;
                 } else if (line instanceof AddedLine) {
-                    if (lineFilter.shouldKeep(fileDiff.targetFile(), hunk.location().startLineTarget() + targetIndex)) {
-                        int leadContextStart = hunk.location().startLineTarget() + targetIndex - 1;
-                        int trailContextStart = hunk.location().startLineSource() + sourceIndex;
+                    if (lineFilter.shouldKeep(fileDiff.newFile(), hunk.location().startLineTarget() + newIndex)) {
+                        int leadContextStart = hunk.location().startLineTarget() + newIndex - 1;
+                        int trailContextStart = hunk.location().startLineSource() + oldIndex;
                         fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, trailContextStart, leadContextStart));
                     }
-                    targetIndex++;
+                    newIndex++;
                 } else if (line instanceof ContextLine) {
                     // Increase the index
-                    sourceIndex++;
-                    targetIndex++;
+                    oldIndex++;
+                    newIndex++;
                 }
             }
         }
@@ -82,7 +82,7 @@ public class DiffSplitter {
         HunkLocation location = new HunkLocation(hunk.location().startLineSource(), hunk.location().startLineTarget());
 
         Hunk miniHunk = new Hunk(location, content);
-        return new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.sourceFile(), fileDiff.targetFile());
+        return new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.oldFile(), fileDiff.newFile());
 
     }
 }
