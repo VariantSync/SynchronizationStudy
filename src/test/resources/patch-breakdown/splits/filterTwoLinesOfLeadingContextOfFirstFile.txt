@@ -44,7 +44,7 @@ diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
 diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
 --- version-A/second-file.txt   2021-07-26 12:54:22.274422140 +0000
 +++ version-B/second-file.txt   2021-07-26 12:56:29.514417547 +0000
-@@ -15,5 +15,6 @@
+@@ -9,5 +9,6 @@
 
      // Print the first item
      System.out.println(it.next());
@@ -55,7 +55,7 @@ diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
 diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
 --- version-A/second-file.txt   2021-07-26 12:54:22.274422140 +0000
 +++ version-B/second-file.txt   2021-07-26 12:56:29.514417547 +0000
-@@ -16,5 +16,6 @@
+@@ -9,5 +9,6 @@
      // Print the first item
      System.out.println(it.next());
      // Print the second item

@@ -137,7 +137,7 @@ public class ShellExecutorTest {
     }
 
     @Test
-    public void patchDirectory() throws IOException, InterruptedException {
+    public void patchDirectory() throws IOException {
         Path resourcesDir = Paths.get("src", "test", "resources", "versions");
         Path outputRootDir = Files.createTempDirectory(null);
         Path outputDir = outputRootDir.resolve("version-A");
@@ -171,7 +171,7 @@ public class ShellExecutorTest {
 
     @Test
     public void finePatchSameResult() throws IOException {
-        Path resourcesDir = Paths.get("src", "test", "resources", "patch-breakdown");
+        Path resourcesDir = Paths.get("src", "test", "resources", "versions");
         Path outputRootDir = Files.createTempDirectory(null);
         Path outputDir = outputRootDir.resolve("version-A");
 
