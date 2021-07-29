@@ -144,18 +144,16 @@ public class ContextProviderTest {
     @Test
     public void trailingContextCutAndAllSourceContext() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("trailingContextCutAndAllSourceContext.txt");
-        ILineFilter lineFilter = (f, i) -> {
-            throw new NotImplementedException();
-        };
+        ILineFilter lineFilter = (f, i)
+                -> !(f.toString().contains("version-A") && (i>=9 && i < 12 || i == 14));
         runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
     public void trailingContextCutAndEndOfSource() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("trailingContextCutAndEndOfSource.txt");
-        ILineFilter lineFilter = (f, i) -> {
-            throw new NotImplementedException();
-        };
+        ILineFilter lineFilter = (f, i)
+                -> !(i>=10);
         runComparison(pathToExpectedResult, lineFilter);
     }
 }
