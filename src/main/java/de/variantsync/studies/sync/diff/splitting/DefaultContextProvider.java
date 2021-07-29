@@ -1,70 +1,123 @@
 package de.variantsync.studies.sync.diff.splitting;
 
+import de.variantsync.evolution.util.Logger;
 import de.variantsync.studies.sync.diff.components.FileDiff;
-import de.variantsync.studies.sync.diff.components.Hunk;
 import de.variantsync.studies.sync.diff.lines.*;
 
-import java.util.Collections;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 
 // TODO: Remove once the SourceFileFilter is ready
 public class DefaultContextProvider implements IContextProvider {
     private final int contextSize;
+    private final Path rootDir;
 
-    public DefaultContextProvider() {
+    public DefaultContextProvider(Path rootDir) {
         // Three is the default size set in unix diff
-        this(3);
+        this(rootDir, 3);
     }
 
-    public DefaultContextProvider(int contextSize) {
+    public DefaultContextProvider(Path rootDir, int contextSize) {
+        this.rootDir = rootDir;
         this.contextSize = contextSize;
     }
 
     @Override
-    public List<Line> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int lineNumber) {
-        List<Line> lines = new LinkedList<>();
-        for (int i = lineNumber - 1; i >= 0; i--) {
-            Line currentLine = hunk.content().get(i);
-            if (lineFilter.shouldKeep(fileDiff.targetFile(), i)) {
-                if (currentLine instanceof MetaLine metaLine) {
-                    lines.add(metaLine);
-                } else {
-                    if (lines.size() >= contextSize) {
+    public List<Line> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, int index) {
+        LinkedList<Line> context = new LinkedList<>();
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(rootDir.resolve(fileDiff.targetFile()));
+            for (int i = index - 1; i >= 0; i--) {
+                String currentLine = " " + lines.get(i);
+                if (lineFilter.shouldKeep(fileDiff.targetFile(), i+1)) {
+                    if (context.size() >= contextSize) {
                         break;
                     }
-                    if (currentLine instanceof ContextLine contextLine) {
-                        lines.add(contextLine);
-                    } else if (currentLine instanceof AddedLine addedLine) {
-                        lines.add(new ContextLine(addedLine));
-                    }
+                    context.addFirst(new ContextLine(currentLine));
                 }
             }
+            return context;
+        } catch (IOException e) {
+            Logger.error("Was not able to load file:" + rootDir.resolve(fileDiff.targetFile()), e);
+            throw new UncheckedIOException(e);
         }
-        Collections.reverse(lines);
-        return lines;
     }
 
+//    @Override
+//    public List<Line> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int indexInHunk) {
+//        List<Line> lines = new LinkedList<>();
+//        for (int i = indexInHunk - 1; i >= 0; i--) {
+//            Line currentLine = hunk.content().get(i);
+//            if (lineFilter.shouldKeep(fileDiff.targetFile(), hunk.location().startLineTarget() + i)) {
+//                if (currentLine instanceof MetaLine metaLine) {
+//                    lines.add(metaLine);
+//                } else {
+//                    if (lines.size() >= contextSize) {
+//                        break;
+//                    }
+//                    if (currentLine instanceof ContextLine contextLine) {
+//                        lines.add(contextLine);
+//                    } else if (currentLine instanceof AddedLine addedLine) {
+//                        lines.add(new ContextLine(addedLine));
+//                    }
+//                }
+//            }
+//        }
+//        Collections.reverse(lines);
+//        return lines;
+//    }
+
     @Override
-    public List<Line> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int lineNumber) {
-        List<Line> lines = new LinkedList<>();
-        for (int i = lineNumber + 1; i < hunk.content().size(); i++) {
-            Line currentLine = hunk.content().get(i);
-            if (lineFilter.shouldKeep(fileDiff.sourceFile(), i)) {
-                if (currentLine instanceof MetaLine metaLine) {
-                    lines.add(metaLine);
-                } else {
-                    if (lines.size() >= contextSize) {
+    public List<Line> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, int index) {
+        LinkedList<Line> context = new LinkedList<>();
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(rootDir.resolve(fileDiff.sourceFile()));
+            for (int i = index-1; i < lines.size(); i++) {
+                String currentLine = " " + lines.get(i);
+                if (lineFilter.shouldKeep(fileDiff.sourceFile(), i+1)) {
+                    if (context.size() >= contextSize) {
                         break;
                     }
-                    if (currentLine instanceof ContextLine contextLine) {
-                        lines.add(contextLine);
-                    } else if (currentLine instanceof RemovedLine removedLine) {
-                        lines.add(new ContextLine(removedLine));
-                    }
+                    context.addLast(new ContextLine(currentLine));
+                }
+                if (i == lines.size() - 1) {
+                    // Add a meta-line stating EOF 
+                    context.addLast(new MetaLine());
                 }
             }
+            return context;
+        } catch (IOException e) {
+            Logger.error("Was not able to load file:" + rootDir.resolve(fileDiff.targetFile()), e);
+            throw new UncheckedIOException(e);
         }
-        return lines;
     }
+
+//    @Override
+//    public List<Line> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, Hunk hunk, int indexInHunk) {
+//        List<Line> lines = new LinkedList<>();
+//        for (int i = indexInHunk + 1; i < hunk.content().size(); i++) {
+//            Line currentLine = hunk.content().get(i);
+//            if (lineFilter.shouldKeep(fileDiff.sourceFile(), hunk.location().startLineSource() + i)) {
+//                if (currentLine instanceof MetaLine metaLine) {
+//                    lines.add(metaLine);
+//                } else {
+//                    if (lines.size() >= contextSize) {
+//                        break;
+//                    }
+//                    if (currentLine instanceof ContextLine contextLine) {
+//                        lines.add(contextLine);
+//                    } else if (currentLine instanceof RemovedLine removedLine) {
+//                        lines.add(new ContextLine(removedLine));
+//                    }
+//                }
+//            }
+//        }
+//        return lines;
+//    }
 }

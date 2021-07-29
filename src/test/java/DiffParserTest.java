@@ -42,8 +42,8 @@ public class DiffParserTest {
 
             switch (i) {
                 case 0 -> {
-                    assert fileDiff.sourceFile().equals("version-A/first-file.txt");
-                    assert fileDiff.targetFile().equals("version-B/first-file.txt");
+                    assert fileDiff.sourceFile().toString().equals("version-A/first-file.txt");
+                    assert fileDiff.targetFile().toString().equals("version-B/first-file.txt");
                     assert location.startLineTarget() == 9;
                     assert hunkContent.size() == 9;
                     assert hunkContent.stream().filter(l -> l instanceof ContextLine).count() == 6;
@@ -51,8 +51,8 @@ public class DiffParserTest {
                     assert hunkContent.stream().noneMatch(l -> l instanceof RemovedLine);
                 }
                 case 1 -> {
-                    assert fileDiff.sourceFile().equals("version-A/second-file.txt");
-                    assert fileDiff.targetFile().equals("version-B/second-file.txt");
+                    assert fileDiff.sourceFile().toString().equals("version-A/second-file.txt");
+                    assert fileDiff.targetFile().toString().equals("version-B/second-file.txt");
                     assert location.startLineSource() == 9;
                     assert location.startLineTarget() == 9;
                     assert hunkContent.size() == 16;
@@ -61,8 +61,8 @@ public class DiffParserTest {
                     assert hunkContent.stream().filter(l -> l instanceof RemovedLine).count() == 2;
                 }
                 case 2 -> {
-                    assert fileDiff.sourceFile().equals("version-A/third-file.txt");
-                    assert fileDiff.targetFile().equals("version-B/third-file.txt");
+                    assert fileDiff.sourceFile().toString().equals("version-A/third-file.txt");
+                    assert fileDiff.targetFile().toString().equals("version-B/third-file.txt");
                     assert location.startLineSource() == 1;
                     assert location.startLineTarget() == 1;
                     assert hunkContent.size() == 12;

@@ -20,7 +20,7 @@ diff -N -a -u -r version-A/second-file.txt version-B/second-file.txt
      cars.add("BMW");
 -    cars.add("Ford");
 -    cars.add("Mazda");
-
+ 
      // Get the iterator
      Iterator<String> it = cars.iterator();
 

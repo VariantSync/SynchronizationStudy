@@ -1,9 +1,7 @@
 import de.variantsync.evolution.util.NotImplementedException;
 import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FineDiff;
-import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
-import de.variantsync.studies.sync.diff.splitting.IFileDiffFilter;
-import de.variantsync.studies.sync.diff.splitting.ILineFilter;
+import de.variantsync.studies.sync.diff.splitting.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -13,12 +11,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-public class SourceFileContextProviderTest {
+public class ContextProviderTest {
     Path resourceDir = Paths.get("src", "test", "resources", "context", "splits");
 
-    private void runComparison(Path pathToExpectedResult, IFileDiffFilter fileDiffFilter, ILineFilter lineFilter) throws IOException {
+    private void runComparison(Path pathToExpectedResult, ILineFilter lineFilter) throws IOException {
         List<String> diffLines = Files.readAllLines(resourceDir.getParent().resolve("diff-A-B.txt"));
-        FineDiff fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), fileDiffFilter, lineFilter, null);
+        IContextProvider contextProvider = new DefaultContextProvider(resourceDir.getParent());
+        FineDiff fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), null, lineFilter, contextProvider);
 
         List<String> expectedLines = Files.readAllLines(pathToExpectedResult);
         List<String> actualLines = fineDiff.toLines();
@@ -32,7 +31,7 @@ public class SourceFileContextProviderTest {
 
     @Test
     public void basicValidation() throws IOException {
-        runComparison(resourceDir.getParent().resolve("fine-diff-A-B.txt"), null, null);
+        runComparison(resourceDir.getParent().resolve("fine-diff-A-B.txt"), null);
     }
 
     /**
@@ -44,7 +43,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("firstLeadingContextLineCut.txt");
         ILineFilter lineFilter = (f, i) 
                 -> !(f.toString().contains("version-B") && i == 6);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -52,7 +51,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("secondLeadingContextLineCut.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-B") && i == 7);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -60,7 +59,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("AllLeadingContextLineCut.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-B") && i >= 6 && i < 9);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -68,7 +67,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("AllLeadingContextLineCut.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-B") && (i == 6 || i == 5));
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -76,7 +75,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndSecondLineInSourceContext.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-B") && (i >= 45 && i < 48 || i == 43));
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -84,7 +83,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndAllSourceContext.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-B") && i < 48);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -92,7 +91,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndStartOfSource.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-B") && i < 8);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     /***
@@ -104,7 +103,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("firstTrailingContextLineCut.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-A") && i==9);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -112,7 +111,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("secondTrailingContextLineCut.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-A") && i==50);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -120,7 +119,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("AllTrailingContextLineCut.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-A") && i>=114 && i < 117);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -128,7 +127,7 @@ public class SourceFileContextProviderTest {
         Path pathToExpectedResult = resourceDir.resolve("trailingContextCutAndFirstLineInSourceContext.txt");
         ILineFilter lineFilter = (f, i)
                 -> !(f.toString().contains("version-A") && i>=114 && i < 118);
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -137,7 +136,7 @@ public class SourceFileContextProviderTest {
         ILineFilter lineFilter = (f, i) -> {
             throw new NotImplementedException();
         };
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -146,7 +145,7 @@ public class SourceFileContextProviderTest {
         ILineFilter lineFilter = (f, i) -> {
             throw new NotImplementedException();
         };
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -155,7 +154,7 @@ public class SourceFileContextProviderTest {
         ILineFilter lineFilter = (f, i) -> {
             throw new NotImplementedException();
         };
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 
     @Test
@@ -164,6 +163,6 @@ public class SourceFileContextProviderTest {
         ILineFilter lineFilter = (f, i) -> {
             throw new NotImplementedException();
         };
-        runComparison(pathToExpectedResult, null, lineFilter);
+        runComparison(pathToExpectedResult, lineFilter);
     }
 }

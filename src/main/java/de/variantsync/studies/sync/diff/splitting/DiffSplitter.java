@@ -2,6 +2,7 @@ package de.variantsync.studies.sync.diff.splitting;
 
 import de.variantsync.studies.sync.diff.components.*;
 import de.variantsync.studies.sync.diff.lines.AddedLine;
+import de.variantsync.studies.sync.diff.lines.ContextLine;
 import de.variantsync.studies.sync.diff.lines.Line;
 import de.variantsync.studies.sync.diff.lines.RemovedLine;
 
@@ -11,14 +12,13 @@ import java.util.List;
 
 public class DiffSplitter {
 
-    public static FineDiff split(OriginalDiff diff) {
-        return split(diff, null, null, null);
+    public static FineDiff split(OriginalDiff diff, IContextProvider contextProvider) {
+        return split(diff, null, null, contextProvider);
     }
 
     public static FineDiff split(OriginalDiff originalDiff, IFileDiffFilter fileFilter, ILineFilter lineFilter, IContextProvider contextProvider) {
         fileFilter = fileFilter == null ? new DefaultFileDiffFilter() : fileFilter;
         lineFilter = lineFilter == null ? new DefaultLineFilter() : lineFilter;
-        contextProvider = contextProvider == null ? new DefaultContextProvider() : contextProvider;
 
         // The list in which we will collect the
         List<FileDiff> splitFileDiffs = new LinkedList<>();
@@ -40,28 +40,37 @@ public class DiffSplitter {
 
         for (Hunk hunk : fileDiff.hunks()) {
             // Index that points to the location of the current line in the current hunk
-            int index = 0;
+            int sourceIndex = 0;
+            int targetIndex = 0;
             for (Line line : hunk.content()) {
                 if (line instanceof RemovedLine) {
-                    if (lineFilter.shouldKeep(fileDiff.sourceFile(), hunk.location().startLineSource() + index)) {
-                        fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, index));
+                    if (lineFilter.shouldKeep(fileDiff.sourceFile(), hunk.location().startLineSource() + sourceIndex)) {
+                        int leadContextStart = hunk.location().startLineTarget() + targetIndex - 1;
+                        int trailContextStart = hunk.location().startLineSource() + sourceIndex + 1;
+                        fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, trailContextStart, leadContextStart));
                     }
+                    sourceIndex++;
                 } else if (line instanceof AddedLine) {
-                    if (lineFilter.shouldKeep(fileDiff.targetFile(), hunk.location().startLineTarget() + index)) {
-                        fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, index));
+                    if (lineFilter.shouldKeep(fileDiff.targetFile(), hunk.location().startLineTarget() + targetIndex)) {
+                        int leadContextStart = hunk.location().startLineTarget() + targetIndex - 1;
+                        int trailContextStart = hunk.location().startLineSource() + sourceIndex;
+                        fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, trailContextStart, leadContextStart));
                     }
+                    targetIndex++;
+                } else if (line instanceof ContextLine) {
+                    // Increase the index
+                    sourceIndex++;
+                    targetIndex++;
                 }
-                // Increase the index
-                index++;
             }
         }
         return fileDiffs;
     }
 
-    private static FileDiff calculateMiniDiff(IContextProvider contextProvider, ILineFilter lineFilter, 
-                                              FileDiff fileDiff, Hunk hunk, Line line, int index) {
-        List<Line> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, hunk, index);
-        List<Line> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, hunk, index);
+    private static FileDiff calculateMiniDiff(IContextProvider contextProvider, ILineFilter lineFilter,
+                                              FileDiff fileDiff, Hunk hunk, Line line, int trailContextStart, int leadContextStart) {
+        List<Line> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, leadContextStart);
+        List<Line> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, trailContextStart);
         List<Line> content = new LinkedList<>(leadingContext);
         content.add(line);
         content.addAll(trailingContext);

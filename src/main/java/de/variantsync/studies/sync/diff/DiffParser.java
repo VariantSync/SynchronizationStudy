@@ -6,9 +6,11 @@ import de.variantsync.studies.sync.diff.components.HunkLocation;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.lines.*;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class DiffParser {
 
@@ -92,7 +94,7 @@ public class DiffParser {
             hunks.add(parseHunk(hunkLines));
         }
 
-        return new FileDiff(header, hunks, oldFile, newFile);
+        return new FileDiff(header, hunks, Paths.get(Objects.requireNonNull(oldFile)), Paths.get(Objects.requireNonNull(newFile)));
     }
 
     private static Hunk parseHunk(List<String> lines) {
