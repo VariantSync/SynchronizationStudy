@@ -59,112 +59,112 @@ public class DiffSplitterTest {
     @Test
     public void filterEmptyLineOfThirdFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterEmptyLineOfThirdFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("third-file.txt") && i == 3);
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("third-file.txt") && i == 3);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterAllHunksOfSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterAllHunksOfSecondFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt"));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("second-file.txt"));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterMyObjEditsInThirdFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterMyObjEditsInThirdFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("third-file.txt") && (i == 6 || i == 7));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("third-file.txt") && (i == 6 || i == 7));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterCommentsInSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterCommentsInSecondFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && h.content().get(i).line().contains("// "));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("second-file.txt") && h.content().get(i).line().contains("// "));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterZumZumInsertionInFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterZumZumInsertionInFirstFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("first-file.txt") && h.content().get(i).line().contains("ZumZum"));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("first-file.txt") && h.content().get(i).line().contains("ZumZum"));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterBlablaInsertionInFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterBlablaInsertionInFirstFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("first-file.txt") && h.content().get(i).line().contains("Blabla"));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("first-file.txt") && h.content().get(i).line().contains("Blabla"));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterFordDeletionInSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterFordDeletionInSecondFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && h.content().get(i).line().contains("Ford"));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("second-file.txt") && h.content().get(i).line().contains("Ford"));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterMazdaDeletionInSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterMazdaDeletionInSecondFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && h.content().get(i).line().contains("Mazda"));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("second-file.txt") && h.content().get(i).line().contains("Mazda"));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterDeletionInSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterDeletionInSecondFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && (i == 3 || i ==4));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("second-file.txt") && (i == 3 || i ==4));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterOneLineOfLeadingContextOfFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterOneLineOfLeadingContextOfFirstFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("first-file.txt") && h.content().get(i).line().contains("Ford"));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("first-file.txt") && h.content().get(i).line().contains("Ford"));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterTwoLinesOfLeadingContextOfFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterTwoLinesOfLeadingContextOfFirstFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("first-file.txt") && (h.content().get(i).line().contains("Ford") || h.content().get(i).line().contains("BMW")));
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("first-file.txt") && (h.content().get(i).line().contains("Ford") || h.content().get(i).line().contains("BMW")));
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterAllLinesOfLeadingContextOfFirstFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterAllLinesOfLeadingContextOfFirstFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("first-file.txt") && i < 3);
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("first-file.txt") && i < 3);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterOneLineOfContextBetweenEditsOfSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterOneLineOfContextBetweenEditsOfSecondFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && i == 6);
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("second-file.txt") && i == 6);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterThreeLinesOfContextBetweenEditsOfSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterThreeLinesOfContextBetweenEditsOfSecondFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && i >= 6 && i < 9);
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("second-file.txt") && i >= 6 && i < 9);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterAllContextBetweenEditsOfSecondFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterAllContextBetweenEditsOfSecondFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("second-file.txt") && i > 4 && i < 11);
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("second-file.txt") && i > 4 && i < 11);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void filterTrailingContextOfThirdFile() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("filterTrailingContextOfThirdFile.txt");
-        ILineFilter lineFilter = (f, h, i) -> !(f.oldFile().contains("third-file.txt") && i == 10);
+        ILineFilter lineFilter = (f, h, i) -> !(f.contains("third-file.txt") && i == 10);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 }

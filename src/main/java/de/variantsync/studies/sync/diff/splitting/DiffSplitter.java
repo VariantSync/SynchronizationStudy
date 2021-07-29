@@ -42,24 +42,34 @@ public class DiffSplitter {
             // Index that points to the location of the current line in the current hunk
             int index = 0;
             for (Line line : hunk.content()) {
-                if (lineFilter.shouldKeep(fileDiff, hunk, index)) {
-                    if (line instanceof AddedLine || line instanceof RemovedLine) {
-                        List<Line> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, hunk, index);
-                        List<Line> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, hunk, index);
-                        List<Line> content = new LinkedList<>(leadingContext);
-                        content.add(line);
-                        content.addAll(trailingContext);
-                        
-                        HunkLocation location = new HunkLocation(hunk.location().startLineSource(), hunk.location().startLineTarget());
-
-                        Hunk miniHunk = new Hunk(location, content);
-                        fileDiffs.add(new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.oldFile(), fileDiff.newFile()));
+                if (line instanceof RemovedLine) {
+                    if (lineFilter.shouldKeep(fileDiff.oldFile(), hunk, index)) {
+                        fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, index));
                     }
-                } 
+                } else if (line instanceof AddedLine) {
+                    if (lineFilter.shouldKeep(fileDiff.newFile(), hunk, index)) {
+                        fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, index));
+                    }
+                }
                 // Increase the index
                 index++;
             }
         }
         return fileDiffs;
+    }
+
+    private static FileDiff calculateMiniDiff(IContextProvider contextProvider, ILineFilter lineFilter, 
+                                              FileDiff fileDiff, Hunk hunk, Line line, int index) {
+        List<Line> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, hunk, index);
+        List<Line> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, hunk, index);
+        List<Line> content = new LinkedList<>(leadingContext);
+        content.add(line);
+        content.addAll(trailingContext);
+
+        HunkLocation location = new HunkLocation(hunk.location().startLineSource(), hunk.location().startLineTarget());
+
+        Hunk miniHunk = new Hunk(location, content);
+        return new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.oldFile(), fileDiff.newFile());
+
     }
 }

@@ -25,7 +25,7 @@ public class DefaultContextProvider implements IContextProvider {
         List<Line> lines = new LinkedList<>();
         for (int i = lineNumber - 1; i >= 0; i--) {
             Line currentLine = hunk.content().get(i);
-            if (lineFilter.shouldKeep(fileDiff, hunk, i)) {
+            if (lineFilter.shouldKeep(fileDiff.newFile(), hunk, i)) {
                 if (currentLine instanceof MetaLine metaLine) {
                     lines.add(metaLine);
                 } else {
@@ -49,7 +49,7 @@ public class DefaultContextProvider implements IContextProvider {
         List<Line> lines = new LinkedList<>();
         for (int i = lineNumber + 1; i < hunk.content().size(); i++) {
             Line currentLine = hunk.content().get(i);
-            if (lineFilter.shouldKeep(fileDiff, hunk, i)) {
+            if (lineFilter.shouldKeep(fileDiff.oldFile(), hunk, i)) {
                 if (currentLine instanceof MetaLine metaLine) {
                     lines.add(metaLine);
                 } else {
