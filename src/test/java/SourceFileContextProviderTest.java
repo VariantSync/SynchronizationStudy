@@ -102,27 +102,24 @@ public class SourceFileContextProviderTest {
     @Test
     public void firstTrailingContextLineCut() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("firstTrailingContextLineCut.txt");
-        ILineFilter lineFilter = (f, h, i) -> {
-            throw new NotImplementedException();
-        };
+        ILineFilter lineFilter = (f, h, i)
+                -> !(i==9);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void secondTrailingContextLineCut() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("secondTrailingContextLineCut.txt");
-        ILineFilter lineFilter = (f, h, i) -> {
-            throw new NotImplementedException();
-        };
+        ILineFilter lineFilter = (f, h, i)
+                -> !(i==50);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
     @Test
     public void AllTrailingContextLineCut() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("AllTrailingContextLineCut.txt");
-        ILineFilter lineFilter = (f, h, i) -> {
-            throw new NotImplementedException();
-        };
+        ILineFilter lineFilter = (f, h, i)
+                -> !(i>=115 && i < 118);
         runComparison(pathToExpectedResult, null, lineFilter);
     }
 
