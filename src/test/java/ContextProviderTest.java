@@ -21,12 +21,7 @@ public class ContextProviderTest {
 
         List<String> expectedLines = Files.readAllLines(pathToExpectedResult);
         List<String> actualLines = fineDiff.toLines();
-        Assertions.assertEquals(expectedLines.size(), actualLines.size());
-        for (int i = 0; i < expectedLines.size(); i++) {
-            String expectedLine = expectedLines.get(i);
-            String actualLine = actualLines.get(i);
-            Assertions.assertEquals(expectedLine, actualLine);
-        }
+        Assertions.assertEquals(expectedLines, actualLines);
     }
 
     @Test
@@ -64,9 +59,9 @@ public class ContextProviderTest {
 
     @Test
     public void leadingContextCutAndFirstLineInSourceContext() throws IOException {
-        Path pathToExpectedResult = resourceDir.resolve("AllLeadingContextLineCut.txt");
+        Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndFirstLineInSourceContext.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && (i == 6 || i == 5));
+                -> !(f.toString().contains("version-B") && (i >= 5 && i < 9));
         runComparison(pathToExpectedResult, lineFilter);
     }
 
@@ -74,7 +69,7 @@ public class ContextProviderTest {
     public void leadingContextCutAndSecondLineInSourceContext() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndSecondLineInSourceContext.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && (i >= 45 && i < 48 || i == 43));
+                -> !(f.toString().contains("version-B") && (i >= 46 && i < 49 || i == 44));
         runComparison(pathToExpectedResult, lineFilter);
     }
 
@@ -82,7 +77,7 @@ public class ContextProviderTest {
     public void leadingContextCutAndAllSourceContext() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndAllSourceContext.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && i < 48);
+                -> !(f.toString().contains("version-B") && i < 49);
         runComparison(pathToExpectedResult, lineFilter);
     }
 
@@ -90,7 +85,7 @@ public class ContextProviderTest {
     public void leadingContextCutAndStartOfSource() throws IOException {
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndStartOfSource.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && i < 8);
+                -> !(f.toString().contains("version-B") && i < 9);
         runComparison(pathToExpectedResult, lineFilter);
     }
 

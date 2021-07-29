@@ -7,6 +7,7 @@ diff -Naur version-A/DiffParser.txt version-B/DiffParser.txt
  
 +import java.util.ArrayList;
  import java.util.List;
+ 
  public class DiffParser {
 diff -Naur version-A/DiffParser.txt version-B/DiffParser.txt
 --- version-A/DiffParser.txt	2021-07-28 18:01:03.137025193 +0000
