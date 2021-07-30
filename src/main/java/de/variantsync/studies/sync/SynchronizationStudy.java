@@ -49,12 +49,20 @@ public class SynchronizationStudy {
             SPLCommit newCommit = pair.child();
             // While more random configurations to consider
             // Sample set of random configuration
-            List<Sample> configurations = sampleVariants(oldCommit.featureModel().run().get(), 0);
+//            FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSample(n);
+//            Sample configurations = variantSampler.sample(oldCommit.featureModel());
             // Generate variants
             CaseSensitivePath splDir = null;
             CaseSensitivePath variantsDir = null;
             oldCommit.presenceConditions().run().get().generateVariant(null, splDir, variantsDir, VariantGenerationOptions.ExitOnError);
             newCommit.presenceConditions().run().get().generateVariant(null, splDir, variantsDir, VariantGenerationOptions.ExitOnError);
+            /*
+            final Node featureModelFormula = new FeatureModelFormula(fm).getPropositionalNode();
+            // TODO: Check whether this is enough. It only checks satisfiability, but might not check whether the variables exist in the feature model. Maybe check whether the set of selected variables exists?
+            if (!variant.isImplementing(featureModelFormula)) {
+               throw new IllegalSampleException("Sampled " + variant + " is not valid anymore for feature model " + model + "!");
+            }
+             */
             // Select next source variant
             // copy source variant
             // checkout previous revision of copied source variant
@@ -72,10 +80,5 @@ public class SynchronizationStudy {
         }
         
     }
-
-    public static List<Sample> sampleVariants(IFeatureModel featureModel, int n) {
-        throw new NotImplementedException();
-    }
-    
     
 }

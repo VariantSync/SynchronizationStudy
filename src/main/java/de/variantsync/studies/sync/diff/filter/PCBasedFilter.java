@@ -17,7 +17,7 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter{
     private final Path oldVersion;
     private final Path newVersion;
     
-    PCBasedFilter(Artefact oldTraces, Artefact newTraces, Variant targetVariant, Path oldVersionRoot, Path newVersionRoot) {
+    public PCBasedFilter(Artefact oldTraces, Artefact newTraces, Variant targetVariant, Path oldVersionRoot, Path newVersionRoot) {
         this.oldTraces = oldTraces;
         this.newTraces = newTraces;
         this.targetVariant = targetVariant;
