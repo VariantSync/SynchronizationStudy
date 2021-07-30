@@ -1,10 +1,7 @@
 package de.variantsync.studies.sync.diff.filter;
 
-import de.variantsync.evolution.io.ResourceLoader;
-import de.variantsync.evolution.io.kernelhaven.KernelHavenVariantPCIO;
 import de.variantsync.evolution.util.CaseSensitivePath;
 import de.variantsync.evolution.util.Logger;
-import de.variantsync.evolution.util.NotImplementedException;
 import de.variantsync.evolution.variability.config.IConfiguration;
 import de.variantsync.evolution.variability.pc.Artefact;
 import de.variantsync.studies.sync.diff.components.FileDiff;
@@ -31,12 +28,13 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter{
     }
 
     @Override
-    public Boolean shouldKeep(FileDiff fileDiff) {
-        throw new NotImplementedException();
+    public boolean shouldKeep(FileDiff fileDiff) {
+        // Files are filtered implicitly, if all lines are filtered
+        return true;
     }
 
     @Override
-    public Boolean shouldKeep(Path filePath, int index) {
+    public boolean shouldKeep(Path filePath, int index) {
         if (filePath.startsWith(oldVersion)) {
             return shouldKeep(oldConfig, oldTraces, filePath, index);
         } else if (filePath.startsWith(newVersion)) {
