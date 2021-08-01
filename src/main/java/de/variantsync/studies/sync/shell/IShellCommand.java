@@ -1,8 +1,9 @@
 package de.variantsync.studies.sync.shell;
 
 import de.variantsync.evolution.util.functional.Result;
-import de.variantsync.evolution.util.functional.Unit;
 import de.variantsync.studies.sync.error.ShellException;
+
+import java.util.List;
 
 public interface IShellCommand {
     /***
@@ -18,7 +19,7 @@ public interface IShellCommand {
      * @param resultCode the code that is to be parsed
      * @return the result
      */
-    default Result<Unit, ShellException> interpretResult(int resultCode) {
-        return resultCode == 0 ? Result.Success(Unit.Instance()) : Result.Failure(new ShellException(String.valueOf(resultCode)));
+    default Result<List<String>, ShellException> interpretResult(int resultCode, List<String> output) {
+        return resultCode == 0 ? Result.Success(output) : Result.Failure(new ShellException(String.valueOf(resultCode)));
     }
 }

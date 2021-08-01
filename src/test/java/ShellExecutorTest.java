@@ -1,7 +1,6 @@
 import de.variantsync.evolution.util.LogLevel;
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;
-import de.variantsync.evolution.util.functional.Unit;
 import de.variantsync.studies.sync.error.ShellException;
 import de.variantsync.studies.sync.shell.*;
 import org.junit.jupiter.api.Assertions;
@@ -49,7 +48,7 @@ public class ShellExecutorTest {
         Path pathA = Paths.get("text-A.txt");
         Path pathB = Paths.get("text-B.txt");
 
-        Result<Unit, ShellException> result =
+        Result<List<String>, ShellException> result =
                 shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
 
         assert result.isSuccess();
@@ -74,7 +73,7 @@ public class ShellExecutorTest {
         Path pathA = Paths.get("text-A.txt");
         Path pathB = Paths.get("text-B.txt");
 
-        Result<Unit, ShellException> result =
+        Result<List<String>, ShellException> result =
                 shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
         assert result.isSuccess();
         Files.write(outputPath, output);
@@ -98,7 +97,7 @@ public class ShellExecutorTest {
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
 
-        Result<Unit, ShellException> result =
+        Result<List<String>, ShellException> result =
                 shellExecutor.execute(
                         PatchCommand.Recommended(Paths.get("diff-A-B.txt")).outfile(outputPath));
         assert result.isSuccess();
@@ -119,7 +118,7 @@ public class ShellExecutorTest {
 
         Path pathA = Paths.get("version-A");
         Path pathB = Paths.get("version-B");
-        Result<Unit, ShellException> result =
+        Result<List<String>, ShellException> result =
                 shellExecutor.execute(DiffCommand.Recommended(pathA, pathB));
 
         assert result.isSuccess();
@@ -144,11 +143,11 @@ public class ShellExecutorTest {
 
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
-        Result<Unit, ShellException> copyResult = shellExecutor.execute(new CpCommand(Paths.get("version-A"), outputDir).recursive());
+        Result<List<String>, ShellException> copyResult = shellExecutor.execute(new CpCommand(Paths.get("version-A"), outputDir).recursive());
         assert copyResult.isSuccess();
 
         shellExecutor = new ShellExecutor(outputReader, errorReader, outputDir);
-        Result<Unit, ShellException> result = shellExecutor.execute(
+        Result<List<String>, ShellException> result = shellExecutor.execute(
                 PatchCommand.Recommended(resourcesDir.resolve("diff-A-B.txt").toAbsolutePath()));
         assert result.isSuccess();
         List<Path> versionBPaths =
@@ -177,11 +176,11 @@ public class ShellExecutorTest {
 
         Consumer<String> outputReader = Logger::info;
         ShellExecutor shellExecutor = new ShellExecutor(outputReader, errorReader, resourcesDir);
-        Result<Unit, ShellException> copyResult = shellExecutor.execute(new CpCommand(Paths.get("version-A"), outputDir).recursive());
+        Result<List<String>, ShellException> copyResult = shellExecutor.execute(new CpCommand(Paths.get("version-A"), outputDir).recursive());
         assert copyResult.isSuccess();
 
         shellExecutor = new ShellExecutor(outputReader, errorReader, outputDir);
-        Result<Unit, ShellException> result = shellExecutor.execute(
+        Result<List<String>, ShellException> result = shellExecutor.execute(
                 PatchCommand.Recommended(resourcesDir.resolve("fine-diff-A-B.txt").toAbsolutePath()));
         assert result.isSuccess();
         List<Path> versionBPaths =

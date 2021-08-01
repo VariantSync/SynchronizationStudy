@@ -2,7 +2,6 @@ package de.variantsync.studies.sync.shell;
 
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;
-import de.variantsync.evolution.util.functional.Unit;
 import de.variantsync.studies.sync.error.SetupError;
 import de.variantsync.studies.sync.error.ShellException;
 
@@ -11,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -33,14 +34,18 @@ public class ShellExecutor {
         this.errorReader = errorReader;
     }
 
-    public Result<Unit, ShellException> execute(IShellCommand command) {
+    public Result<List<String>, ShellException> execute(IShellCommand command) {
+        return execute(command, this.workDir);
+    }
+
+    public Result<List<String>, ShellException> execute(IShellCommand command, Path executionDir) {
         if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
             throw new SetupError("The synchronization study can only be executed under Linux!");
         }
 
         ProcessBuilder builder = new ProcessBuilder();
-        if (workDir != null) {
-            builder.directory(workDir.toFile());
+        if (executionDir != null) {
+            builder.directory(executionDir.toFile());
         }
         Logger.debug("Executing '" + command + "' in directory " + builder.directory());
         builder.command(command.parts());
@@ -48,10 +53,15 @@ public class ShellExecutor {
         Process process;
         Future<?> outputFuture;
         Future<?> errorFuture;
+        List<String> output = new LinkedList<>();
+        Consumer<String> shareOutput = s -> {
+            output.add(s);
+            outputReader.accept(s);
+        };
         try {
             process = builder.start();
             outputFuture = Executors.newSingleThreadExecutor()
-                    .submit(collectOutput(process.getInputStream(), outputReader));
+                    .submit(collectOutput(process.getInputStream(), shareOutput));
             errorFuture = Executors.newSingleThreadExecutor()
                     .submit(collectOutput(process.getErrorStream(), errorReader));
         } catch (IOException e) {
@@ -68,7 +78,7 @@ public class ShellExecutor {
             Logger.error("Interrupted while waiting for process to end.", e);
             return Result.Failure(new ShellException(e));
         }
-        return command.interpretResult(exitCode);
+        return command.interpretResult(exitCode, output);
     }
 
     private Runnable collectOutput(InputStream inputStream, Consumer<String> consumer) {

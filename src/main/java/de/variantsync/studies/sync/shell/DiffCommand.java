@@ -7,6 +7,7 @@ import de.variantsync.studies.sync.error.ShellException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 
 public class DiffCommand implements IShellCommand {
     private static final String COMMAND = "diff";
@@ -86,7 +87,7 @@ public class DiffCommand implements IShellCommand {
     }
 
     @Override
-    public Result<Unit, ShellException> interpretResult(int code) {
-        return code == 0 || code == 1 ? Result.Success(Unit.Instance()) : Result.Failure(new ShellException(String.valueOf(code)));
+    public Result<List<String>, ShellException> interpretResult(int code, List<String> output) {
+        return code == 0 || code == 1 ? Result.Success(output) : Result.Failure(new ShellException(String.valueOf(code)));
     }
 }
