@@ -73,6 +73,7 @@ public class SynchronizationStudy {
 //            return sequences;
 //        });
 
+        // TODO: Handle empty diff between source versions
         // For each pair
         for (CommitPair<SPLCommit> pair : pairs) {
             // Take next commit pair
