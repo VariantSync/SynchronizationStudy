@@ -65,30 +65,38 @@ public class PCBasedFilterTest {
     
     @Test
     public void removedLineNotInTargetVariant() throws IOException {
-        IFeatureModel model = FeatureModelUtils.FromOptionalFeatures("A", "B", "C", "D", "E");
+        IFeatureModel model = FeatureModelUtils.FromOptionalFeatures("A", "B", "C", "D", "E", "LEAD", "TRAIL");
         final FeatureModelFormula fmf = new FeatureModelFormula(model);
-        Variant variant = new Variant("Target", new FeatureIDEConfiguration(fmf, Arrays.asList("B", "C", "D", "E")));
+        Variant variant = new Variant("Target", new FeatureIDEConfiguration(fmf, Arrays.asList("B", "C", "D", "E", "LEAD", "TRAIL")));
         PCBasedFilter pcBasedFilter = getPCBasedFilter(variant);
         runComparison(splitsDir.resolve("removedLineNotInTargetVariant.txt"), pcBasedFilter, pcBasedFilter);
     }
 
     @Test
     public void addedLineNotInTargetVariant() throws IOException {
-        IFeatureModel model = FeatureModelUtils.FromOptionalFeatures("A", "B", "C", "D", "E");
+        IFeatureModel model = FeatureModelUtils.FromOptionalFeatures("A", "B", "C", "D", "E", "LEAD", "TRAIL");
         final FeatureModelFormula fmf = new FeatureModelFormula(model);
-        Variant variant = new Variant("Target", new FeatureIDEConfiguration(fmf, Arrays.asList("A", "B", "C", "D")));
+        Variant variant = new Variant("Target", new FeatureIDEConfiguration(fmf, Arrays.asList("A", "B", "C", "D", "LEAD", "TRAIL")));
         PCBasedFilter pcBasedFilter = getPCBasedFilter(variant);
         runComparison(splitsDir.resolve("addedLineNotInTargetVariant.txt"), pcBasedFilter, pcBasedFilter);
     }
 
     @Test
-    public void leadContextLineNotInTargetVariant() {
-        throw new NotImplementedException();
+    public void leadContextLineNotInTargetVariant() throws IOException {
+        IFeatureModel model = FeatureModelUtils.FromOptionalFeatures("A", "B", "C", "D", "E", "LEAD", "TRAIL");
+        final FeatureModelFormula fmf = new FeatureModelFormula(model);
+        Variant variant = new Variant("Target", new FeatureIDEConfiguration(fmf, Arrays.asList("A", "B", "C", "D", "E", "TRAIL")));
+        PCBasedFilter pcBasedFilter = getPCBasedFilter(variant);
+        runComparison(splitsDir.resolve("leadContextLineNotInTargetVariant.txt"), pcBasedFilter, pcBasedFilter);
     }
 
     @Test
-    public void trailContextLineNotInTargetVariant() {
-        throw new NotImplementedException();
+    public void trailContextLineNotInTargetVariant() throws IOException {
+        IFeatureModel model = FeatureModelUtils.FromOptionalFeatures("A", "B", "C", "D", "E", "LEAD", "TRAIL");
+        final FeatureModelFormula fmf = new FeatureModelFormula(model);
+        Variant variant = new Variant("Target", new FeatureIDEConfiguration(fmf, Arrays.asList("A", "B", "C", "D", "E", "LEAD")));
+        PCBasedFilter pcBasedFilter = getPCBasedFilter(variant);
+        runComparison(splitsDir.resolve("trailContextLineNotInTargetVariant.txt"), pcBasedFilter, pcBasedFilter);
     }
 
     @Test
