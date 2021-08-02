@@ -6,6 +6,7 @@ import de.variantsync.studies.sync.shell.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -199,5 +200,32 @@ public class ShellExecutorTest {
                 }
             }
         }
+    }
+    
+    @Test
+    public void simpleFileRm() throws IOException {
+        Path tempFile = Files.createTempFile(null, null);
+        assert tempFile.toFile().exists();
+        
+        RmCommand rmCommand = new RmCommand(tempFile);
+        ShellExecutor shellExecutor = new ShellExecutor(Logger::info, errorReader);
+        assert shellExecutor.execute(rmCommand).isSuccess();
+        
+        assert !tempFile.toFile().exists();
+    }
+
+    @Test
+    public void simpleDirRemoval() throws IOException {
+        Path tempDir = Files.createTempDirectory(null);
+        Path tempFile = Files.createTempFile(tempDir, null, null);
+        assert tempDir.toFile().exists();
+        assert tempFile.toFile().exists();
+
+        RmCommand rmCommand = new RmCommand(tempDir).recursive();
+        ShellExecutor shellExecutor = new ShellExecutor(Logger::info, errorReader);
+        assert shellExecutor.execute(rmCommand).isSuccess();
+
+        assert !tempDir.toFile().exists();
+        assert !tempFile.toFile().exists();
     }
 }

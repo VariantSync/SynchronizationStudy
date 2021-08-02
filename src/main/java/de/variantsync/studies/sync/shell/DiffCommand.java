@@ -1,7 +1,6 @@
 package de.variantsync.studies.sync.shell;
 
 import de.variantsync.evolution.util.functional.Result;
-import de.variantsync.evolution.util.functional.Unit;
 import de.variantsync.studies.sync.error.ShellException;
 
 import java.nio.file.Path;
@@ -9,7 +8,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-public class DiffCommand implements IShellCommand {
+public class DiffCommand extends ShellCommand {
     private static final String COMMAND = "diff";
     private final String[] files;
     private final LinkedList<String> args = new LinkedList<>();

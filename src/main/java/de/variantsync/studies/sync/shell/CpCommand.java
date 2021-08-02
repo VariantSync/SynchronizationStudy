@@ -3,7 +3,7 @@ package de.variantsync.studies.sync.shell;
 import java.nio.file.Path;
 import java.util.LinkedList;
 
-public class CpCommand implements IShellCommand {
+public class CpCommand extends ShellCommand {
     private static final String COMMAND = "cp";
     private final String from;
     private final String to;

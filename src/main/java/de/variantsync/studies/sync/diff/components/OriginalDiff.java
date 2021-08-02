@@ -10,4 +10,8 @@ public record OriginalDiff(List<FileDiff> fileDiffs) implements IDiffComponent {
         fileDiffs.stream().map(IDiffComponent::toLines).forEach(lines::addAll);
         return lines;
     }
+    
+    public boolean isEmpty() {
+        return this.fileDiffs.isEmpty();
+    }
 }

@@ -2,7 +2,7 @@ package de.variantsync.studies.sync.shell;
 
 import java.util.Arrays;
 
-public class EchoCommand implements IShellCommand {
+public class EchoCommand extends ShellCommand {
     private final String COMMAND = "echo";
     private final String message;
 

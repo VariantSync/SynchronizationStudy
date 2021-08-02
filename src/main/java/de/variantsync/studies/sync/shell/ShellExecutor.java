@@ -34,11 +34,11 @@ public class ShellExecutor {
         this.errorReader = errorReader;
     }
 
-    public Result<List<String>, ShellException> execute(IShellCommand command) {
+    public Result<List<String>, ShellException> execute(ShellCommand command) {
         return execute(command, this.workDir);
     }
 
-    public Result<List<String>, ShellException> execute(IShellCommand command, Path executionDir) {
+    public Result<List<String>, ShellException> execute(ShellCommand command, Path executionDir) {
         if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
             throw new SetupError("The synchronization study can only be executed under Linux!");
         }

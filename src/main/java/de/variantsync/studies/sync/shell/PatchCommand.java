@@ -1,14 +1,10 @@
 package de.variantsync.studies.sync.shell;
 
-import de.variantsync.evolution.util.functional.Result;
-import de.variantsync.evolution.util.functional.Unit;
-import de.variantsync.studies.sync.error.ShellException;
-
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
 
-public class PatchCommand implements IShellCommand {
+public class PatchCommand extends ShellCommand {
     private static final String COMMAND = "patch";
     private final LinkedList<String> args = new LinkedList<>();
 
