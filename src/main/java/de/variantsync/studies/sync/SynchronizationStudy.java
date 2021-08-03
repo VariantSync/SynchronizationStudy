@@ -7,7 +7,6 @@ import de.variantsync.evolution.feature.Variant;
 import de.variantsync.evolution.feature.sampling.FeatureIDESampler;
 import de.variantsync.evolution.io.Resources;
 import de.variantsync.evolution.io.data.VariabilityDatasetLoader;
-import de.variantsync.evolution.repository.Branch;
 import de.variantsync.evolution.repository.SPLRepository;
 import de.variantsync.evolution.util.CaseSensitivePath;
 import de.variantsync.evolution.util.Logger;
@@ -37,33 +36,24 @@ import java.util.Set;
 
 public class SynchronizationStudy {
     // TODO: Set in external config
-    private static final Path datasetPath = Path.of("/home/alex/data/synchronization-study/variability-busybox");
+    private static final Path datasetPath = Path.of("/home/alex/data/synchronization-study/better-dataset/VariabilityExtraction/extraction-results/busybox/output");
     private static final Path workDir = Path.of("/home/alex/data/synchronization-study/workdir");
     private static final int randomRepeats = 1;
     private static final int numVariants = 3;
     private static final SPLRepository splRepositoryV0 = new SPLRepository(workDir.getParent().resolve("busybox-V0"));
     private static final SPLRepository splRepositoryV1 = new SPLRepository(workDir.getParent().resolve("busybox-V1"));
-    private static final String branchName = "master";
     private static final CaseSensitivePath variantsDirV0 = new CaseSensitivePath(workDir.resolve("V0Variants"));
     private static final CaseSensitivePath variantsDirV1 = new CaseSensitivePath(workDir.resolve("V1Variants"));
     private static final Path patchDir = workDir.resolve("TARGET");
     private static final Path normalPatchFile = workDir.resolve("patch.txt");
     private static final Path pcBasedPatchFile = workDir.resolve("pc-patch.txt");
     private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
-    private static final ShellExecutor shell = new ShellExecutor(Logger::info, Logger::error, workDir);
+    private static final ShellExecutor shell = new ShellExecutor(Logger::debug, Logger::error, workDir);
 
 
     public static void main(String... args) {
         // Initialize the library
         de.variantsync.evolution.Main.Initialize();
-
-//        Logger.status("Initializing SPL repository");
-//        try {
-//            splRepositoryV0.checkoutBranch(new Branch(branchName));
-//            splRepositoryV0.checkoutBranch(new Branch(branchName));
-//        } catch (GitAPIException | IOException e) {
-//            panic("Was not able to checkout branch " + branchName + " for SPL repo.", e);
-//        }
 
         // Load VariabilityDataset
         Logger.status("Loading variability dataset.");
@@ -114,9 +104,10 @@ public class SynchronizationStudy {
             var test = modelV0.getFeature("CONFIG_BUILD_LIBBUSYBOX");
             IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
             var test2 = modelV1.getFeature("CONFIG_BUILD_LIBBUSYBOX");
+            var test3 = modelV0.getFeature("CONFIG_WGET");
             final Node featureModelFormulaV0 = new FeatureModelFormula(modelV0).getPropositionalNode();
             final Node featureModelFormulaV1 = new FeatureModelFormula(modelV0).getPropositionalNode();
-
+            
             // While more random configurations to consider
             for (int i = 0; i < randomRepeats; i++) {
                 Logger.status("Starting repetition " + (i+1) + " of " + randomRepeats + " with (random) variants.");
@@ -141,6 +132,7 @@ public class SynchronizationStudy {
                     if (!variant.isImplementing(featureModelFormulaV1)) {
                         panic("Sampled " + variant + " is not valid for feature model " + modelV1 + "!");
                     }
+                    // TODO: Retrieve ground truth
                     commitV0.presenceConditions().run().orElseThrow().generateVariant(variant, new CaseSensitivePath(splRepositoryV0.getPath()), variantsDirV0.resolve(variant.getName()), VariantGenerationOptions.ExitOnError);
                     commitV1.presenceConditions().run().orElseThrow().generateVariant(variant, new CaseSensitivePath(splRepositoryV1.getPath()), variantsDirV1.resolve(variant.getName()), VariantGenerationOptions.ExitOnError);
                 }
@@ -213,14 +205,14 @@ public class SynchronizationStudy {
 
     private static void applyPatch(Path patchFile, Path targetVariant) {
         // Clean patch directory
-        shell.execute(new RmCommand("./*").recursive(), patchDir);
+        shell.execute(new RmCommand(patchDir.toAbsolutePath()).recursive());
 
         // copy target variant
         shell.execute(new CpCommand(targetVariant, patchDir).recursive()).expect("Was not able to copy variant " + targetVariant);
 
         /* Application of patches without knowledge about features */
         // apply patch to copied target variant
-        shell.execute(PatchCommand.Recommended(patchFile), patchDir);
+        shell.execute(PatchCommand.Recommended(patchFile).strip(2), patchDir);
 
     }
 
@@ -250,17 +242,18 @@ public class SynchronizationStudy {
     }
 
     private static FineDiff getPCBasedDiff(OriginalDiff originalDiff, SPLCommit commitV0, SPLCommit commitV1, Variant target) {
+        // TODO: We do not need the traces from the SPL, but the traces from the source variant!
         Artefact tracesV0 = commitV0.presenceConditions().run().orElseThrow();
         Artefact tracesV1 = commitV1.presenceConditions().run().orElseThrow();
-        PCBasedFilter pcBasedFilter = new PCBasedFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path());
+        PCBasedFilter pcBasedFilter = new PCBasedFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
         // Create target variant specific patch that respects PCs
         DefaultContextProvider contextProvider = new DefaultContextProvider(workDir);
         return DiffSplitter.split(originalDiff, pcBasedFilter, pcBasedFilter, contextProvider);
     }
 
     private static OriginalDiff getOriginalDiff(Path v0Path, Path v1Path) {
-        DiffCommand diffCommand = DiffCommand.Recommended(v0Path, v1Path);
-        List<String> output = shell.execute(diffCommand).expect("Was not able to diff variants.");
+        DiffCommand diffCommand = DiffCommand.Recommended(workDir.relativize(v0Path), workDir.relativize(v1Path));
+        List<String> output = shell.execute(diffCommand, workDir).expect("Was not able to diff variants.");
         return DiffParser.toOriginalDiff(output);
     }
 
