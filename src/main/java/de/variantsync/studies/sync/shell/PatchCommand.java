@@ -9,7 +9,7 @@ public class PatchCommand extends ShellCommand {
     private final LinkedList<String> args = new LinkedList<>();
 
     public static PatchCommand Recommended(Path patchFile) {
-        return new PatchCommand().input(patchFile).forward().strip(1);
+        return new PatchCommand().input(patchFile).forward().strip(1).noBackup();
     }
 
     /**
@@ -51,6 +51,14 @@ public class PatchCommand extends ShellCommand {
         this.args.add("--output=" + outputPath);
         return this;
     }
+    
+    /** 
+     * Put rejects into rejectPath instead of the default .rej file. When rejectfile is -, discard rejects.
+     **/
+    public PatchCommand rejectFile(Path rejectPath) {
+        this.args.add("--reject-file=" + rejectPath);
+        return this;
+    }
 
     /**
      * Read the patch from patchfile.  If patchfile is -, read from standard input, the default.
@@ -60,6 +68,17 @@ public class PatchCommand extends ShellCommand {
      */
     public PatchCommand input(Path patchFile) {
         this.args.add("--input=" + patchFile);
+        return this;
+    }
+
+    /**
+     * Do not back up a file if the patch does not match the file
+     *           exactly and if backups are not otherwise requested.  This is
+     *           the default if patch is conforming to POSIX.
+     * @return this command
+     */
+    public PatchCommand noBackup() {
+        this.args.add("--no-backup-if-mismatch");
         return this;
     }
 

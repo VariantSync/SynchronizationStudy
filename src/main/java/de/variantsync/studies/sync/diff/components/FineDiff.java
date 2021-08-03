@@ -3,12 +3,8 @@ package de.variantsync.studies.sync.diff.components;
 import java.util.LinkedList;
 import java.util.List;
 
-public class FineDiff implements IDiffComponent {
-    private final List<FileDiff> content;
-
-    public FineDiff(List<FileDiff> content) {
-        this.content = content;
-    }
+public record FineDiff(
+        List<FileDiff> content) implements IDiffComponent {
 
     @Override
     public List<String> toLines() {
