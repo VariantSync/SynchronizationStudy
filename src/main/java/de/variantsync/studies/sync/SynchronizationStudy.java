@@ -4,6 +4,7 @@ import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.variantsync.evolution.feature.Sample;
 import de.variantsync.evolution.feature.Variant;
+import de.variantsync.evolution.feature.config.FeatureIDEConfiguration;
 import de.variantsync.evolution.feature.sampling.FeatureIDESampler;
 import de.variantsync.evolution.io.Resources;
 import de.variantsync.evolution.io.data.VariabilityDatasetLoader;
@@ -25,6 +26,8 @@ import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
 import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
 import de.variantsync.studies.sync.error.Panic;
 import de.variantsync.studies.sync.error.ShellException;
+import de.variantsync.studies.sync.experiment.EPatchType;
+import de.variantsync.studies.sync.experiment.PatchOutcome;
 import de.variantsync.studies.sync.shell.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
@@ -43,6 +46,9 @@ public class SynchronizationStudy {
     private static final Path debugDir = workDir.resolve("DEBUG");
     private static final int randomRepeats = 1;
     private static final int numVariants = 3;
+    private static final String DATASET = "BUSYBOX";
+    private static final Path resultFileNormal = workDir.resolve("results-normal.txt");
+    private static final Path resultFilePCBased = workDir.resolve("results-pc-based.txt");
     private static final SPLRepository splRepositoryV0 = new SPLRepository(workDir.getParent().resolve("busybox-V0"));
     private static final SPLRepository splRepositoryV1 = new SPLRepository(workDir.getParent().resolve("busybox-V1"));
     private static final CaseSensitivePath variantsDirV0 = new CaseSensitivePath(workDir.resolve("V0Variants"));
@@ -58,7 +64,7 @@ public class SynchronizationStudy {
     public static void main(String... args) {
         // Initialize the library
         de.variantsync.evolution.Main.Initialize();
-        
+
         // Load VariabilityDataset
         Logger.status("Loading variability dataset.");
         VariabilityDataset dataset = null;
@@ -74,19 +80,10 @@ public class SynchronizationStudy {
         // Retrieve pairs/sequences of usable commits
         Logger.status("Retrieving commit pairs");
         Set<CommitPair<SPLCommit>> pairs = Objects.requireNonNull(dataset).getCommitPairsForEvolutionStudy();
-//        var history = dataset.getVariabilityHistory(setOfCommits -> {
-//            List<NonEmptyList<SPLCommit>> sequences = new ArrayList<>(pairs.size());
-//            pairs.stream().map(p -> {
-//                List<SPLCommit> list = new ArrayList<>(2);
-//                list.add(p.parent());
-//                list.add(p.child());
-//                return new NonEmptyList<>(list);
-//            }).forEach(sequences::add);
-//            return sequences;
-//        });
 
         // For each pair
         Logger.status("Starting diffing and patching...");
+        long runID = 0;
         for (CommitPair<SPLCommit> pair : pairs) {
             // Take next commit pair
             SPLCommit commitV0 = pair.parent();
@@ -108,10 +105,10 @@ public class SynchronizationStudy {
             IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
             final Node featureModelFormulaV0 = new FeatureModelFormula(modelV0).getPropositionalNode();
             final Node featureModelFormulaV1 = new FeatureModelFormula(modelV0).getPropositionalNode();
-            
+
             // While more random configurations to consider
             for (int i = 0; i < randomRepeats; i++) {
-                Logger.status("Starting repetition " + (i+1) + " of " + randomRepeats + " with (random) variants.");
+                Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with (random) variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
                 Sample configurations = variantSampler.sample(modelV0);
@@ -120,7 +117,7 @@ public class SynchronizationStudy {
                 if (Files.exists(debugDir)) {
                     shell.execute(new RmCommand(debugDir).recursive());
                 }
-                if(debugDir.toFile().mkdirs()) {
+                if (debugDir.toFile().mkdirs()) {
                     Logger.warning("Created Debug directory.");
                 }
                 if (Files.exists(variantsDirV0.path())) {
@@ -131,7 +128,7 @@ public class SynchronizationStudy {
                     Logger.status("Cleaning variants dir V1.");
                     shell.execute(new RmCommand(variantsDirV1.path()).recursive());
                 }
-                
+
                 // Generate the randomly selected variants at both versions
                 Map<Variant, GroundTruth> groundTruthV0 = new HashMap<>();
                 Map<Variant, GroundTruth> groundTruthV1 = new HashMap<>();
@@ -145,7 +142,15 @@ public class SynchronizationStudy {
                     if (!variant.isImplementing(featureModelFormulaV1)) {
                         panic("Sampled " + variant + " is not valid for feature model " + modelV1 + "!");
                     }
-                    // TODO: Retrieve ground truth
+
+                    if (variant.getConfiguration() instanceof FeatureIDEConfiguration config){
+                        try {
+                            Files.write(debugDir.resolve(variant.getName() + ".config"), config.toAssignment().entrySet().stream().map(entry -> entry.getKey() + " : " + entry.getValue()).collect(Collectors.toList()));
+                        } catch (IOException e) {
+                            Logger.error("Was not able to write configuration of " + variant.getName(), e);
+                        }
+                    }
+                    
                     GroundTruth gtV0 = commitV0.presenceConditions().run().orElseThrow().generateVariant(variant, new CaseSensitivePath(splRepositoryV0.getPath()), variantsDirV0.resolve(variant.getName()), VariantGenerationOptions.ExitOnError).expect("Was not able to generate V0 of " + variant);
                     try {
                         Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
@@ -153,7 +158,7 @@ public class SynchronizationStudy {
                         Logger.error("Was not able to write ground truth.");
                     }
                     groundTruthV0.put(variant, gtV0);
-                    
+
                     GroundTruth gtV1 = commitV1.presenceConditions().run().orElseThrow().generateVariant(variant, new CaseSensitivePath(splRepositoryV1.getPath()), variantsDirV1.resolve(variant.getName()), VariantGenerationOptions.ExitOnError).expect("Was not able to generate V1 of " + variant);
                     try {
                         Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
@@ -204,8 +209,13 @@ public class SynchronizationStudy {
                         // Apply the fine diff to the target variant
                         applyPatch(normalPatchFile, pathToTarget);
                         // Evaluate the patch result
-                        evaluatePatchResult(pathToExpectedResult, fineDiff);
-                        
+                        PatchOutcome normalPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.NORMAL, commitV0, commitV1, source, target, pathToExpectedResult, fineDiff);
+                        try {
+                            normalPatchOutcome.writeAsJSON(resultFileNormal, true);
+                        } catch (IOException e) {
+                            Logger.error("Was not able to write normal result file for run " + runID, e);
+                        }
+
                         /* Application of patches with knowledge about features */
                         Logger.info("Applying patch with knowledge about features...");
                         // Create target variant specific patch that respects PCs
@@ -214,43 +224,19 @@ public class SynchronizationStudy {
                         // Apply the patch
                         applyPatch(pcBasedPatchFile, pathToTarget);
                         // Evaluate the result
-                        evaluatePatchResult(pathToExpectedResult, pcBasedDiff);
-                        
+                        PatchOutcome pcBasedPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.PC_BASED, commitV0, commitV1, source, target, pathToExpectedResult, pcBasedDiff);
+                        try {
+                            pcBasedPatchOutcome.writeAsJSON(resultFilePCBased, true);
+                        } catch (IOException e) {
+                            Logger.error("Was not able to write pc-based result file for run " + runID, e);
+                        }
+
                         Logger.info("Finished patching for source " + source.getName() + " and target " + target.getName());
+                        runID++;
                     }
                 }
             }
         }
-    }
-
-    private static void evaluatePatchRejects(FineDiff appliedPatch) {
-        int commitSized = appliedPatch.content().isEmpty() ? 0 : 1;
-        int fileSized = new HashSet<>(appliedPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-        int editSized = appliedPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        
-        if (Files.exists(rejectFile)) {
-            try {
-                List<String> rejects = Files.readAllLines(rejectFile);
-                OriginalDiff rejectsDiff = DiffParser.toOriginalDiff(rejects);
-                Logger.status("Commit-sized patch failed");
-                commitSized -= 1;
-                
-                int fileSizedFail = new HashSet<>(rejectsDiff.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-                fileSized -= fileSizedFail;
-                Logger.status("" + fileSizedFail + " file-sized patches failed.");
-                int editSizedFail = rejectsDiff.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
-                editSized -= editSizedFail;
-                Logger.status("" + editSizedFail + " edit-sized patches failed");
-            } catch (IOException e) {
-                Logger.error("Was not able to read rejects file.", e);
-            }
-        } 
-        Logger.status(commitSized + " commit-sized patches successful.");
-        Logger.status(fileSized + " file-sized patches successful.");
-        Logger.status(editSized + " edit-sized patches successful.");
-        
-        // TODO: Implement evaluation
-        Logger.error("TODO");
     }
 
     private static void saveDiff(FineDiff fineDiff, Path file) {
@@ -272,7 +258,7 @@ public class SynchronizationStudy {
             Logger.info("Cleaning old rejects file " + rejectFile);
             shell.execute(new RmCommand(rejectFile));
         }
-        
+
         // copy target variant
         shell.execute(new CpCommand(targetVariant, patchDir).recursive()).expect("Was not able to copy variant " + targetVariant);
 
@@ -286,23 +272,49 @@ public class SynchronizationStudy {
         }
     }
 
-    private static void evaluatePatchResult(Path targetVariant, FineDiff patch) {
+    private static PatchOutcome evaluatePatchResult(String dataset, long runID, EPatchType patchType, SPLCommit commitV0, SPLCommit commitV1, Variant source, Variant target, Path targetVariant, FineDiff appliedPatch) {
         // diff patch result and target variant
-        DiffCommand diffCommand = DiffCommand.Recommended(targetVariant, patchDir);
-        List<String> output = shell.execute(diffCommand).expect("Was not able to diff variants.");
+        OriginalDiff actualVsExpected = getOriginalDiff(patchDir, targetVariant);
         // evaluate diff
-        if (output.isEmpty()) {
-            // TODO
-            Logger.info("No difference between patched variant and actual target");
-        } else {
-            // TODO
-            Logger.warning("There are differences between the patched variant and the actual target");
-        }
-        
+
         // evaluate patch rejects
-        evaluatePatchRejects(patch);
-        
-        // TODO: cleanup rejects etc.
+        int fileSized = new HashSet<>(appliedPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
+        int lineSized = appliedPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        int fileSizedFail = 0;
+        int lineSizedFail = 0;
+        OriginalDiff rejectsDiff = null;
+        if (Files.exists(rejectFile)) {
+            try {
+                List<String> rejects = Files.readAllLines(rejectFile);
+                rejectsDiff = DiffParser.toOriginalDiff(rejects);
+                Logger.status("Commit-sized patch failed");
+
+                fileSizedFail = new HashSet<>(rejectsDiff.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
+                Logger.status("" + fileSizedFail + " of " + fileSized + " file-sized patches failed.");
+                lineSizedFail = rejectsDiff.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
+                Logger.status("" + lineSizedFail + " of " + lineSized + " line-sized patches failed");
+            } catch (IOException e) {
+                Logger.error("Was not able to read rejects file.", e);
+            }
+        } else {
+            Logger.status("Commit-sized patch succeeded.");
+        }
+
+        return new PatchOutcome(
+                dataset,
+                runID,
+                patchType,
+                new PatchOutcome.CommitIDV0(commitV0.id()),
+                new PatchOutcome.CommitIDV1(commitV1.id()),
+                new PatchOutcome.SourceVariant(source.getName()),
+                new PatchOutcome.TargetVariant(target.getName()),
+                new PatchOutcome.AppliedPatch(appliedPatch),
+                actualVsExpected.fileDiffs().isEmpty() ? null : new PatchOutcome.ActualVsExpectedTargetV1(actualVsExpected),
+                rejectsDiff == null ? null : new PatchOutcome.PatchRejects(rejectsDiff),
+                new PatchOutcome.FileSizedEditCount(fileSized),
+                new PatchOutcome.LineSizedEditCount(lineSized),
+                new PatchOutcome.FailedFileSizedEditCount(fileSizedFail),
+                new PatchOutcome.FailedLineSizedEditCount(lineSizedFail));
     }
 
     @NotNull
