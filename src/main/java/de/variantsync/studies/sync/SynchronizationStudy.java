@@ -44,7 +44,7 @@ public class SynchronizationStudy {
     private static final Path datasetPath = Path.of("/home/alex/data/synchronization-study/better-dataset/VariabilityExtraction/extraction-results/busybox/output");
     private static final Path workDir = Path.of("/home/alex/data/synchronization-study/workdir");
     private static final Path debugDir = workDir.resolve("DEBUG");
-    private static final int randomRepeats = 1;
+    private static final int randomRepeats = 2;
     private static final int numVariants = 3;
     private static final String DATASET = "BUSYBOX";
     private static final Path resultFileNormal = workDir.resolve("results-normal.txt");
@@ -309,7 +309,7 @@ public class SynchronizationStudy {
                 new PatchOutcome.SourceVariant(source.getName()),
                 new PatchOutcome.TargetVariant(target.getName()),
                 new PatchOutcome.AppliedPatch(appliedPatch),
-                actualVsExpected.fileDiffs().isEmpty() ? null : new PatchOutcome.ActualVsExpectedTargetV1(actualVsExpected),
+                new PatchOutcome.ActualVsExpectedTargetV1(actualVsExpected),
                 rejectsDiff == null ? null : new PatchOutcome.PatchRejects(rejectsDiff),
                 new PatchOutcome.FileSizedEditCount(fileSized),
                 new PatchOutcome.LineSizedEditCount(lineSized),
