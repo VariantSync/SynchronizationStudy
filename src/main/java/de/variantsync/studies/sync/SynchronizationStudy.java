@@ -2,8 +2,6 @@ package de.variantsync.studies.sync;
 
 import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
-import de.ovgu.featureide.fm.core.configuration.Configuration;
-import de.ovgu.featureide.fm.core.configuration.SelectableFeature;
 import de.variantsync.evolution.feature.Sample;
 import de.variantsync.evolution.feature.Variant;
 import de.variantsync.evolution.feature.config.FeatureIDEConfiguration;
@@ -28,6 +26,7 @@ import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
 import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
 import de.variantsync.studies.sync.error.Panic;
 import de.variantsync.studies.sync.error.ShellException;
+import de.variantsync.studies.sync.experiment.BusyboxPreparation;
 import de.variantsync.studies.sync.experiment.EPatchType;
 import de.variantsync.studies.sync.experiment.PatchOutcome;
 import de.variantsync.studies.sync.shell.*;
@@ -102,6 +101,17 @@ public class SynchronizationStudy {
                 panic("Was not able to checkout commit for SPL repository.", e);
             }
             Logger.info("Done.");
+            
+            if (DATASET.equals("BUSYBOX")) {
+                Logger.status("Normalizing BusyBox files...");
+                try {
+                    BusyboxPreparation.normalizeDir(splRepositoryV0.getPath().toFile());
+                    BusyboxPreparation.normalizeDir(splRepositoryV1.getPath().toFile());
+                } catch (IOException e) {
+                    Logger.error("", e);
+                    panic("Was not able to normalize BusyBox.", e);
+                }
+            }
 
             IFeatureModel modelV0 = commitV0.featureModel().run().orElseThrow();
             IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
@@ -113,19 +123,11 @@ public class SynchronizationStudy {
                 Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with (random) variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
-                Sample sampleV0 = null;
-                Sample sampleV1 = null;
-                boolean problem = true;
-                while(problem) {
-                    sampleV0 = variantSampler.sample(modelV0);
-                    sampleV1 = variantSampler.sample(modelV1);
-                    Configuration configV0 = ((FeatureIDEConfiguration) sampleV0.variants().get(0).getConfiguration()).getConfiguration();
-                    Configuration configV1 = ((FeatureIDEConfiguration) sampleV1.variants().get(0).getConfiguration()).getConfiguration();
-                    long missingFeatures = configV0.getFeatures().stream().map(SelectableFeature::getName).filter(f -> configV1.getFeatures().stream().map(SelectableFeature::getName).noneMatch(f2 -> f2.equals(f))).count();
-                    if (missingFeatures == 0) {
-                        problem = false;
-                    } 
-                }
+                Sample sampleV0 = variantSampler.sample(modelV0);
+//                Sample sampleV1 = variantSampler.sample(modelV1);
+//                Configuration configV0 = ((FeatureIDEConfiguration) sampleV0.variants().get(0).getConfiguration()).getConfiguration();
+//                Configuration configV1 = ((FeatureIDEConfiguration) sampleV1.variants().get(0).getConfiguration()).getConfiguration();
+//                long missingFeatures = configV0.getFeatures().stream().map(SelectableFeature::getName).filter(f -> configV1.getFeatures().stream().map(SelectableFeature::getName).noneMatch(f2 -> f2.equals(f))).count();
                 Logger.status("Done. Sampled " + sampleV0.variants().size() + " variants.");
 
                 if (Files.exists(debugDir)) {
@@ -157,15 +159,24 @@ public class SynchronizationStudy {
                         panic("Sampled " + variant + " is not valid for feature model " + modelV1 + "!");
                     }
 
-                    if (variant.getConfiguration() instanceof FeatureIDEConfiguration config){
+                    if (variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
                         try {
                             Files.write(debugDir.resolve(variant.getName() + ".config"), config.toAssignment().entrySet().stream().map(entry -> entry.getKey() + " : " + entry.getValue()).collect(Collectors.toList()));
                         } catch (IOException e) {
                             Logger.error("Was not able to write configuration of " + variant.getName(), e);
                         }
                     }
-                    
-                    GroundTruth gtV0 = commitV0.presenceConditions().run().orElseThrow().generateVariant(variant, new CaseSensitivePath(splRepositoryV0.getPath()), variantsDirV0.resolve(variant.getName()), VariantGenerationOptions.ExitOnError).expect("Was not able to generate V0 of " + variant);
+
+                    GroundTruth gtV0 = commitV0
+                            .presenceConditions()
+                            .run()
+                            .orElseThrow()
+                            .generateVariant(
+                                    variant,
+                                    new CaseSensitivePath(splRepositoryV0.getPath()),
+                                    variantsDirV0.resolve(variant.getName()),
+                                    VariantGenerationOptions.ExitOnError)
+                            .expect("Was not able to generate V0 of " + variant);
                     try {
                         Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
                     } catch (Resources.ResourceIOException e) {
@@ -173,7 +184,16 @@ public class SynchronizationStudy {
                     }
                     groundTruthV0.put(variant, gtV0);
 
-                    GroundTruth gtV1 = commitV1.presenceConditions().run().orElseThrow().generateVariant(variant, new CaseSensitivePath(splRepositoryV1.getPath()), variantsDirV1.resolve(variant.getName()), VariantGenerationOptions.ExitOnError).expect("Was not able to generate V1 of " + variant);
+                    GroundTruth gtV1 = commitV1
+                            .presenceConditions()
+                            .run()
+                            .orElseThrow()
+                            .generateVariant(
+                                    variant,
+                                    new CaseSensitivePath(splRepositoryV1.getPath()),
+                                    variantsDirV1.resolve(variant.getName()),
+                                    VariantGenerationOptions.ExitOnError)
+                            .expect("Was not able to generate V1 of " + variant);
                     try {
                         Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
                     } catch (Resources.ResourceIOException e) {
@@ -357,6 +377,7 @@ public class SynchronizationStudy {
 
     private static void panic(String message, Exception e) {
         Logger.error(message, e);
+        e.printStackTrace();
         throw new Panic(message);
     }
 
