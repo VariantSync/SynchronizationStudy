@@ -23,12 +23,8 @@ import net.ssehub.kernel_haven.util.null_checks.NonNull;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static net.ssehub.kernel_haven.util.null_checks.NullHelpers.notNull;
 
@@ -47,7 +43,7 @@ public class BusyboxPreparation {
                 if (file.isDirectory()) {
                     normalizeDir(file);
                 } else if (file.getName().endsWith(".h") || file.getName().endsWith(".c")) {
-                    normalizeFile(file.toPath());
+                    normalizeFile(file);
                 }
             }
         }
@@ -56,19 +52,37 @@ public class BusyboxPreparation {
     /**
      * Normalizes a single file in style of Busyfix.
      *
+     * @param file The file to normalize.
+     *
      * @throws IOException If writing the replaced file fails.
      */
-    private static void normalizeFile(@NonNull Path path) throws IOException {
+    private static void normalizeFile(@NonNull File file) throws IOException {
         File tempFile;
         FileOutputStream fos = null;
-        if (!(path.toFile().getName().endsWith(".c") || path.toFile().getName().endsWith(".h"))) {
+        if (file.getName().contains("unicode") || file.getName().contains(".fnt")) {
             return;
         }
 
-        List<@NonNull String> inputFile = Files.readAllLines(path, StandardCharsets.UTF_8);
+        List<@NonNull String> inputFile = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                new FileInputStream(file.getPath()), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                inputFile.add(line);
+            }
+            file.delete();
+            tempFile = file;
+            fos = new FileOutputStream(tempFile);
+        }
+
         inputFile = substituteLineContinuation(inputFile);
-        inputFile = inputFile.stream().map(BusyboxPreparation::normalizeLine).collect(Collectors.toList());
-        Files.write(path, inputFile, StandardCharsets.UTF_8, StandardOpenOption.TRUNCATE_EXISTING);
+
+        try (BufferedWriter bwr = new BufferedWriter(new OutputStreamWriter(fos))) {
+            for (String line : inputFile) {
+                bwr.write(normalizeLine(line));
+                bwr.write('\n');
+            }
+        }
     }
 
     /**
