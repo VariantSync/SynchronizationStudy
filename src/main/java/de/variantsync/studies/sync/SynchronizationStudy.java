@@ -95,8 +95,9 @@ public class SynchronizationStudy {
             Logger.info("Checkout of commits in SPL repo...");
             // Checkout the commits in the SPL repository
             try {
-                splRepositoryV0.checkoutCommit(commitV0);
-                splRepositoryV1.checkoutCommit(commitV1);
+                // TODO: Fix checkout with changed files in case of busybox normalization
+                splRepositoryV0.checkoutCommit(commitV0, true);
+                splRepositoryV1.checkoutCommit(commitV1, true);
             } catch (GitAPIException | IOException e) {
                 panic("Was not able to checkout commit for SPL repository.", e);
             }
