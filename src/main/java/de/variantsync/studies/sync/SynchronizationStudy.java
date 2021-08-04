@@ -2,6 +2,8 @@ package de.variantsync.studies.sync;
 
 import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import de.ovgu.featureide.fm.core.configuration.Configuration;
+import de.ovgu.featureide.fm.core.configuration.SelectableFeature;
 import de.variantsync.evolution.feature.Sample;
 import de.variantsync.evolution.feature.Variant;
 import de.variantsync.evolution.feature.config.FeatureIDEConfiguration;
@@ -111,8 +113,20 @@ public class SynchronizationStudy {
                 Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with (random) variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
-                Sample configurations = variantSampler.sample(modelV0);
-                Logger.status("Done. Sampled " + configurations.variants().size() + " variants.");
+                Sample sampleV0 = null;
+                Sample sampleV1 = null;
+                boolean problem = true;
+                while(problem) {
+                    sampleV0 = variantSampler.sample(modelV0);
+                    sampleV1 = variantSampler.sample(modelV1);
+                    Configuration configV0 = ((FeatureIDEConfiguration) sampleV0.variants().get(0).getConfiguration()).getConfiguration();
+                    Configuration configV1 = ((FeatureIDEConfiguration) sampleV1.variants().get(0).getConfiguration()).getConfiguration();
+                    long missingFeatures = configV0.getFeatures().stream().map(SelectableFeature::getName).filter(f -> configV1.getFeatures().stream().map(SelectableFeature::getName).noneMatch(f2 -> f2.equals(f))).count();
+                    if (missingFeatures == 0) {
+                        problem = false;
+                    } 
+                }
+                Logger.status("Done. Sampled " + sampleV0.variants().size() + " variants.");
 
                 if (Files.exists(debugDir)) {
                     shell.execute(new RmCommand(debugDir).recursive());
@@ -133,7 +147,7 @@ public class SynchronizationStudy {
                 Map<Variant, GroundTruth> groundTruthV0 = new HashMap<>();
                 Map<Variant, GroundTruth> groundTruthV1 = new HashMap<>();
                 Logger.status("Generating variants...");
-                for (Variant variant : configurations.variants()) {
+                for (Variant variant : sampleV0.variants()) {
                     Logger.status("Generating variant " + variant.getName());
                     // TODO: Check whether this is enough. It only checks satisfiability, but might not check whether the variables exist in the feature model. Maybe check whether the set of selected variables exists?
                     if (!variant.isImplementing(featureModelFormulaV0)) {
@@ -170,7 +184,7 @@ public class SynchronizationStudy {
                 Logger.status("Done.");
 
                 // Select next source variant
-                for (Variant source : configurations.variants()) {
+                for (Variant source : sampleV0.variants()) {
                     Logger.status("Starting diff application for source variant " + source.getName());
                     if (Files.exists(normalPatchFile)) {
                         Logger.status("Cleaning old patch file " + normalPatchFile);
@@ -192,7 +206,7 @@ public class SynchronizationStudy {
 
                     // For each target variant,
                     Logger.status("Starting patch application for source variant " + source.getName());
-                    for (Variant target : configurations.variants()) {
+                    for (Variant target : sampleV0.variants()) {
                         if (target == source) {
                             continue;
                         }

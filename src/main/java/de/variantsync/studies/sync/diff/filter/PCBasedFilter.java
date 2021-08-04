@@ -3,6 +3,7 @@ package de.variantsync.studies.sync.diff.filter;
 import de.variantsync.evolution.feature.Variant;
 import de.variantsync.evolution.util.CaseSensitivePath;
 import de.variantsync.evolution.util.Logger;
+import de.variantsync.evolution.util.functional.Result;
 import de.variantsync.evolution.variability.pc.Artefact;
 import de.variantsync.studies.sync.diff.components.FileDiff;
 import de.variantsync.studies.sync.error.Panic;
@@ -46,10 +47,14 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
 
     private boolean shouldKeep(Variant targetVariant, Artefact traces, Path filePath) {
         filePath = filePath.subpath(strip, filePath.getNameCount());
-        Node pc = traces
-                .getPresenceConditionOf(new CaseSensitivePath(filePath))
-                .expect("Was not able to load PC for " + filePath);
-        return targetVariant.isImplementing(pc);
+        Result<Node, Exception> result = traces.getPresenceConditionOf(new CaseSensitivePath(filePath));
+        if (result.isFailure()) {
+            Logger.warning("No PC found for " + filePath);
+            return false;
+        } else {
+            Node pc = result.getSuccess();
+            return targetVariant.isImplementing(pc);
+        }
     }
 
     @Override
