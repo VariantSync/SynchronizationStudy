@@ -96,8 +96,16 @@ public class SynchronizationStudy {
             // Checkout the commits in the SPL repository
             try {
                 // TODO: Fix checkout with changed files in case of busybox normalization
+                // Stash all changes to files and drop the stash. This is a workaround as the JGit API does not support
+                // restore.
+                splRepositoryV0.stashCreate(true);
+                splRepositoryV0.dropStash();
+                splRepositoryV1.stashCreate(true);
+                splRepositoryV1.dropStash();
+                
                 splRepositoryV0.checkoutCommit(commitV0, true);
                 splRepositoryV1.checkoutCommit(commitV1, true);
+                
             } catch (GitAPIException | IOException e) {
                 panic("Was not able to checkout commit for SPL repository.", e);
             }
@@ -144,6 +152,14 @@ public class SynchronizationStudy {
                 if (Files.exists(variantsDirV1.path())) {
                     Logger.status("Cleaning variants dir V1.");
                     shell.execute(new RmCommand(variantsDirV1.path()).recursive());
+                }
+
+                // Write the PCs of the SPL
+                try {
+                    Resources.Instance().write(Artefact.class, commitV0.presenceConditions().run().get(), debugDir.resolve("V0.spl.csv"));
+                    Resources.Instance().write(Artefact.class, commitV1.presenceConditions().run().get(), debugDir.resolve("V1.spl.csv"));
+                } catch (Resources.ResourceIOException e) {
+                    Logger.error("Was not able to write SPL PCs.");
                 }
 
                 // Generate the randomly selected variants at both versions

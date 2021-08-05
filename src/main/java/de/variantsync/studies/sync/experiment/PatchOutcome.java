@@ -49,7 +49,7 @@ public record PatchOutcome(String dataset,
         jsonBuilder.append(toJSON(targetVariant, "targetVariant")).append(",\n");
 //        jsonBuilder.append(toJSON(appliedPatch, "appliedPatch")).append(",\n");
         jsonBuilder.append(toJSON(actualVsExpected, "actualVsExpected")).append(",\n");
-        jsonBuilder.append(toJSON(rejects, "rejects")).append(",\n");
+//        jsonBuilder.append(toJSON(rejects, "rejects")).append(",\n");
         jsonBuilder.append("\"CommitPatches\": \"1\"").append(",\n");
         jsonBuilder.append("\"FailedCommitPatches\": \"").append(failedLineSizedEditCount.count > 0 ? 1 : 0).append("\"").append(",\n");
         jsonBuilder.append(toJSON(fileSizedEditCount, "filePatches")).append(",\n");
@@ -161,7 +161,11 @@ public record PatchOutcome(String dataset,
         private final double percentage;
 
         public Percentage(int failed, int all) {
-            this.percentage = 100 * ((double) failed / (double) all);
+            if (all == 0) {
+                this.percentage = 0;
+            } else {
+                this.percentage = 100 * ((double) failed / (double) all);
+            }
         }
 
         @Override
