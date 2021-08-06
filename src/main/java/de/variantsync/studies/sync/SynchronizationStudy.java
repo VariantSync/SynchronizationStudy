@@ -71,9 +71,12 @@ public class SynchronizationStudy {
         de.variantsync.evolution.Main.Initialize();
         Logger.setLogLevel(logLevel);
         // Clean old SPL repo files
-        shell.execute(new RmCommand(splRepositoryV0Path).recursive()).expect("Was not able to remove SPL-V0.");
-        shell.execute(new RmCommand(splRepositoryV1Path).recursive()).expect("Was not able to remove SPL-V1.");
-
+        if (Files.exists(splRepositoryV0Path)) {
+            shell.execute(new RmCommand(splRepositoryV0Path).recursive()).expect("Was not able to remove SPL-V0.");
+        }
+        if (Files.exists(splRepositoryV1Path)) {
+            shell.execute(new RmCommand(splRepositoryV1Path).recursive()).expect("Was not able to remove SPL-V1.");
+        }
         // Copy the SPL repo
         shell.execute(new CpCommand(splRepositoryPath, splRepositoryV0Path).recursive()).expect("Was not able to copy SPL-V0.");
         shell.execute(new CpCommand(splRepositoryPath, splRepositoryV1Path).recursive()).expect("Was not able to copy SPL-V1.");

@@ -56,8 +56,8 @@ public record PatchOutcome(String dataset,
         jsonBuilder.append(toJSON(failedFileSizedEditCount, "failedFilePatches")).append(",\n");
         jsonBuilder.append(toJSON(new Percentage(failedFileSizedEditCount.count, fileSizedEditCount.count()), "percentageFailedFilePatches")).append(",\n");
         jsonBuilder.append(toJSON(lineSizedEditCount, "linePatches")).append(",\n");
-        jsonBuilder.append(toJSON(failedLineSizedEditCount, "failedLinePatches")).append("\n");
-        jsonBuilder.append(toJSON(new Percentage(failedLineSizedEditCount.count, lineSizedEditCount.count()), "percentageFailedLinePatches")).append(",\n");
+        jsonBuilder.append(toJSON(failedLineSizedEditCount, "failedLinePatches")).append(",\n");
+        jsonBuilder.append(toJSON(new Percentage(failedLineSizedEditCount.count, lineSizedEditCount.count()), "percentageFailedLinePatches")).append("\n");
         jsonBuilder.append("}").append("\n\n");
         if (!Files.exists(pathToFile)) {
             Files.createFile(pathToFile);
@@ -160,11 +160,11 @@ public record PatchOutcome(String dataset,
     public static class Percentage implements JSONObject {
         private final double percentage;
 
-        public Percentage(int failed, int all) {
-            if (all == 0) {
+        public Percentage(int x, int y) {
+            if (y == 0) {
                 this.percentage = 0;
             } else {
-                this.percentage = 100 * ((double) failed / (double) all);
+                this.percentage = 100 * ((double) x / (double) y);
             }
         }
 
