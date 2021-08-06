@@ -14,10 +14,20 @@ public class SimpleResultAnalysis {
     
     public static void main(String... args) throws IOException {
         Path normalResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-normal.txt");
+        Path editBasedResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-edit-based.txt");
         Path pcBasedResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-pc-based.txt");
         var normalResults = loadResultObjects(normalResultPath);
+        var editResults = loadResultObjects(editBasedResultPath);
         var pcBasedResults = loadResultObjects(pcBasedResultPath);
+
+        printResults(normalResults);
+
+        printResults(editResults);
         
+        printResults(pcBasedResults);
+    }
+
+    private static void printResults(List<PatchOutcome> results) {
         int commitPatches = 0;
         int filePatches = 0;
         int linePatches = 0;
@@ -25,7 +35,7 @@ public class SimpleResultAnalysis {
         int failedFilePatches = 0;
         int failedLinePatches = 0;
 
-        for (PatchOutcome normalResult : normalResults) {
+        for (PatchOutcome normalResult : results) {
             commitPatches++;
             filePatches += normalResult.fileSizedEditCount().count();
             linePatches += normalResult.lineSizedEditCount().count();
@@ -33,32 +43,12 @@ public class SimpleResultAnalysis {
             failedFilePatches += normalResult.failedFileSizedEditCount().count();
             failedLinePatches += normalResult.failedLineSizedEditCount().count();
         }
-        
-        System.out.println("Commit-sized patches: " + (commitPatches - failedCommitPatches) + " / " + commitPatches + " or " + new PatchOutcome.Percentage(commitPatches - failedCommitPatches, commitPatches) + " succeeded.");
-        System.out.println("File-sized patches: " + (filePatches - failedFilePatches) + " / " + filePatches + " or " + new PatchOutcome.Percentage(filePatches - failedFilePatches, filePatches) + " succeeded.");
-        System.out.println("Line-sized patches: " + (linePatches - failedLinePatches) + " / " + linePatches + " or " + new PatchOutcome.Percentage(linePatches - failedLinePatches, linePatches) + " succeeded.");
-
-        commitPatches = 0;
-        filePatches = 0;
-        linePatches = 0;
-        failedCommitPatches = 0;
-        failedFilePatches = 0;
-        failedLinePatches = 0;
-
-        for (PatchOutcome pcBasedResult : pcBasedResults) {
-            commitPatches++;
-            filePatches += pcBasedResult.fileSizedEditCount().count();
-            linePatches += pcBasedResult.lineSizedEditCount().count();
-            failedCommitPatches += pcBasedResult.failedFileSizedEditCount().count() > 0 ? 1 : 0;
-            failedFilePatches += pcBasedResult.failedFileSizedEditCount().count();
-            failedLinePatches += pcBasedResult.failedLineSizedEditCount().count();
-        }
 
         System.out.println("Commit-sized patches: " + (commitPatches - failedCommitPatches) + " / " + commitPatches + " or " + new PatchOutcome.Percentage(commitPatches - failedCommitPatches, commitPatches) + " succeeded.");
         System.out.println("File-sized patches: " + (filePatches - failedFilePatches) + " / " + filePatches + " or " + new PatchOutcome.Percentage(filePatches - failedFilePatches, filePatches) + " succeeded.");
         System.out.println("Line-sized patches: " + (linePatches - failedLinePatches) + " / " + linePatches + " or " + new PatchOutcome.Percentage(linePatches - failedLinePatches, linePatches) + " succeeded.");
     }
-    
+
     public static List<PatchOutcome> loadResultObjects(Path path) throws IOException {
         List<PatchOutcome> results = new LinkedList<>();
         List<String> lines = Files.readAllLines(path);
