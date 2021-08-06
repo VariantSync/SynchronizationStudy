@@ -239,6 +239,12 @@ public class SynchronizationStudy {
                         // There was no change to this variant, so we can skip it as source
                         Logger.status("Skipping " + source + " as diff source. Diff is empty");
                         continue;
+                    } else {
+                        try {
+                            Files.write(debugDir.resolve("diff.txt"), originalDiff.toLines());
+                        } catch (IOException e) {
+                            Logger.error("Was not able to save diff", e);
+                        }
                     }
                     Logger.info("Converting diff...");
                     // Convert the original diff into a fine diff
@@ -323,7 +329,6 @@ public class SynchronizationStudy {
         // copy target variant
         shell.execute(new CpCommand(targetVariant, patchDir).recursive()).expect("Was not able to copy variant " + targetVariant);
 
-        /* Application of patches without knowledge about features */
         // apply patch to copied target variant
         if (!emptyPatch) {
             Result<List<String>, ShellException> result = shell.execute(PatchCommand.Recommended(patchFile).strip(2).rejectFile(rejectFile).force(), patchDir);

@@ -50,7 +50,7 @@ public record PatchOutcome(String dataset,
 //        jsonBuilder.append(toJSON(appliedPatch, "appliedPatch")).append(",\n");
         jsonBuilder.append(toJSON(actualVsExpected, "actualVsExpected")).append(",\n");
 //        jsonBuilder.append(toJSON(rejects, "rejects")).append(",\n");
-        jsonBuilder.append("\"CommitPatches\": \"1\"").append(",\n");
+        jsonBuilder.append("\"CommitPatches\": \"").append(lineSizedEditCount.count > 0 ? 1 : 0).append("\"").append(",\n");
         jsonBuilder.append("\"FailedCommitPatches\": \"").append(failedLineSizedEditCount.count > 0 ? 1 : 0).append("\"").append(",\n");
         jsonBuilder.append(toJSON(fileSizedEditCount, "filePatches")).append(",\n");
         jsonBuilder.append(toJSON(failedFileSizedEditCount, "failedFilePatches")).append(",\n");
