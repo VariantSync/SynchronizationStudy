@@ -11,6 +11,7 @@ import de.variantsync.evolution.io.Resources;
 import de.variantsync.evolution.io.data.VariabilityDatasetLoader;
 import de.variantsync.evolution.repository.SPLRepository;
 import de.variantsync.evolution.util.CaseSensitivePath;
+import de.variantsync.evolution.util.LogLevel;
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.fide.FeatureModelUtils;
 import de.variantsync.evolution.util.functional.Result;
@@ -62,11 +63,13 @@ public class SynchronizationStudy {
     private static final Path rejectFile = workDir.resolve("rejects.txt");
     private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
     private static final ShellExecutor shell = new ShellExecutor(Logger::debug, Logger::error, workDir);
+    private static final LogLevel logLevel = LogLevel.STATUS;
 
 
     public static void main(String... args) {
         // Initialize the library
         de.variantsync.evolution.Main.Initialize();
+        Logger.setLogLevel(logLevel);
         // Clean old SPL repo files
         shell.execute(new RmCommand(splRepositoryV0Path).recursive()).expect("Was not able to remove SPL-V0.");
         shell.execute(new RmCommand(splRepositoryV1Path).recursive()).expect("Was not able to remove SPL-V1.");
