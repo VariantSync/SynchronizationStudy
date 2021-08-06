@@ -51,8 +51,9 @@ public class SynchronizationStudy {
     private static final String DATASET = "BUSYBOX";
     private static final Path resultFileNormal = workDir.resolve("results-normal.txt");
     private static final Path resultFilePCBased = workDir.resolve("results-pc-based.txt");
-    private static final SPLRepository splRepositoryV0 = new SPLRepository(workDir.getParent().resolve("busybox-V0"));
-    private static final SPLRepository splRepositoryV1 = new SPLRepository(workDir.getParent().resolve("busybox-V1"));
+    private static final Path splRepositoryPath = workDir.getParent().resolve("BAK_busybox");
+    private static final Path splRepositoryV0Path = workDir.resolve("busybox-V0");
+    private static final Path splRepositoryV1Path = workDir.resolve("busybox-V1");
     private static final CaseSensitivePath variantsDirV0 = new CaseSensitivePath(workDir.resolve("V0Variants"));
     private static final CaseSensitivePath variantsDirV1 = new CaseSensitivePath(workDir.resolve("V1Variants"));
     private static final Path patchDir = workDir.resolve("TARGET");
@@ -66,6 +67,17 @@ public class SynchronizationStudy {
     public static void main(String... args) {
         // Initialize the library
         de.variantsync.evolution.Main.Initialize();
+        // Clean old SPL repo files
+        shell.execute(new RmCommand(splRepositoryV0Path).recursive()).expect("Was not able to remove SPL-V0.");
+        shell.execute(new RmCommand(splRepositoryV1Path).recursive()).expect("Was not able to remove SPL-V1.");
+
+        // Copy the SPL repo
+        shell.execute(new CpCommand(splRepositoryPath, splRepositoryV0Path).recursive()).expect("Was not able to copy SPL-V0.");
+        shell.execute(new CpCommand(splRepositoryPath, splRepositoryV1Path).recursive()).expect("Was not able to copy SPL-V1.");
+        
+        // Initialize the SPL repositories for different versions
+        final SPLRepository splRepositoryV0 = new SPLRepository(splRepositoryV0Path);
+        final SPLRepository splRepositoryV1 = new SPLRepository(splRepositoryV1Path);
 
         // Load VariabilityDataset
         Logger.status("Loading variability dataset.");
@@ -96,9 +108,7 @@ public class SynchronizationStudy {
             Logger.info("Checkout of commits in SPL repo...");
             // Checkout the commits in the SPL repository
             try {
-                // TODO: Fix checkout with changed files in case of busybox normalization
-                // Stash all changes to files and drop the stash. This is a workaround as the JGit API does not support
-                // restore.
+                // Stash all changes and drop the stash. This is a workaround as the JGit API does not support restore.
                 splRepositoryV0.stashCreate(true);
                 splRepositoryV0.dropStash();
                 splRepositoryV1.stashCreate(true);
@@ -115,8 +125,8 @@ public class SynchronizationStudy {
             if (DATASET.equals("BUSYBOX")) {
                 Logger.status("Normalizing BusyBox files...");
                 try {
-                    BusyboxPreparation.normalizeDir(splRepositoryV0.getPath().toFile());
-                    BusyboxPreparation.normalizeDir(splRepositoryV1.getPath().toFile());
+                    BusyboxPreparation.normalizeDir(splRepositoryV0Path.toFile());
+                    BusyboxPreparation.normalizeDir(splRepositoryV1Path.toFile());
                 } catch (IOException e) {
                     Logger.error("", e);
                     panic("Was not able to normalize BusyBox.", e);
@@ -195,7 +205,7 @@ public class SynchronizationStudy {
                             .orElseThrow()
                             .generateVariant(
                                     variant,
-                                    new CaseSensitivePath(splRepositoryV0.getPath()),
+                                    new CaseSensitivePath(splRepositoryV0Path),
                                     variantsDirV0.resolve(variant.getName()),
                                     VariantGenerationOptions.ExitOnError)
                             .expect("Was not able to generate V0 of " + variant);
@@ -212,7 +222,7 @@ public class SynchronizationStudy {
                             .orElseThrow()
                             .generateVariant(
                                     variant,
-                                    new CaseSensitivePath(splRepositoryV1.getPath()),
+                                    new CaseSensitivePath(splRepositoryV1Path),
                                     variantsDirV1.resolve(variant.getName()),
                                     VariantGenerationOptions.ExitOnError)
                             .expect("Was not able to generate V1 of " + variant);
