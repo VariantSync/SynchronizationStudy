@@ -2,6 +2,7 @@ package de.variantsync.studies.sync;
 
 import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
+import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
 import de.variantsync.evolution.feature.Sample;
 import de.variantsync.evolution.feature.Variant;
 import de.variantsync.evolution.feature.config.FeatureIDEConfiguration;
@@ -11,6 +12,7 @@ import de.variantsync.evolution.io.data.VariabilityDatasetLoader;
 import de.variantsync.evolution.repository.SPLRepository;
 import de.variantsync.evolution.util.CaseSensitivePath;
 import de.variantsync.evolution.util.Logger;
+import de.variantsync.evolution.util.fide.FeatureModelUtils;
 import de.variantsync.evolution.util.functional.Result;
 import de.variantsync.evolution.variability.CommitPair;
 import de.variantsync.evolution.variability.SPLCommit;
@@ -32,7 +34,6 @@ import de.variantsync.studies.sync.experiment.PatchOutcome;
 import de.variantsync.studies.sync.shell.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
-import org.prop4j.Node;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,7 +46,7 @@ public class SynchronizationStudy {
     private static final Path datasetPath = Path.of("/home/alex/data/synchronization-study/better-dataset/VariabilityExtraction/extraction-results/busybox/output");
     private static final Path workDir = Path.of("/home/alex/data/synchronization-study/workdir");
     private static final Path debugDir = workDir.resolve("DEBUG");
-    private static final int randomRepeats = 2;
+    private static final int randomRepeats = 1;
     private static final int numVariants = 3;
     private static final String DATASET = "BUSYBOX";
     private static final Path resultFileNormal = workDir.resolve("results-normal.txt");
@@ -124,20 +125,24 @@ public class SynchronizationStudy {
 
             IFeatureModel modelV0 = commitV0.featureModel().run().orElseThrow();
             IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
-            final Node featureModelFormulaV0 = new FeatureModelFormula(modelV0).getPropositionalNode();
-            final Node featureModelFormulaV1 = new FeatureModelFormula(modelV0).getPropositionalNode();
-
+            // We use the union of both models to sample configurations, so that all features are included
+            IFeatureModel modelUnion = FeatureModelUtils.UnionModel(modelV0, modelV1);
+            // However, we set all features in the symmetric difference to unselected
+//            Map<String, Boolean> fixedAssignment = new HashMap<>();
+            Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1); 
+//            featuresInDifference.forEach(f -> fixedAssignment.put(f, false));
+            
             // While more random configurations to consider
             for (int i = 0; i < randomRepeats; i++) {
                 Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with (random) variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
-                Sample sampleV0 = variantSampler.sample(modelV0);
+                Sample sample = variantSampler.sample(modelUnion);
 //                Sample sampleV1 = variantSampler.sample(modelV1);
 //                Configuration configV0 = ((FeatureIDEConfiguration) sampleV0.variants().get(0).getConfiguration()).getConfiguration();
 //                Configuration configV1 = ((FeatureIDEConfiguration) sampleV1.variants().get(0).getConfiguration()).getConfiguration();
 //                long missingFeatures = configV0.getFeatures().stream().map(SelectableFeature::getName).filter(f -> configV1.getFeatures().stream().map(SelectableFeature::getName).noneMatch(f2 -> f2.equals(f))).count();
-                Logger.status("Done. Sampled " + sampleV0.variants().size() + " variants.");
+                Logger.status("Done. Sampled " + sample.variants().size() + " variants.");
 
                 if (Files.exists(debugDir)) {
                     shell.execute(new RmCommand(debugDir).recursive());
@@ -154,34 +159,34 @@ public class SynchronizationStudy {
                     shell.execute(new RmCommand(variantsDirV1.path()).recursive());
                 }
 
-                // Write the PCs of the SPL
+                // Write information about the commits
                 try {
                     Resources.Instance().write(Artefact.class, commitV0.presenceConditions().run().get(), debugDir.resolve("V0.spl.csv"));
                     Resources.Instance().write(Artefact.class, commitV1.presenceConditions().run().get(), debugDir.resolve("V1.spl.csv"));
-                } catch (Resources.ResourceIOException e) {
-                    Logger.error("Was not able to write SPL PCs.");
+                    Files.write(debugDir.resolve("features-V0.txt"), modelV0.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
+                    Files.write(debugDir.resolve("features-V1.txt"), modelV1.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
+                    Files.write(debugDir.resolve("variables-in-difference.txt"), featuresInDifference);
+                } catch (Resources.ResourceIOException | IOException e) {
+                    Logger.error("Was not able to write commit data.");
                 }
 
                 // Generate the randomly selected variants at both versions
                 Map<Variant, GroundTruth> groundTruthV0 = new HashMap<>();
                 Map<Variant, GroundTruth> groundTruthV1 = new HashMap<>();
                 Logger.status("Generating variants...");
-                for (Variant variant : sampleV0.variants()) {
+                for (Variant variant : sample.variants()) {
                     Logger.status("Generating variant " + variant.getName());
-                    // TODO: Check whether this is enough. It only checks satisfiability, but might not check whether the variables exist in the feature model. Maybe check whether the set of selected variables exists?
-                    if (!variant.isImplementing(featureModelFormulaV0)) {
-                        panic("Sampled " + variant + " is not valid for feature model " + modelV0 + "!");
-                    }
-                    if (!variant.isImplementing(featureModelFormulaV1)) {
-                        panic("Sampled " + variant + " is not valid for feature model " + modelV1 + "!");
-                    }
-
                     if (variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
                         try {
                             Files.write(debugDir.resolve(variant.getName() + ".config"), config.toAssignment().entrySet().stream().map(entry -> entry.getKey() + " : " + entry.getValue()).collect(Collectors.toList()));
                         } catch (IOException e) {
                             Logger.error("Was not able to write configuration of " + variant.getName(), e);
                         }
+                    }
+
+                    // TODO: Check whether this is enough. It only checks satisfiability, but might not check whether the variables exist in the feature model. Maybe check whether the set of selected variables exists?
+                    if (!variant.isImplementing(new FeatureModelFormula(modelUnion).getPropositionalNode())) {
+                        panic("Sampled " + variant + " is not valid for feature model!");
                     }
 
                     GroundTruth gtV0 = commitV0
@@ -221,7 +226,7 @@ public class SynchronizationStudy {
                 Logger.status("Done.");
 
                 // Select next source variant
-                for (Variant source : sampleV0.variants()) {
+                for (Variant source : sample.variants()) {
                     Logger.status("Starting diff application for source variant " + source.getName());
                     if (Files.exists(normalPatchFile)) {
                         Logger.status("Cleaning old patch file " + normalPatchFile);
@@ -243,7 +248,7 @@ public class SynchronizationStudy {
 
                     // For each target variant,
                     Logger.status("Starting patch application for source variant " + source.getName());
-                    for (Variant target : sampleV0.variants()) {
+                    for (Variant target : sample.variants()) {
                         if (target == source) {
                             continue;
                         }
@@ -271,9 +276,10 @@ public class SynchronizationStudy {
                         Logger.info("Applying patch with knowledge about features...");
                         // Create target variant specific patch that respects PCs
                         FineDiff pcBasedDiff = getPCBasedDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
+                        boolean emptyPatch = pcBasedDiff.content().isEmpty();
                         saveDiff(pcBasedDiff, pcBasedPatchFile);
                         // Apply the patch
-                        applyPatch(pcBasedPatchFile, pathToTarget);
+                        applyPatch(pcBasedPatchFile, pathToTarget, emptyPatch);
                         // Evaluate the result
                         PatchOutcome pcBasedPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.PC_BASED, commitV0, commitV1, source, target, pathToExpectedResult, pcBasedDiff);
                         try {
@@ -300,6 +306,10 @@ public class SynchronizationStudy {
     }
 
     private static void applyPatch(Path patchFile, Path targetVariant) {
+        applyPatch(patchFile, targetVariant, false);
+    }
+
+    private static void applyPatch(Path patchFile, Path targetVariant, boolean emptyPatch) {
         // Clean patch directory
         if (Files.exists(patchDir.toAbsolutePath())) {
             shell.execute(new RmCommand(patchDir.toAbsolutePath()).recursive());
@@ -315,11 +325,13 @@ public class SynchronizationStudy {
 
         /* Application of patches without knowledge about features */
         // apply patch to copied target variant
-        Result<List<String>, ShellException> result = shell.execute(PatchCommand.Recommended(patchFile).strip(2).rejectFile(rejectFile), patchDir);
-        if (result.isSuccess()) {
-            result.getSuccess().forEach(Logger::info);
-        } else {
-            Logger.error("Failed to apply patch.", result.getFailure());
+        if (!emptyPatch) {
+            Result<List<String>, ShellException> result = shell.execute(PatchCommand.Recommended(patchFile).strip(2).rejectFile(rejectFile).force(), patchDir);
+            if (result.isSuccess()) {
+                result.getSuccess().forEach(Logger::info);
+            } else {
+                Logger.error("Failed to apply patch.", result.getFailure());
+            }
         }
     }
 

@@ -82,6 +82,20 @@ public class PatchCommand extends ShellCommand {
         return this;
     }
 
+    /**
+     * Assume that the user knows exactly what he or she is doing,
+     *           and do not ask any questions.  Skip patches whose headers do
+     *           not say which file is to be patched; patch files even though
+     *           they have the wrong version for the Prereq: line in the patch;
+     *           and assume that patches are not reversed even if they look
+     *           like they are.
+     * @return this command
+     */
+    public PatchCommand force() {
+        this.args.add("--force");
+        return this;
+    }
+
     @Override
     public String[] parts() {
         String[] parts = new String[args.size() + 1];

@@ -21,7 +21,7 @@ public abstract class ShellCommand {
      * @return the result
      */
     public Result<List<String>, ShellException> interpretResult(int resultCode, List<String> output) {
-        return resultCode == 0 ? Result.Success(output) : Result.Failure(new ShellException(String.valueOf(resultCode)));
+        return resultCode == 0 ? Result.Success(output) : Result.Failure(new ShellException(output));
     }
     
     @Override

@@ -31,7 +31,11 @@ public class DefaultContextProvider implements IContextProvider {
         LinkedList<Line> context = new LinkedList<>();
         List<String> lines;
         try {
-            lines = Files.readAllLines(rootDir.resolve(fileDiff.newFile()));
+            if (Files.exists(rootDir.resolve(fileDiff.newFile()))) {
+                lines = Files.readAllLines(rootDir.resolve(fileDiff.newFile()));;
+            } else {
+                return new LinkedList<>();
+            }
             for (int i = index - 1; i >= 0; i--) {
                 String currentLine = " " + lines.get(i);
                 if (lineFilter.shouldKeep(fileDiff.newFile(), i+1)) {
@@ -77,7 +81,11 @@ public class DefaultContextProvider implements IContextProvider {
         LinkedList<Line> context = new LinkedList<>();
         List<String> lines;
         try {
-            lines = Files.readAllLines(rootDir.resolve(fileDiff.oldFile()));
+            if (Files.exists(rootDir.resolve(fileDiff.oldFile()))) {
+                lines = Files.readAllLines(rootDir.resolve(fileDiff.oldFile()));
+            } else {
+                return new LinkedList<>();
+            }
             for (int i = index-1; i < lines.size(); i++) {
                 String currentLine = " " + lines.get(i);
                 if (lineFilter.shouldKeep(fileDiff.oldFile(), i+1)) {

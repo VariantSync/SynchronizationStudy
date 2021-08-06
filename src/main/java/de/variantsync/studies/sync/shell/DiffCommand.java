@@ -87,6 +87,6 @@ public class DiffCommand extends ShellCommand {
 
     @Override
     public Result<List<String>, ShellException> interpretResult(int code, List<String> output) {
-        return code == 0 || code == 1 ? Result.Success(output) : Result.Failure(new ShellException(String.valueOf(code)));
+        return code == 0 || code == 1 ? Result.Success(output) : Result.Failure(new ShellException(output));
     }
 }
