@@ -1,7 +1,16 @@
+import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
+import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.variantsync.evolution.Main;
+import de.variantsync.evolution.feature.Variant;
+import de.variantsync.evolution.feature.config.FeatureIDEConfiguration;
+import de.variantsync.evolution.feature.config.IConfiguration;
+import de.variantsync.evolution.io.Resources;
+import de.variantsync.evolution.util.fide.FeatureModelUtils;
+import de.variantsync.evolution.variability.pc.Artefact;
 import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.filter.ILineFilter;
+import de.variantsync.studies.sync.diff.filter.PCBasedFilter;
 import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
 import de.variantsync.studies.sync.diff.splitting.IContextProvider;
 import de.variantsync.studies.sync.diff.splitting.PerfectContextProvider;
@@ -12,6 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedList;
 import java.util.List;
 
 public class PerfectContextProviderTest {
@@ -196,5 +206,42 @@ public class PerfectContextProviderTest {
         Path targetDir = resourceDir.getParent().resolve("target").resolve("targetHasAddedLineInTrail");
         Path pathToExpectedResult = resourceDir.resolve("targetHasAddedLineInTrail.txt");
         runComparison(pathToExpectedResult, null, targetDir);
+    }
+    
+    @Test
+    public void BusyBoxSpecificTest() throws IOException, Resources.ResourceIOException {
+        Path resourceDir = Paths.get("src", "test", "resources", "specific");
+
+        List<String> diffLines = Files.readAllLines(resourceDir.resolve("patch.txt"));
+        IContextProvider contextProvider = new PerfectContextProvider(resourceDir, resourceDir.resolve("V0Variants").resolve("Variant0"), 3, 2);
+        
+        Artefact oldTraces = Resources.Instance().load(Artefact.class, resourceDir.resolve("pc").resolve("V0-Variant1.variant.csv"));
+        Artefact newTraces = Resources.Instance().load(Artefact.class, resourceDir.resolve("pc").resolve("V1-Variant1.variant.csv"));
+        List<String> features = new LinkedList<>();
+        features.add("CONFIG_MDEV");
+        features.add("CONFIG_FEATURE_MDEV_EXEC");
+        features.add("CONFIG_FEATURE_MDEV_CONF");
+        features.add("CONFIG_FEATURE_MDEV_RENAME_REGEXP");
+        features.add("CONFIG_FEATURE_MDEV_RENAME");
+        features.add("CONFIG_FEATURE_CLEAN_UP");
+        features.add("CONFIG_FEATURE_MDEV_LOAD_FIRMWARE");
+        features.add("CONFIG_FEATURE_MDEV_DAEMON");
+
+        List<String> activeFeatures = new LinkedList<>();
+        activeFeatures.add("CONFIG_MDEV");
+        activeFeatures.add("CONFIG_FEATURE_MDEV_EXEC");
+        activeFeatures.add("CONFIG_FEATURE_MDEV_CONF");
+        activeFeatures.add("CONFIG_FEATURE_MDEV_RENAME");
+        activeFeatures.add("CONFIG_FEATURE_MDEV_LOAD_FIRMWARE");
+        activeFeatures.add("CONFIG_FEATURE_MDEV_DAEMON");
+        IFeatureModel featureModel = FeatureModelUtils.FromOptionalFeatures(features);
+        IConfiguration config = new FeatureIDEConfiguration(new FeatureModelFormula(featureModel), activeFeatures);
+        Variant target = new Variant("Variant0", config);
+        ILineFilter lineFilter = new PCBasedFilter(oldTraces, newTraces, target, resourceDir.resolve("V0Variants"), resourceDir.resolve("V1Variants"), 2);
+        FineDiff fineDiff = DiffSplitter.split(DiffParser.toOriginalDiff(diffLines), null, lineFilter, contextProvider);
+
+        List<String> expectedLines = Files.readAllLines(resourceDir.resolve("pc-patch.txt"));
+        List<String> actualLines = fineDiff.toLines();
+        Assertions.assertEquals(expectedLines, actualLines);
     }
 }
