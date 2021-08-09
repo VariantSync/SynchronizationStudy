@@ -81,5 +81,4 @@ public class DefaultContextProvider implements IContextProvider {
             throw new UncheckedIOException(e);
         }
     }
-
 }
