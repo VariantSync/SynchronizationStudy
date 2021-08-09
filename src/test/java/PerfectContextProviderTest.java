@@ -46,7 +46,7 @@ public class PerfectContextProviderTest {
         Path targetDir = resourceDir.getParent().resolve("target").resolve("firstLeadingContextLineCut");
         Path pathToExpectedResult = resourceDir.resolve("firstLeadingContextLineCut.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && i == 6);
+                -> !(i == 6);
         runComparison(pathToExpectedResult, lineFilter, targetDir);
     }
 
@@ -55,7 +55,7 @@ public class PerfectContextProviderTest {
         Path targetDir = resourceDir.getParent().resolve("target").resolve("secondLeadingContextLineCut");
         Path pathToExpectedResult = resourceDir.resolve("secondLeadingContextLineCut.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && i == 7);
+                -> !(i == 7);
         runComparison(pathToExpectedResult, lineFilter, targetDir);
     }
 
@@ -82,7 +82,8 @@ public class PerfectContextProviderTest {
         Path targetDir = resourceDir.getParent().resolve("target").resolve("leadingContextCutAndSecondLineInSourceContext");
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndSecondLineInSourceContext.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && (i >= 46 && i < 49 || i == 44));
+                -> !(f.toString().contains("version-B") && (i >= 46 && i < 49 || i == 44) || 
+                f.toString().contains("version-A") && (i >= 45 && i < 48 || i == 43));
         runComparison(pathToExpectedResult, lineFilter, targetDir);
     }
 
@@ -91,7 +92,8 @@ public class PerfectContextProviderTest {
         Path targetDir = resourceDir.getParent().resolve("target").resolve("leadingContextCutAndAllSourceContext");
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndAllSourceContext.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && i < 49);
+                // TODO: Fix filter
+                -> !(f.toString().contains("version-B") && i < 49 || f.toString().contains("version-A") && i < 48);
         runComparison(pathToExpectedResult, lineFilter, targetDir);
     }
 

@@ -25,10 +25,7 @@ import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.filter.PCBasedFilter;
-import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
-import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
-import de.variantsync.studies.sync.diff.splitting.IContextProvider;
-import de.variantsync.studies.sync.diff.splitting.NaiveContextProvider;
+import de.variantsync.studies.sync.diff.splitting.*;
 import de.variantsync.studies.sync.error.Panic;
 import de.variantsync.studies.sync.error.ShellException;
 import de.variantsync.studies.sync.experiment.BusyboxPreparation;
@@ -49,8 +46,8 @@ public class SynchronizationStudy {
     private static final Path datasetPath = Path.of("/home/alex/data/synchronization-study/better-dataset/VariabilityExtraction/extraction-results/busybox/output");
     private static final Path workDir = Path.of("/home/alex/data/synchronization-study/workdir");
     private static final Path debugDir = workDir.resolve("DEBUG");
-    private static final int randomRepeats = 3;
-    private static final int numVariants = 10;
+    private static final int randomRepeats = 1;
+    private static final int numVariants = 5;
     private static final String DATASET = "BUSYBOX";
     private static final Path resultFileNormal = workDir.resolve("results-normal.txt");
     private static final Path resultFilePCBased = workDir.resolve("results-pc-based.txt");
@@ -443,7 +440,7 @@ public class SynchronizationStudy {
     private static FineDiff getFullPCBasedDiff(OriginalDiff originalDiff, Artefact tracesV0, Artefact tracesV1, Variant target) {
         PCBasedFilter pcBasedFilter = new PCBasedFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
         // Create target variant specific patch that respects PCs
-        DefaultContextProvider contextProvider = new DefaultContextProvider(workDir);
+        PerfectContextProvider contextProvider = new PerfectContextProvider(workDir, variantsDirV0.resolve(target.getName()).path());
         return DiffSplitter.split(originalDiff, pcBasedFilter, pcBasedFilter, contextProvider);
     }
 

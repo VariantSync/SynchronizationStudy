@@ -129,7 +129,7 @@ public class PerfectContextProvider implements IContextProvider {
                 if (lineFilter.shouldKeep(sourceFileV1, sourceIndexV1 + 1)) {
                     sourceLineV1 = sourceLinesV1.get(sourceIndexV1);
                 } else {
-                    indexMap.put(sourceIndexV1, perfectLines.size());
+                    indexMap.put(sourceIndexV1, perfectLines.size()-1);
                     sourceIndexV1++;
                     continue;
                 }
@@ -151,6 +151,8 @@ public class PerfectContextProvider implements IContextProvider {
                     nextV1 = sourceLinesV1.get(sourceIndexV1 + 1);
                     if (Objects.equals(nextV1, sourceLineV0)) {
                         // Insertion, increase the source.V1 index by 1
+                        indexMap.put(sourceIndexV1, perfectLines.size());
+                        perfectLines.add(sourceLineV1);
                         sourceIndexV1++;
                         continue;
                     }

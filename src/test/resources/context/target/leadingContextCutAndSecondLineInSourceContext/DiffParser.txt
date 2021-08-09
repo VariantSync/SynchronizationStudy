@@ -40,8 +40,8 @@ public class DiffParser {
             if (fileDiffContent == null) {
                 throw new IllegalArgumentException("The provided lines do not contain one of the expected fileDiffStart values");
             }
-            fileDiffContent.add(line);
-        // Parse the content of the last file diff
+        }
+        return new OriginalDiff(fileDiffs);
     }
 
     private static FileDiff parseFileDiff(List<String> fileDiffContent) {
