@@ -6,7 +6,6 @@ import de.variantsync.studies.sync.diff.components.HunkLocation;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.lines.*;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,6 +45,7 @@ public class DiffParser {
         // Parse the content of the last file diff
         fileDiffs.add(parseFileDiff(fileDiffContent));
 
+        return new OriginalDiff(fileDiffs);
     }
 
     private static FileDiff parseFileDiff(List<String> fileDiffContent) {
@@ -111,7 +111,6 @@ public class DiffParser {
                 content.add(new ContextLine(line));
             }
         }
-        return new Hunk(location, content);
     }
 
     private static HunkLocation parseHunkHeader(String line) {
