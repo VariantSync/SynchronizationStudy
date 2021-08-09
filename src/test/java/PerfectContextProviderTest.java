@@ -73,7 +73,7 @@ public class PerfectContextProviderTest {
         Path targetDir = resourceDir.getParent().resolve("target").resolve("leadingContextCutAndFirstLineInSourceContext");
         Path pathToExpectedResult = resourceDir.resolve("leadingContextCutAndFirstLineInSourceContext.txt");
         ILineFilter lineFilter = (f, i)
-                -> !(f.toString().contains("version-B") && (i >= 5 && i < 9));
+                -> !(i >= 5 && i < 9);
         runComparison(pathToExpectedResult, lineFilter, targetDir);
     }
 
