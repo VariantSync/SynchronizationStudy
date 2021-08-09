@@ -181,4 +181,20 @@ public class PerfectContextProviderTest {
                 -> !(i>=10);
         runComparison(pathToExpectedResult, lineFilter, targetDir);
     }
+    
+    /* There are new lines in the target variant that should be considered */
+    
+    @Test
+    public void targetHasAddedLineInLead() throws IOException {
+        Path targetDir = resourceDir.getParent().resolve("target").resolve("targetHasAddedLineInLead");
+        Path pathToExpectedResult = resourceDir.resolve("targetHasAddedLineInLead.txt");
+        runComparison(pathToExpectedResult, null, targetDir);
+    }
+
+    @Test
+    public void targetHasAddedLineInTrail() throws IOException {
+        Path targetDir = resourceDir.getParent().resolve("target").resolve("targetHasAddedLineInTrail");
+        Path pathToExpectedResult = resourceDir.resolve("targetHasAddedLineInTrail.txt");
+        runComparison(pathToExpectedResult, null, targetDir);
+    }
 }

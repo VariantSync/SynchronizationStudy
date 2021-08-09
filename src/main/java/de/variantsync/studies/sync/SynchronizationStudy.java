@@ -275,7 +275,7 @@ public class SynchronizationStudy {
                         if (target == source) {
                             continue;
                         }
-                        Logger.info("Considering variant " + target.getName() + " as next target.");
+                        Logger.status("Considering variant " + target.getName() + " as next target.");
                         if (Files.exists(fullPCPatchFile)) {
                             Logger.info("Cleaning old PC-based patch file " + fullPCPatchFile);
                             shell.execute(new RmCommand(fullPCPatchFile));
@@ -283,37 +283,37 @@ public class SynchronizationStudy {
                         Path pathToTarget = variantsDirV0.path().resolve(target.getName());
                         Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
 
-                        /* Application of patches without knowledge about features */
-                        {
-                            Logger.info("Applying patch without knowledge about features...");
-                            // Apply the fine diff to the target variant
-                            applyPatch(normalPatchFile, pathToTarget);
-                            // Evaluate the patch result
-                            PatchOutcome normalPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.NORMAL, commitV0, commitV1, source, target, pathToExpectedResult, fineDiff);
-                            try {
-                                normalPatchOutcome.writeAsJSON(resultFileNormal, true);
-                            } catch (IOException e) {
-                                Logger.error("Was not able to write normal result file for run " + runID, e);
-                            }
-                        }
-
-                        /* Application of patches with knowledge about PC of edit only */
-                        {
-                            Logger.info("Applying patch with knowledge about edit PC...");
-                            // Create target variant specific patch that respects PCs
-                            FineDiff editPCDiff = getEditPCBasedDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
-                            boolean emptyPatch = editPCDiff.content().isEmpty();
-                            saveDiff(editPCDiff, editPCPatchFile);
-                            // Apply the patch
-                            applyPatch(editPCPatchFile, pathToTarget, emptyPatch);
-                            // Evaluate the result
-                            PatchOutcome editBasedPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.EDIT_PC, commitV0, commitV1, source, target, pathToExpectedResult, editPCDiff);
-                            try {
-                                editBasedPatchOutcome.writeAsJSON(resultFileEditPC, true);
-                            } catch (IOException e) {
-                                Logger.error("Was not able to write edit-based result file for run " + runID, e);
-                            }
-                        }
+//                        /* Application of patches without knowledge about features */
+//                        {
+//                            Logger.info("Applying patch without knowledge about features...");
+//                            // Apply the fine diff to the target variant
+//                            applyPatch(normalPatchFile, pathToTarget);
+//                            // Evaluate the patch result
+//                            PatchOutcome normalPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.NORMAL, commitV0, commitV1, source, target, pathToExpectedResult, fineDiff);
+//                            try {
+//                                normalPatchOutcome.writeAsJSON(resultFileNormal, true);
+//                            } catch (IOException e) {
+//                                Logger.error("Was not able to write normal result file for run " + runID, e);
+//                            }
+//                        }
+//
+//                        /* Application of patches with knowledge about PC of edit only */
+//                        {
+//                            Logger.info("Applying patch with knowledge about edit PC...");
+//                            // Create target variant specific patch that respects PCs
+//                            FineDiff editPCDiff = getEditPCBasedDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
+//                            boolean emptyPatch = editPCDiff.content().isEmpty();
+//                            saveDiff(editPCDiff, editPCPatchFile);
+//                            // Apply the patch
+//                            applyPatch(editPCPatchFile, pathToTarget, emptyPatch);
+//                            // Evaluate the result
+//                            PatchOutcome editBasedPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.EDIT_PC, commitV0, commitV1, source, target, pathToExpectedResult, editPCDiff);
+//                            try {
+//                                editBasedPatchOutcome.writeAsJSON(resultFileEditPC, true);
+//                            } catch (IOException e) {
+//                                Logger.error("Was not able to write edit-based result file for run " + runID, e);
+//                            }
+//                        }
 
                         /* Application of patches with full knowledge about features */
                         {
