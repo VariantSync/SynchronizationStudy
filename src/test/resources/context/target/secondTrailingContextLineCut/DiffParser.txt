@@ -47,7 +47,6 @@ public class DiffParser {
 
         return new OriginalDiff(fileDiffs);
     }
-
     private static FileDiff parseFileDiff(List<String> fileDiffContent) {
         int index = 0;
         final String HUNK_START = "@@";

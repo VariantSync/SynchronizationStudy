@@ -41,11 +41,7 @@ public class DiffParser {
                 throw new IllegalArgumentException("The provided lines do not contain one of the expected fileDiffStart values");
             }
             fileDiffContent.add(line);
-        }
         // Parse the content of the last file diff
-        fileDiffs.add(parseFileDiff(fileDiffContent));
-
-        return new OriginalDiff(fileDiffs);
     }
 
     private static FileDiff parseFileDiff(List<String> fileDiffContent) {

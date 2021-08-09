@@ -111,9 +111,6 @@ public class DiffParser {
                 content.add(new ContextLine(line));
             }
         }
-    }
-
-    private static HunkLocation parseHunkHeader(String line) {
         String[] parts = line.split("\\s+");
         String sourceLocationString = parts[1].substring(1);
         String targetLocationString = parts[2].substring(1);

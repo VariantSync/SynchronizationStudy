@@ -112,12 +112,4 @@ public class DiffParser {
             }
         }
     }
-
-    private static HunkLocation parseHunkHeader(String line) {
-        String[] parts = line.split("\\s+");
-        String sourceLocationString = parts[1].substring(1);
-        String targetLocationString = parts[2].substring(1);
-
-        return new HunkLocation(Integer.parseInt(sourceLocationString.split(",")[0]), Integer.parseInt(targetLocationString.split(",")[0]));
-    }
 }
