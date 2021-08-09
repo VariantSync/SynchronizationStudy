@@ -60,6 +60,7 @@ public class SimpleResultAnalysis {
         
         double precision = (double) tp / ((double) tp + fp);
         double recall = (double) tp / ((double) tp + fn);
+        double f_measure = (2 * precision * recall) / (precision + recall);
         
         System.out.println("TP: " + tp);
         System.out.println("FP: " + fp);
@@ -67,6 +68,7 @@ public class SimpleResultAnalysis {
         System.out.println("FN: " + fn);
         System.out.println("Precision: " + precision);
         System.out.println("Recall: " + recall);
+        System.out.println("F-Measure: " + f_measure);
     }
 
     private static void printResults(List<PatchOutcome> results) {
