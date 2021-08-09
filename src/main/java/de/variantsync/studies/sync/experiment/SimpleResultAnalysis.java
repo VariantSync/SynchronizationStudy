@@ -11,7 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class SimpleResultAnalysis {
-    
+
     public static void main(String... args) throws IOException {
         Path normalResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-normal.txt");
         Path editBasedResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-edit-based.txt");
@@ -23,8 +23,50 @@ public class SimpleResultAnalysis {
         printResults(normalResults);
 
         printResults(editResults);
-        
+
         printResults(pcBasedResults);
+
+        printPrecisionRecall(normalResults, editResults);
+        printPrecisionRecall(editResults, editResults);
+        printPrecisionRecall(pcBasedResults, pcBasedResults);
+    }
+    
+    private static void printPrecisionRecall(List<PatchOutcome> normalResults, List<PatchOutcome> editResults) {
+        System.out.println();
+        int all = 0;
+        for (PatchOutcome result : normalResults) {
+            all += result.lineSizedEditCount().count();
+        }
+
+        int selected = all;
+        for (PatchOutcome result : normalResults) {
+            selected -= result.failedLineSizedEditCount().count();
+        }
+
+        int relevant = 0;
+        for (PatchOutcome result : editResults) {
+            relevant += result.lineSizedEditCount().count();
+        }
+
+        int fn = 0;
+        for (PatchOutcome result : editResults) {
+            fn += result.failedLineSizedEditCount().count();
+        }
+
+        int tp = relevant - fn;
+        int fp = selected - tp;
+        
+        int tn = all - relevant - fp;
+        
+        double precision = (double) tp / ((double) tp + fp);
+        double recall = (double) tp / ((double) tp + fn);
+        
+        System.out.println("TP: " + tp);
+        System.out.println("FP: " + fp);
+        System.out.println("TN: " + tn);
+        System.out.println("FN: " + fn);
+        System.out.println("Precision: " + precision);
+        System.out.println("Recall: " + recall);
     }
 
     private static void printResults(List<PatchOutcome> results) {
@@ -63,7 +105,7 @@ public class SimpleResultAnalysis {
         }
         return results;
     }
-    
+
     public static PatchOutcome parseResult(List<String> lines) {
         Gson gson = new Gson();
         StringBuilder sb = new StringBuilder();
