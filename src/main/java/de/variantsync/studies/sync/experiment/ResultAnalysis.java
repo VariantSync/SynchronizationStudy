@@ -1,8 +1,9 @@
 package de.variantsync.studies.sync.experiment;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.variability.SPLCommit;
-import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.components.Hunk;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
@@ -49,12 +50,16 @@ The text leading up to this was:
 No file to patch.  Skipping patch.
 1 out of 1 hunk ignored
 */
-    
-    public static void analyze(SPLCommit commitV0, SPLCommit commitV1, 
-                        FineDiff normalPatch, FineDiff filteredPatch, 
-                        OriginalDiff actualVsExpectedNormal, OriginalDiff actualVsExpectedFiltered, 
-                        OriginalDiff rejectsNormal, OriginalDiff rejectsFiltered, 
-                        List<Path> skippedFilesNormal) {
+
+    public static PatchOutcome analyze(String dataset,
+                               long runID,
+                               String sourceVariant,
+                               String targetVariant,
+                               SPLCommit commitV0, SPLCommit commitV1,
+                               FineDiff normalPatch, FineDiff filteredPatch,
+                               OriginalDiff actualVsExpectedNormal, OriginalDiff actualVsExpectedFiltered,
+                               OriginalDiff rejectsNormal, OriginalDiff rejectsFiltered,
+                               List<Path> skippedFilesNormal) {
         // evaluate patch rejects
         int fileNormal = new HashSet<>(normalPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
         int lineNormal = normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
@@ -89,14 +94,14 @@ No file to patch.  Skipping patch.
         Set<Hunk> skippedNormalPatches = toHunks(normalPatch, skippedFilesNormal);
         Set<Hunk> skippedFilteredPatches = new HashSet<>(allPatches);
         skippedFilteredPatches.removeAll(relevantPatches);
-        
+
         Set<Hunk> successfulNormalPatches = new HashSet<>(allPatches);
         successfulNormalPatches.removeAll(failedNormalPatches);
         successfulNormalPatches.removeAll(skippedNormalPatches);
-        
+
         Set<Hunk> successfulFilteredPatches = new HashSet<>(relevantPatches);
         successfulFilteredPatches.removeAll(failedFilteredPatches);
-        
+
         int filteredTP = successfulFilteredPatches.size();
         int filteredFP = 0;
         int filteredTN = skippedFilteredPatches.size();
@@ -108,9 +113,32 @@ No file to patch.  Skipping patch.
         normalTN += failedNormalPatches.stream().filter(p -> !relevantPatches.contains(p)).count();
         int normalFN = (int) failedNormalPatches.stream().filter(relevantPatches::contains).count();
 
-        System.out.println("STOP");
+        return new PatchOutcome(dataset,
+                runID,
+                commitV0.id(),
+                commitV1.id(),
+                sourceVariant,
+                targetVariant,
+                actualVsExpectedNormal.isEmpty(),
+                actualVsExpectedFiltered.isEmpty(),
+                fileNormal,
+                lineNormal,
+                fileNormal - fileNormalFailed,
+                lineNormal - lineNormalFailed,
+                fileFiltered,
+                lineFiltered,
+                fileFiltered - fileFilteredFailed,
+                lineFiltered - lineFilteredFailed,
+                normalTP,
+                normalFP,
+                normalTN,
+                normalFN,
+                filteredTP,
+                filteredFP,
+                filteredTN,
+                filteredFN);
     }
-    
+
     private static Set<Hunk> toHunks(FineDiff diff) {
         if (diff == null) {
             return new HashSet<>();
@@ -130,5 +158,28 @@ No file to patch.  Skipping patch.
             return new HashSet<>();
         }
         return diff.fileDiffs().stream().flatMap(fd -> fd.hunks().stream()).collect(Collectors.toSet());
+    }
+
+    public static List<PatchOutcome> loadResultObjects(Path path) throws IOException {
+        List<PatchOutcome> results = new LinkedList<>();
+        List<String> lines = Files.readAllLines(path);
+        List<String> currentResult = new LinkedList<>();
+        for (String l : lines) {
+            if (l.isEmpty()) {
+                results.add(parseResult(currentResult));
+                currentResult = new LinkedList<>();
+            } else {
+                currentResult.add(l);
+            }
+        }
+        return results;
+    }
+
+    public static PatchOutcome parseResult(List<String> lines) {
+        Gson gson = new Gson();
+        StringBuilder sb = new StringBuilder();
+        lines.forEach(l -> sb.append(l).append("\n"));
+        JsonObject object = gson.fromJson(sb.toString(), JsonObject.class);
+        return PatchOutcome.FromJSON(object);
     }
 }

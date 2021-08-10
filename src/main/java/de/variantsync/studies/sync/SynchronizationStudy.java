@@ -38,6 +38,7 @@ import de.variantsync.studies.sync.experiment.ResultAnalysis;
 import de.variantsync.studies.sync.shell.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -170,22 +171,7 @@ public class SynchronizationStudy {
                         List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget);
                         // Evaluate the patch result
                         OriginalDiff actualVsExpectedNormal = getOriginalDiff(patchDir, pathToExpectedResult);
-                        OriginalDiff rejectsNormal = null;
-                        if (Files.exists(rejectFile)) {
-                            try {
-                                List<String> rejects = Files.readAllLines(rejectFile);
-                                rejectsNormal = DiffParser.toOriginalDiff(rejects);
-                            } catch (IOException e) {
-                                Logger.error("Was not able to read rejects file.", e);
-                            }
-                        }
-                        PatchOutcome normalPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.NORMAL, commitV0, commitV1, source, target, pathToExpectedResult, normalPatch);
-                        try {
-                            normalPatchOutcome.writeAsJSON(resultFileNormalPatch, true);
-                        } catch (IOException e) {
-                            Logger.error("Was not able to write normal result file for run " + runID, e);
-                        }
-
+                        OriginalDiff rejectsNormal = readRejects();
 
                         /* Application of patches with knowledge about PC of edit only */
                         Logger.info("Applying patch with knowledge about edits' PCs...");
@@ -198,30 +184,46 @@ public class SynchronizationStudy {
                         assert skippedFiltered.isEmpty();
                         // Evaluate the result
                         OriginalDiff actualVsExpectedFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
-                        OriginalDiff rejectsFiltered = null;
-                        if (Files.exists(rejectFile)) {
-                            try {
-                                List<String> rejects = Files.readAllLines(rejectFile);
-                                rejectsFiltered = DiffParser.toOriginalDiff(rejects);
-                            } catch (IOException e) {
-                                Logger.error("Was not able to read rejects file.", e);
-                            }
-                        }
-                        PatchOutcome filteredPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.FILTERED, commitV0, commitV1, source, target, pathToExpectedResult, filteredPatch);
+                        OriginalDiff rejectsFiltered = readRejects();
+
+                        /* Result Evaluation */
+                        PatchOutcome patchOutcome = ResultAnalysis.analyze(
+                                DATASET, 
+                                runID, 
+                                source.getName(), 
+                                target.getName(), 
+                                commitV0, commitV1, 
+                                normalPatch, filteredPatch,
+                                actualVsExpectedNormal, actualVsExpectedFiltered, 
+                                rejectsNormal, rejectsFiltered, 
+                                skippedNormal);
+                        
                         try {
-                            filteredPatchOutcome.writeAsJSON(resultFileFilteredPatch, true);
+                            patchOutcome.writeAsJSON(resultFileFilteredPatch, true);
                         } catch (IOException e) {
                             Logger.error("Was not able to write filtered patch result file for run " + runID, e);
                         }
-
-                        ResultAnalysis.analyze(commitV0, commitV1, normalPatch, filteredPatch, actualVsExpectedNormal, actualVsExpectedFiltered, rejectsNormal, rejectsFiltered, skippedNormal);
-
+                        
                         Logger.info("Finished patching for source " + source.getName() + " and target " + target.getName());
                         runID++;
                     }
                 }
             }
         }
+    }
+
+    @Nullable
+    private static OriginalDiff readRejects() {
+        OriginalDiff rejectsDiff = null;
+        if (Files.exists(rejectFile)) {
+            try {
+                List<String> rejects = Files.readAllLines(rejectFile);
+                rejectsDiff = DiffParser.toOriginalDiff(rejects);
+            } catch (IOException e) {
+                Logger.error("Was not able to read rejects file.", e);
+            }
+        }
+        return rejectsDiff;
     }
 
     private static void featureModelDebug(SPLCommit commitV0, SPLCommit commitV1, IFeatureModel modelV0, IFeatureModel modelV1, Collection<String> featuresInDifference) {
@@ -398,53 +400,7 @@ public class SynchronizationStudy {
         }
         return skipped;
     }
-
-    private static PatchOutcome evaluatePatchResult(String dataset, long runID, EPatchType patchType, SPLCommit commitV0, SPLCommit commitV1, Variant source, Variant target, Path targetVariant, FineDiff appliedPatch) {
-        // diff patch result and target variant
-        OriginalDiff actualVsExpected = getOriginalDiff(patchDir, targetVariant);
-        // evaluate diff
-
-        // evaluate patch rejects
-        int fileSized = new HashSet<>(appliedPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-        int lineSized = appliedPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        int fileSizedFail = 0;
-        int lineSizedFail = 0;
-        OriginalDiff rejectsDiff = null;
-        if (Files.exists(rejectFile)) {
-            try {
-                List<String> rejects = Files.readAllLines(rejectFile);
-                rejectsDiff = DiffParser.toOriginalDiff(rejects);
-                Logger.status("Commit-sized patch failed");
-
-                fileSizedFail = new HashSet<>(rejectsDiff.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-                Logger.status("" + fileSizedFail + " of " + fileSized + " file-sized patches failed.");
-                lineSizedFail = rejectsDiff.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
-                Logger.status("" + lineSizedFail + " of " + lineSized + " line-sized patches failed");
-            } catch (IOException e) {
-                Logger.error("Was not able to read rejects file.", e);
-            }
-        } else {
-            Logger.status("Commit-sized patch succeeded.");
-        }
-
-        return new PatchOutcome(
-                dataset,
-                runID,
-                patchType,
-                new PatchOutcome.CommitIDV0(commitV0.id()),
-                new PatchOutcome.CommitIDV1(commitV1.id()),
-                new PatchOutcome.SourceVariant(source.getName()),
-                new PatchOutcome.TargetVariant(target.getName()),
-                new PatchOutcome.AppliedPatch(appliedPatch),
-                new PatchOutcome.ActualVsExpectedTargetV1(actualVsExpected),
-                rejectsDiff == null ? null : new PatchOutcome.PatchRejects(rejectsDiff),
-                new PatchOutcome.FileSizedCount(fileSized),
-                new PatchOutcome.LineSizedCount(lineSized),
-                new PatchOutcome.FailedFileSizedCount(fileSizedFail),
-                new PatchOutcome.FailedLineSizedCount(lineSizedFail),
-                new PatchOutcome.Skipped(0));
-    }
-
+    
     @NotNull
     private static FineDiff getFineDiff(OriginalDiff originalDiff) {
         DefaultContextProvider contextProvider = new DefaultContextProvider(workDir);

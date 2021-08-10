@@ -1,7 +1,6 @@
 package de.variantsync.studies.sync.experiment;
 
-import de.variantsync.studies.sync.diff.components.FineDiff;
-import de.variantsync.studies.sync.diff.components.OriginalDiff;
+import com.google.gson.JsonObject;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,22 +10,39 @@ import java.util.Collection;
 
 public record PatchOutcome(String dataset,
                            long runID,
-                           EPatchType patchType,
-                           CommitIDV0 commitV0,
-                           CommitIDV1 commitV1,
-                           SourceVariant sourceVariant,
-                           TargetVariant targetVariant,
-                           AppliedPatch appliedPatch,
-                           ActualVsExpectedTargetV1 actualVsExpected,
-                           PatchRejects rejects,
-                           FileSizedCount fileSizedCount,
-                           LineSizedCount lineSizedCount,
-                           FailedFileSizedCount failedFileSizedCount,
-                           FailedLineSizedCount failedLineSizedCount,
-                           Skipped skipped) {
+                           String commitV0,
+                           String commitV1,
+                           String sourceVariant,
+                           String targetVariant,
+                           boolean normalAsExpected,
+                           boolean filteredAsExpected,
+                           long fileNormal,
+                           long lineNormal,
+                           long fileSuccessNormal,
+                           long lineSuccessNormal,
+                           long fileFiltered,
+                           long lineFiltered,
+                           long fileSuccessFiltered,
+                           long lineSuccessFiltered,
+                           long normalTP,
+                           long normalFP,
+                           long normalTN,
+                           long normalFN,
+                           long filteredTP,
+                           long filteredFP,
+                           long filteredTN,
+                           long filteredFN) {
 
-    public static String toJSON(JSONObject object, String name) {
-        return object == null ? "\"" + name + "\": null" : object.toJSON(name);
+    public static String toJSON(String key, Object value) {
+        return "\"" + key + "\": " + value;
+    }
+
+    public static String toJSON(String key, long value) {
+        return "\"" + key + "\": " + value;
+    }
+
+    public static String toJSON(String key, boolean value) {
+        return "\"" + key + "\": " + value;
     }
 
     public static String collectionToJSON(Collection<String> collection) {
@@ -38,27 +54,62 @@ public record PatchOutcome(String dataset,
         return sb.toString();
     }
 
+    public static PatchOutcome FromJSON(JsonObject object) {
+        return new PatchOutcome(
+                object.get("dataset").getAsString(),
+                object.get("runID").getAsLong(),
+                object.get("commitV0").getAsString(),
+                object.get("commitV1").getAsString(),
+                object.get("sourceVariant").getAsString(),
+                object.get("targetVariant").getAsString(),
+                object.get("normalAsExpected").getAsBoolean(),
+                object.get("filteredAsExpected").getAsBoolean(),
+                object.get("fileNormal").getAsLong(),
+                object.get("lineNormal").getAsLong(),
+                object.get("fileSuccessNormal").getAsLong(),
+                object.get("lineSuccessNormal").getAsLong(),
+                object.get("fileFiltered").getAsLong(),
+                object.get("lineFiltered").getAsLong(),
+                object.get("fileSuccessFiltered").getAsLong(),
+                object.get("lineSuccessFiltered").getAsLong(),
+                object.get("normalTP").getAsLong(),
+                object.get("normalFP").getAsLong(),
+                object.get("normalTN").getAsLong(),
+                object.get("normalFN").getAsLong(),
+                object.get("filteredTP").getAsLong(),
+                object.get("filteredFP").getAsLong(),
+                object.get("filteredTN").getAsLong(),
+                object.get("filteredFN").getAsLong()
+        );
+    }
+
     public void writeAsJSON(Path pathToFile, boolean append) throws IOException {
         StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{").append("\n");
-        jsonBuilder.append("\"ID\": \"").append(runID).append("\"").append(",\n");
-        jsonBuilder.append("\"Dataset\": \"").append(dataset).append("\"").append(",\n");
-        jsonBuilder.append("\"PatchType\": \"").append(patchType).append("\"").append(",\n");
-        jsonBuilder.append(toJSON(commitV0, "CommitID-V0")).append(",\n");
-        jsonBuilder.append(toJSON(commitV1, "CommitID-V1")).append(",\n");
-        jsonBuilder.append(toJSON(sourceVariant, "sourceVariant")).append(",\n");
-        jsonBuilder.append(toJSON(targetVariant, "targetVariant")).append(",\n");
-//        jsonBuilder.append(toJSON(appliedPatch, "appliedPatch")).append(",\n");
-        jsonBuilder.append(toJSON(actualVsExpected, "actualVsExpected")).append(",\n");
-//        jsonBuilder.append(toJSON(rejects, "rejects")).append(",\n");
-        jsonBuilder.append("\"CommitPatches\": \"").append(lineSizedCount.count > 0 ? 1 : 0).append("\"").append(",\n");
-        jsonBuilder.append("\"FailedCommitPatches\": \"").append(failedLineSizedCount.count > 0 ? 1 : 0).append("\"").append(",\n");
-        jsonBuilder.append(toJSON(fileSizedCount, "filePatches")).append(",\n");
-        jsonBuilder.append(toJSON(failedFileSizedCount, "failedFilePatches")).append(",\n");
-        jsonBuilder.append(toJSON(new Percentage(failedFileSizedCount.count, fileSizedCount.count()), "percentageFailedFilePatches")).append(",\n");
-        jsonBuilder.append(toJSON(lineSizedCount, "linePatches")).append(",\n");
-        jsonBuilder.append(toJSON(failedLineSizedCount, "failedLinePatches")).append(",\n");
-        jsonBuilder.append(toJSON(new Percentage(failedLineSizedCount.count, lineSizedCount.count()), "percentageFailedLinePatches")).append("\n");
+        jsonBuilder.append(toJSON("dataset", dataset)).append(",\n");
+        jsonBuilder.append(toJSON("runID", runID)).append(",\n");
+        jsonBuilder.append(toJSON("commitV0", commitV0)).append(",\n");
+        jsonBuilder.append(toJSON("commitV1", commitV1)).append(",\n");
+        jsonBuilder.append(toJSON("sourceVariant", sourceVariant)).append(",\n");
+        jsonBuilder.append(toJSON("targetVariant", targetVariant)).append(",\n");
+        jsonBuilder.append(toJSON("normalAsExpected", normalAsExpected)).append(",\n");
+        jsonBuilder.append(toJSON("filteredAsExpected", filteredAsExpected)).append(",\n");
+        jsonBuilder.append(toJSON("fileNormal", fileNormal)).append(",\n");
+        jsonBuilder.append(toJSON("lineNormal", lineNormal)).append(",\n");
+        jsonBuilder.append(toJSON("fileSuccessNormal", fileSuccessNormal)).append(",\n");
+        jsonBuilder.append(toJSON("lineSuccessNormal", lineSuccessNormal)).append(",\n");
+        jsonBuilder.append(toJSON("fileFiltered", fileFiltered)).append(",\n");
+        jsonBuilder.append(toJSON("lineFiltered", lineFiltered)).append(",\n");
+        jsonBuilder.append(toJSON("fileSuccessFiltered", fileSuccessFiltered)).append(",\n");
+        jsonBuilder.append(toJSON("lineSuccessFiltered", lineSuccessFiltered)).append(",\n");
+        jsonBuilder.append(toJSON("normalTP", normalTP)).append(",\n");
+        jsonBuilder.append(toJSON("normalFP", normalFP)).append(",\n");
+        jsonBuilder.append(toJSON("normalTN", normalTN)).append(",\n");
+        jsonBuilder.append(toJSON("normalFN", normalFN)).append(",\n");
+        jsonBuilder.append(toJSON("filteredTP", filteredTP)).append(",\n");
+        jsonBuilder.append(toJSON("filteredFP", filteredFP)).append(",\n");
+        jsonBuilder.append(toJSON("filteredTN", filteredTN)).append(",\n");
+        jsonBuilder.append(toJSON("filteredFN", filteredFN)).append(",\n");
         jsonBuilder.append("}").append("\n\n");
         if (!Files.exists(pathToFile)) {
             Files.createFile(pathToFile);
@@ -70,102 +121,7 @@ public record PatchOutcome(String dataset,
         }
     }
 
-    private interface JSONObject {
-        default String toJSON() {
-            return "\"" + this + "\"";
-        }
-
-        default String toJSON(String name) {
-            return "\"" + name + "\": " + toJSON();
-        }
-    }
-
-    public record CommitIDV0(String id) implements JSONObject {
-        @Override
-        public String toString() {
-            return id;
-        }
-    }
-
-    public record CommitIDV1(String id) implements JSONObject {
-        @Override
-        public String toString() {
-            return id;
-        }
-    }
-
-    public record SourceVariant(String name) implements JSONObject {
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
-    public record TargetVariant(String name) implements JSONObject {
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
-    public record AppliedPatch(FineDiff patch) implements JSONObject {
-        @Override
-        public String toString() {
-            return collectionToJSON(patch.toLines());
-        }
-    }
-
-    public record ActualVsExpectedTargetV1(OriginalDiff diff) implements JSONObject {
-        @Override
-        public String toString() {
-            return String.valueOf(diff.isEmpty());
-//            return collectionToJSON(diff.toLines());
-        }
-    }
-
-    public record PatchRejects(OriginalDiff rejects) implements JSONObject {
-        @Override
-        public String toString() {
-            return collectionToJSON(rejects.toLines());
-        }
-    }
-
-    public record FileSizedCount(int count) implements JSONObject {
-        @Override
-        public String toString() {
-            return String.valueOf(count);
-        }
-    }
-
-    public record LineSizedCount(int count) implements JSONObject {
-        @Override
-        public String toString() {
-            return String.valueOf(count);
-        }
-    }
-
-    public record FailedFileSizedCount(int count) implements JSONObject {
-        @Override
-        public String toString() {
-            return String.valueOf(count);
-        }
-    }
-
-    public record FailedLineSizedCount(int count) implements JSONObject {
-        @Override
-        public String toString() {
-            return String.valueOf(count);
-        }
-    }
-    
-    public record Skipped(long skipped) implements JSONObject {
-        @Override
-        public String toString() {
-            return String.valueOf(skipped);
-        }
-    }
-
-    public static class Percentage implements JSONObject {
+    public static class Percentage {
         private final double percentage;
 
         public Percentage(int x, int y) {
