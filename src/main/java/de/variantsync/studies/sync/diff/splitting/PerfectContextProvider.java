@@ -48,7 +48,9 @@ public class PerfectContextProvider implements IContextProvider {
             PerfectContext leadContext = loadLeadContext(fileDiff, lineFilter);
             List<String> lines = leadContext.lines();
             Map<Integer, Integer> indexMap = leadContext.indexMap();
-
+//            for (String line : lines) {
+//                System.out.println(line);
+//            }
             for (int i = indexMap.get(index - 1); i >= 0; i--) {
                 if (context.size() >= contextSize) {
                     break;
@@ -91,7 +93,7 @@ public class PerfectContextProvider implements IContextProvider {
 
     private PerfectContext loadLeadContext(FileDiff fileDiff, ILineFilter lineFilter) throws IOException {
         if (cachedLeadContext == null || !fileDiff.newFile().equals(cachedLeadContext.sourceFile())) {
-            this.cachedLeadContext = getPerfectLead(fileDiff.oldFile(), fileDiff.newFile(), lineFilter);
+            this.cachedLeadContext = perfectLead(fileDiff.oldFile(), fileDiff.newFile(), lineFilter);
         }
         return this.cachedLeadContext;
     }
@@ -101,89 +103,6 @@ public class PerfectContextProvider implements IContextProvider {
             this.cachedTrailContext = getPerfectTrail(fileDiff.oldFile(), lineFilter);
         }
         return this.cachedTrailContext;
-    }
-
-    private PerfectContext getPerfectLead(Path sourceFileV0, Path sourceFileV1, ILineFilter lineFilter) throws IOException {
-        Path targetFile = targetDir.resolve(sourceFileV0.subpath(targetPathStart, sourceFileV0.getNameCount()));
-        LinkedList<String> perfectLines = new LinkedList<>();
-        Map<Integer, Integer> indexMap = new HashMap<>();
-
-        List<String> sourceLinesV0 = readLinesChecked(sourceDir.resolve(sourceFileV0));
-        List<String> sourceLinesV1 = readLinesChecked(sourceDir.resolve(sourceFileV1));
-        List<String> targetLines = readLinesChecked(targetFile);
-
-        int sourceIndexV0 = 0;
-        int sourceIndexV1 = 0;
-        int targetIndex = 0;
-        while (true) {
-            String sourceLineV0 = null;
-            if (sourceIndexV0 < sourceLinesV0.size()) {
-                if (lineFilter.shouldKeep(sourceFileV0, sourceIndexV0 + 1)) {
-                    sourceLineV0 = sourceLinesV0.get(sourceIndexV0);
-                } else {
-                    sourceIndexV0++;
-                }
-            }
-            String sourceLineV1 = null;
-            if (sourceIndexV1 < sourceLinesV1.size()) {
-                if (lineFilter.shouldKeep(sourceFileV1, sourceIndexV1 + 1)) {
-                    sourceLineV1 = sourceLinesV1.get(sourceIndexV1);
-                } else {
-                    indexMap.put(sourceIndexV1, perfectLines.size()-1);
-                    sourceIndexV1++;
-                    continue;
-                }
-            }
-            if (!Objects.equals(sourceLineV0, sourceLineV1)) {
-                // We located an edit, which we want to skip, because it should not go into the context
-                String nextV0;
-                if (sourceIndexV0 + 1 < sourceLinesV0.size()) {
-                    nextV0 = sourceLinesV0.get(sourceIndexV0 + 1);
-                    if (Objects.equals(nextV0, sourceLineV1)) {
-                        // Deletion, increase the target and source.V0 index by 1
-                        sourceIndexV0++;
-                        targetIndex++;
-                        continue;
-                    }
-                }
-                String nextV1;
-                if (sourceIndexV1 + 1 < sourceLinesV1.size()) {
-                    nextV1 = sourceLinesV1.get(sourceIndexV1 + 1);
-                    if (Objects.equals(nextV1, sourceLineV0)) {
-                        // Insertion, increase the source.V1 index by 1
-                        indexMap.put(sourceIndexV1, perfectLines.size());
-                        perfectLines.add(sourceLineV1);
-                        sourceIndexV1++;
-                        continue;
-                    }
-                }
-            }
-
-            String targetLine = null;
-            if (targetIndex < targetLines.size()) {
-                targetLine = targetLines.get(targetIndex);
-            }
-
-            if (sourceLineV1 != null && targetLine != null && Objects.equals(sourceLineV1, targetLine)) {
-                indexMap.put(sourceIndexV1, perfectLines.size());
-                perfectLines.add(sourceLineV1);
-                sourceIndexV0++;
-                sourceIndexV1++;
-                targetIndex++;
-            } else if (targetLine != null) {
-                perfectLines.add(targetLine);
-                targetIndex++;
-            } else if (sourceLineV1 != null) {
-                indexMap.put(sourceIndexV1, perfectLines.size());
-                perfectLines.add(sourceLineV1);
-                sourceIndexV0++;
-                sourceIndexV1++;
-            } else {
-                break;
-            }
-        }
-
-        return new PerfectContext(perfectLines, indexMap, sourceFileV1);
     }
 
     private PerfectContext getPerfectTrail(Path sourceFile, ILineFilter lineFilter) throws IOException {
@@ -196,13 +115,14 @@ public class PerfectContextProvider implements IContextProvider {
 
         int sourceIndex = 0;
         int targetIndex = 0;
+        int perfectIndex = 0;
         while (true) {
             String sourceLine = null;
             if (sourceIndex < sourceLines.size()) {
                 if (lineFilter.shouldKeep(sourceFile, sourceIndex + 1)) {
                     sourceLine = sourceLines.get(sourceIndex);
                 } else {
-                    indexMap.put(sourceIndex, perfectLines.size());
+                    indexMap.put(sourceIndex, perfectIndex);
                     sourceIndex++;
                     continue;
                 }
@@ -213,15 +133,17 @@ public class PerfectContextProvider implements IContextProvider {
             }
 
             if (sourceLine != null && targetLine != null && Objects.equals(sourceLine, targetLine)) {
-                indexMap.put(sourceIndex, perfectLines.size());
+                indexMap.put(sourceIndex, perfectIndex);
                 perfectLines.add(sourceLine);
+                perfectIndex = perfectLines.size();
                 sourceIndex++;
                 targetIndex++;
             } else if (targetLine != null) {
                 perfectLines.add(targetLine);
                 targetIndex++;
             } else if (sourceLine != null) {
-                indexMap.put(sourceIndex, perfectLines.size());
+                indexMap.put(sourceIndex, perfectIndex);
+                perfectIndex++;
                 perfectLines.add(sourceLine);
                 sourceIndex++;
             } else {
@@ -230,5 +152,124 @@ public class PerfectContextProvider implements IContextProvider {
         }
 
         return new PerfectContext(perfectLines, indexMap, sourceFile);
+    }
+
+    private PerfectContext perfectLead(Path sourceFileV0, Path sourceFileV1, ILineFilter lineFilter) throws IOException {
+        Path targetFile = targetDir.resolve(sourceFileV0.subpath(targetPathStart, sourceFileV0.getNameCount()));
+        LinkedList<String> perfectLines = new LinkedList<>();
+        Map<Integer, Integer> indexMap = new HashMap<>();
+
+        Map<Integer, Boolean> targetOnlyLine = determineTargetOnly(sourceFileV0, targetFile, lineFilter);
+        List<String> sourceLinesV1 = readLinesChecked(sourceDir.resolve(sourceFileV1));
+        List<String> targetLines = readLinesChecked(targetFile);
+
+        int sourceIndex = 0;
+        int targetIndex = 0;
+        // We require a frozen state of the target index, to check equality in case of multiple edits in the source
+        int frozenSourceIndex = 0;
+        int frozenTargetIndex = 0;
+        int perfectIndex = 0;
+        while (true) {
+            String sourceLine = null;
+            if (sourceIndex < sourceLinesV1.size()) {
+                if (lineFilter.shouldKeep(sourceFileV1, sourceIndex + 1)) {
+                    sourceLine = sourceLinesV1.get(sourceIndex);
+                } else {
+                    indexMap.put(sourceIndex, perfectIndex - 1);
+                    sourceIndex++;
+                    continue;
+                }
+            }
+
+            String frozenSource = null;
+            if (frozenSourceIndex < sourceLinesV1.size()) {
+                frozenSource = sourceLinesV1.get(frozenSourceIndex);
+            }
+
+            String targetLine = null;
+            if (targetIndex < targetLines.size()) {
+                targetLine = targetLines.get(targetIndex);
+            }
+
+            String frozenTarget = null;
+            if (frozenTargetIndex < targetLines.size()) {
+                frozenTarget = targetLines.get(frozenTargetIndex);
+            }
+
+            if (sourceLine != null && targetLine != null && Objects.equals(sourceLine, targetLine)) {
+                perfectIndex = perfectLines.size();
+                indexMap.put(sourceIndex, perfectIndex);
+                perfectLines.add(sourceLine);
+                sourceIndex++;
+                targetIndex++;
+                // Update the frozen index
+                frozenSourceIndex = sourceIndex;
+                frozenTargetIndex = targetIndex;
+            } else if (targetLine != null && targetOnlyLine.get(targetIndex)) {
+                // The lines are different, because the target line only exists in the target
+                indexMap.put(sourceIndex, perfectIndex);
+                perfectLines.add(targetLine);
+                targetIndex++;
+            } else if (frozenTarget != null && Objects.equals(sourceLine, frozenTarget)) {
+                indexMap.put(sourceIndex, perfectIndex);
+                perfectLines.add(sourceLine);
+                sourceIndex++;
+                targetIndex = frozenTargetIndex + 1;
+                // Update the frozen index
+                frozenTargetIndex = targetIndex;
+            } else if (frozenSource != null && Objects.equals(frozenSource, targetLine)) {
+                // Skip this line, it was added before
+                targetIndex++;
+                frozenSourceIndex++;
+            } else if (sourceLine != null) {
+                // The lines are different, because the source line was edited
+                indexMap.put(sourceIndex, perfectIndex);
+                perfectLines.add(sourceLine);
+                sourceIndex++;
+                targetIndex++;
+            } else {
+                break;
+            }
+        }
+
+        return new PerfectContext(perfectLines, indexMap, sourceFileV1);
+    }
+
+    private Map<Integer, Boolean> determineTargetOnly(Path sourceFileV0, Path targetFile, ILineFilter lineFilter) throws IOException {
+        Map<Integer, Boolean> targetOnlyMap = new HashMap<>();
+
+        List<String> sourceLinesV0 = readLinesChecked(sourceDir.resolve(sourceFileV0));
+        List<String> targetLines = readLinesChecked(targetFile);
+
+        int sourceIndexV0 = 0;
+        int targetIndex = 0;
+        while (true) {
+            String sourceLineV0 = null;
+            if (sourceIndexV0 < sourceLinesV0.size()) {
+                if (lineFilter.shouldKeep(sourceFileV0, sourceIndexV0 + 1)) {
+                    sourceLineV0 = sourceLinesV0.get(sourceIndexV0);
+                } else {
+                    sourceIndexV0++;
+                    continue;
+                }
+            }
+
+            String targetLine = null;
+            if (targetIndex < targetLines.size()) {
+                targetLine = targetLines.get(targetIndex);
+            }
+
+            if (sourceLineV0 != null && targetLine != null && Objects.equals(sourceLineV0, targetLine)) {
+                targetOnlyMap.put(targetIndex, false);
+                sourceIndexV0++;
+                targetIndex++;
+            } else if (targetLine != null) {
+                targetOnlyMap.put(targetIndex, true);
+                targetIndex++;
+            } else {
+                break;
+            }
+        }
+        return targetOnlyMap;
     }
 }
