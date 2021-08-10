@@ -123,7 +123,8 @@ public class SimpleResultAnalysis {
                 new PatchOutcome.FileSizedCount(object.get("filePatches").getAsInt()),
                 new PatchOutcome.LineSizedCount(object.get("linePatches").getAsInt()),
                 new PatchOutcome.FailedFileSizedCount(object.get("failedFilePatches").getAsInt()),
-                new PatchOutcome.FailedLineSizedCount(object.get("failedLinePatches").getAsInt())
+                new PatchOutcome.FailedLineSizedCount(object.get("failedLinePatches").getAsInt()),
+                new PatchOutcome.Skipped(0)
         );
     }
 }

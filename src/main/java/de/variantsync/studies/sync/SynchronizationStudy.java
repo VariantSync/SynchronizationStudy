@@ -34,6 +34,7 @@ import de.variantsync.studies.sync.error.ShellException;
 import de.variantsync.studies.sync.experiment.BusyboxPreparation;
 import de.variantsync.studies.sync.experiment.EPatchType;
 import de.variantsync.studies.sync.experiment.PatchOutcome;
+import de.variantsync.studies.sync.experiment.ResultAnalysis;
 import de.variantsync.studies.sync.shell.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jetbrains.annotations.NotNull;
@@ -149,8 +150,8 @@ public class SynchronizationStudy {
                     }
                     Logger.info("Converting diff...");
                     // Convert the original diff into a fine diff
-                    FineDiff fineDiff = getFineDiff(originalDiff);
-                    saveDiff(fineDiff, normalPatchFile);
+                    FineDiff normalPatch = getFineDiff(originalDiff);
+                    saveDiff(normalPatch, normalPatchFile);
                     Logger.info("Saved fine diff.");
 
                     // For each target variant,
@@ -164,36 +165,56 @@ public class SynchronizationStudy {
                         Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
 
                         /* Application of patches without knowledge about features */
-                        {
-                            Logger.info("Applying patch without knowledge about features...");
-                            // Apply the fine diff to the target variant
-                            applyPatch(normalPatchFile, pathToTarget);
-                            // Evaluate the patch result
-                            PatchOutcome normalPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.NORMAL, commitV0, commitV1, source, target, pathToExpectedResult, fineDiff);
+                        Logger.info("Applying patch without knowledge about features...");
+                        // Apply the fine diff to the target variant
+                        List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget);
+                        // Evaluate the patch result
+                        OriginalDiff actualVsExpectedNormal = getOriginalDiff(patchDir, pathToExpectedResult);
+                        OriginalDiff rejectsNormal = null;
+                        if (Files.exists(rejectFile)) {
                             try {
-                                normalPatchOutcome.writeAsJSON(resultFileNormalPatch, true);
+                                List<String> rejects = Files.readAllLines(rejectFile);
+                                rejectsNormal = DiffParser.toOriginalDiff(rejects);
                             } catch (IOException e) {
-                                Logger.error("Was not able to write normal result file for run " + runID, e);
+                                Logger.error("Was not able to read rejects file.", e);
                             }
+                        }
+                        PatchOutcome normalPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.NORMAL, commitV0, commitV1, source, target, pathToExpectedResult, normalPatch);
+                        try {
+                            normalPatchOutcome.writeAsJSON(resultFileNormalPatch, true);
+                        } catch (IOException e) {
+                            Logger.error("Was not able to write normal result file for run " + runID, e);
                         }
 
+
                         /* Application of patches with knowledge about PC of edit only */
-                        {
-                            Logger.info("Applying patch with knowledge about edits' PCs...");
-                            // Create target variant specific patch that respects PCs
-                            FineDiff filteredDiff = getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
-                            boolean emptyPatch = filteredDiff.content().isEmpty();
-                            saveDiff(filteredDiff, filteredPatchFile);
-                            // Apply the patch
-                            applyPatch(filteredPatchFile, pathToTarget, emptyPatch);
-                            // Evaluate the result
-                            PatchOutcome filteredPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.FILTERED, commitV0, commitV1, source, target, pathToExpectedResult, filteredDiff);
+                        Logger.info("Applying patch with knowledge about edits' PCs...");
+                        // Create target variant specific patch that respects PCs
+                        FineDiff filteredPatch = getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
+                        boolean emptyPatch = filteredPatch.content().isEmpty();
+                        saveDiff(filteredPatch, filteredPatchFile);
+                        // Apply the patch
+                        List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, emptyPatch);
+                        assert skippedFiltered.isEmpty();
+                        // Evaluate the result
+                        OriginalDiff actualVsExpectedFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
+                        OriginalDiff rejectsFiltered = null;
+                        if (Files.exists(rejectFile)) {
                             try {
-                                filteredPatchOutcome.writeAsJSON(resultFileFilteredPatch, true);
+                                List<String> rejects = Files.readAllLines(rejectFile);
+                                rejectsFiltered = DiffParser.toOriginalDiff(rejects);
                             } catch (IOException e) {
-                                Logger.error("Was not able to write filtered patch result file for run " + runID, e);
+                                Logger.error("Was not able to read rejects file.", e);
                             }
                         }
+                        PatchOutcome filteredPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.FILTERED, commitV0, commitV1, source, target, pathToExpectedResult, filteredPatch);
+                        try {
+                            filteredPatchOutcome.writeAsJSON(resultFileFilteredPatch, true);
+                        } catch (IOException e) {
+                            Logger.error("Was not able to write filtered patch result file for run " + runID, e);
+                        }
+
+                        ResultAnalysis.analyze(commitV0, commitV1, normalPatch, filteredPatch, actualVsExpectedNormal, actualVsExpectedFiltered, rejectsNormal, rejectsFiltered, skippedNormal);
 
                         Logger.info("Finished patching for source " + source.getName() + " and target " + target.getName());
                         runID++;
@@ -339,11 +360,11 @@ public class SynchronizationStudy {
         }
     }
 
-    private static void applyPatch(Path patchFile, Path targetVariant) {
-        applyPatch(patchFile, targetVariant, false);
+    private static List<Path> applyPatch(Path patchFile, Path targetVariant) {
+        return applyPatch(patchFile, targetVariant, false);
     }
 
-    private static void applyPatch(Path patchFile, Path targetVariant, boolean emptyPatch) {
+    private static List<Path> applyPatch(Path patchFile, Path targetVariant, boolean emptyPatch) {
         // Clean patch directory
         if (Files.exists(patchDir.toAbsolutePath())) {
             shell.execute(new RmCommand(patchDir.toAbsolutePath()).recursive());
@@ -358,14 +379,24 @@ public class SynchronizationStudy {
         shell.execute(new CpCommand(targetVariant, patchDir).recursive()).expect("Was not able to copy variant " + targetVariant);
 
         // apply patch to copied target variant
+        List<Path> skipped = new LinkedList<>();
         if (!emptyPatch) {
             Result<List<String>, ShellException> result = shell.execute(PatchCommand.Recommended(patchFile).strip(2).rejectFile(rejectFile).force(), patchDir);
             if (result.isSuccess()) {
                 result.getSuccess().forEach(Logger::info);
             } else {
                 Logger.error("Failed to apply part of patch.");
+                List<String> lines = result.getFailure().getOutput();
+                String oldFile;
+                for (String nextLine : lines) {
+                    if (nextLine.startsWith("|---")) {
+                        oldFile = nextLine.split("\\s+")[1];
+                        skipped.add(Path.of(oldFile));
+                    }
+                }
             }
         }
+        return skipped;
     }
 
     private static PatchOutcome evaluatePatchResult(String dataset, long runID, EPatchType patchType, SPLCommit commitV0, SPLCommit commitV1, Variant source, Variant target, Path targetVariant, FineDiff appliedPatch) {
@@ -410,7 +441,8 @@ public class SynchronizationStudy {
                 new PatchOutcome.FileSizedCount(fileSized),
                 new PatchOutcome.LineSizedCount(lineSized),
                 new PatchOutcome.FailedFileSizedCount(fileSizedFail),
-                new PatchOutcome.FailedLineSizedCount(lineSizedFail));
+                new PatchOutcome.FailedLineSizedCount(lineSizedFail),
+                new PatchOutcome.Skipped(0));
     }
 
     @NotNull

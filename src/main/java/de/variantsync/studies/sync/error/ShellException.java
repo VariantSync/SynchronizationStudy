@@ -1,20 +1,24 @@
 package de.variantsync.studies.sync.error;
 
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 public class ShellException extends Exception {
+    private final List<String> output; 
 
     public ShellException(Exception e) {
         super(e);
-    }
-
-    public ShellException(String s) {
-        super(s);
+        this.output = new LinkedList<>();
     }
 
     public ShellException(List<String> output) {
         super(convert(output));
+        this.output = output;
+    }
+
+    public List<String> getOutput() {
+        return output;
     }
 
     private static String convert(Collection<String> output) {

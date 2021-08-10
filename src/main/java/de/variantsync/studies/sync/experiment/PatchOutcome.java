@@ -22,7 +22,8 @@ public record PatchOutcome(String dataset,
                            FileSizedCount fileSizedCount,
                            LineSizedCount lineSizedCount,
                            FailedFileSizedCount failedFileSizedCount,
-                           FailedLineSizedCount failedLineSizedCount) {
+                           FailedLineSizedCount failedLineSizedCount,
+                           Skipped skipped) {
 
     public static String toJSON(JSONObject object, String name) {
         return object == null ? "\"" + name + "\": null" : object.toJSON(name);
@@ -154,6 +155,13 @@ public record PatchOutcome(String dataset,
         @Override
         public String toString() {
             return String.valueOf(count);
+        }
+    }
+    
+    public record Skipped(long skipped) implements JSONObject {
+        @Override
+        public String toString() {
+            return String.valueOf(skipped);
         }
     }
 
