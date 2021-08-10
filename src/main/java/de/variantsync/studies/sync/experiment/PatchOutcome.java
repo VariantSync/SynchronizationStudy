@@ -109,7 +109,7 @@ public record PatchOutcome(String dataset,
         jsonBuilder.append(toJSON("filteredTP", filteredTP)).append(",\n");
         jsonBuilder.append(toJSON("filteredFP", filteredFP)).append(",\n");
         jsonBuilder.append(toJSON("filteredTN", filteredTN)).append(",\n");
-        jsonBuilder.append(toJSON("filteredFN", filteredFN)).append(",\n");
+        jsonBuilder.append(toJSON("filteredFN", filteredFN)).append("\n");
         jsonBuilder.append("}").append("\n\n");
         if (!Files.exists(pathToFile)) {
             Files.createFile(pathToFile);
@@ -118,23 +118,6 @@ public record PatchOutcome(String dataset,
             Files.writeString(pathToFile, jsonBuilder.toString(), StandardOpenOption.APPEND);
         } else {
             Files.writeString(pathToFile, jsonBuilder.toString(), StandardOpenOption.TRUNCATE_EXISTING);
-        }
-    }
-
-    public static class Percentage {
-        private final double percentage;
-
-        public Percentage(int x, int y) {
-            if (y == 0) {
-                this.percentage = 0;
-            } else {
-                this.percentage = 100 * ((double) x / (double) y);
-            }
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%3.1f%s", percentage, "%");
         }
     }
 

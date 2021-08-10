@@ -32,7 +32,6 @@ import de.variantsync.studies.sync.diff.splitting.NaiveContextProvider;
 import de.variantsync.studies.sync.error.Panic;
 import de.variantsync.studies.sync.error.ShellException;
 import de.variantsync.studies.sync.experiment.BusyboxPreparation;
-import de.variantsync.studies.sync.experiment.EPatchType;
 import de.variantsync.studies.sync.experiment.PatchOutcome;
 import de.variantsync.studies.sync.experiment.ResultAnalysis;
 import de.variantsync.studies.sync.shell.*;
@@ -54,8 +53,7 @@ public class SynchronizationStudy {
     private static final int randomRepeats = 1;
     private static final int numVariants = 5;
     private static final String DATASET = "BUSYBOX";
-    private static final Path resultFileNormalPatch = workDir.resolve("results-normal-patch.txt");
-    private static final Path resultFileFilteredPatch = workDir.resolve("results-filtered-patch.txt");
+    private static final Path resultFile = workDir.resolve("results.txt");
     private static final Path splRepositoryPath = workDir.getParent().resolve("BAK_busybox");
     private static final Path splRepositoryV0Path = workDir.resolve("busybox-V0");
     private static final Path splRepositoryV1Path = workDir.resolve("busybox-V1");
@@ -187,7 +185,7 @@ public class SynchronizationStudy {
                         OriginalDiff rejectsFiltered = readRejects();
 
                         /* Result Evaluation */
-                        PatchOutcome patchOutcome = ResultAnalysis.analyze(
+                        PatchOutcome patchOutcome = ResultAnalysis.processOutcome(
                                 DATASET, 
                                 runID, 
                                 source.getName(), 
@@ -199,7 +197,7 @@ public class SynchronizationStudy {
                                 skippedNormal);
                         
                         try {
-                            patchOutcome.writeAsJSON(resultFileFilteredPatch, true);
+                            patchOutcome.writeAsJSON(resultFile, true);
                         } catch (IOException e) {
                             Logger.error("Was not able to write filtered patch result file for run " + runID, e);
                         }
