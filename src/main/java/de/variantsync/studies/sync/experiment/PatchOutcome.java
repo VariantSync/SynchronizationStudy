@@ -19,10 +19,10 @@ public record PatchOutcome(String dataset,
                            AppliedPatch appliedPatch,
                            ActualVsExpectedTargetV1 actualVsExpected,
                            PatchRejects rejects,
-                           FileSizedEditCount fileSizedEditCount,
-                           LineSizedEditCount lineSizedEditCount,
-                           FailedFileSizedEditCount failedFileSizedEditCount,
-                           FailedLineSizedEditCount failedLineSizedEditCount) {
+                           FileSizedCount fileSizedCount,
+                           LineSizedCount lineSizedCount,
+                           FailedFileSizedCount failedFileSizedCount,
+                           FailedLineSizedCount failedLineSizedCount) {
 
     public static String toJSON(JSONObject object, String name) {
         return object == null ? "\"" + name + "\": null" : object.toJSON(name);
@@ -50,14 +50,14 @@ public record PatchOutcome(String dataset,
 //        jsonBuilder.append(toJSON(appliedPatch, "appliedPatch")).append(",\n");
         jsonBuilder.append(toJSON(actualVsExpected, "actualVsExpected")).append(",\n");
 //        jsonBuilder.append(toJSON(rejects, "rejects")).append(",\n");
-        jsonBuilder.append("\"CommitPatches\": \"").append(lineSizedEditCount.count > 0 ? 1 : 0).append("\"").append(",\n");
-        jsonBuilder.append("\"FailedCommitPatches\": \"").append(failedLineSizedEditCount.count > 0 ? 1 : 0).append("\"").append(",\n");
-        jsonBuilder.append(toJSON(fileSizedEditCount, "filePatches")).append(",\n");
-        jsonBuilder.append(toJSON(failedFileSizedEditCount, "failedFilePatches")).append(",\n");
-        jsonBuilder.append(toJSON(new Percentage(failedFileSizedEditCount.count, fileSizedEditCount.count()), "percentageFailedFilePatches")).append(",\n");
-        jsonBuilder.append(toJSON(lineSizedEditCount, "linePatches")).append(",\n");
-        jsonBuilder.append(toJSON(failedLineSizedEditCount, "failedLinePatches")).append(",\n");
-        jsonBuilder.append(toJSON(new Percentage(failedLineSizedEditCount.count, lineSizedEditCount.count()), "percentageFailedLinePatches")).append("\n");
+        jsonBuilder.append("\"CommitPatches\": \"").append(lineSizedCount.count > 0 ? 1 : 0).append("\"").append(",\n");
+        jsonBuilder.append("\"FailedCommitPatches\": \"").append(failedLineSizedCount.count > 0 ? 1 : 0).append("\"").append(",\n");
+        jsonBuilder.append(toJSON(fileSizedCount, "filePatches")).append(",\n");
+        jsonBuilder.append(toJSON(failedFileSizedCount, "failedFilePatches")).append(",\n");
+        jsonBuilder.append(toJSON(new Percentage(failedFileSizedCount.count, fileSizedCount.count()), "percentageFailedFilePatches")).append(",\n");
+        jsonBuilder.append(toJSON(lineSizedCount, "linePatches")).append(",\n");
+        jsonBuilder.append(toJSON(failedLineSizedCount, "failedLinePatches")).append(",\n");
+        jsonBuilder.append(toJSON(new Percentage(failedLineSizedCount.count, lineSizedCount.count()), "percentageFailedLinePatches")).append("\n");
         jsonBuilder.append("}").append("\n\n");
         if (!Files.exists(pathToFile)) {
             Files.createFile(pathToFile);
@@ -129,28 +129,28 @@ public record PatchOutcome(String dataset,
         }
     }
 
-    public record FileSizedEditCount(int count) implements JSONObject {
+    public record FileSizedCount(int count) implements JSONObject {
         @Override
         public String toString() {
             return String.valueOf(count);
         }
     }
 
-    public record LineSizedEditCount(int count) implements JSONObject {
+    public record LineSizedCount(int count) implements JSONObject {
         @Override
         public String toString() {
             return String.valueOf(count);
         }
     }
 
-    public record FailedFileSizedEditCount(int count) implements JSONObject {
+    public record FailedFileSizedCount(int count) implements JSONObject {
         @Override
         public String toString() {
             return String.valueOf(count);
         }
     }
 
-    public record FailedLineSizedEditCount(int count) implements JSONObject {
+    public record FailedLineSizedCount(int count) implements JSONObject {
         @Override
         public String toString() {
             return String.valueOf(count);

@@ -35,22 +35,22 @@ public class SimpleResultAnalysis {
         System.out.println();
         int all = 0;
         for (PatchOutcome result : normalResults) {
-            all += result.lineSizedEditCount().count();
+            all += result.lineSizedCount().count();
         }
 
         int selected = all;
         for (PatchOutcome result : normalResults) {
-            selected -= result.failedLineSizedEditCount().count();
+            selected -= result.failedLineSizedCount().count();
         }
 
         int relevant = 0;
         for (PatchOutcome result : editResults) {
-            relevant += result.lineSizedEditCount().count();
+            relevant += result.lineSizedCount().count();
         }
 
         int fn = 0;
         for (PatchOutcome result : editResults) {
-            fn += result.failedLineSizedEditCount().count();
+            fn += result.failedLineSizedCount().count();
         }
 
         int tp = relevant - fn;
@@ -81,11 +81,11 @@ public class SimpleResultAnalysis {
 
         for (PatchOutcome normalResult : results) {
             commitPatches++;
-            filePatches += normalResult.fileSizedEditCount().count();
-            linePatches += normalResult.lineSizedEditCount().count();
-            failedCommitPatches += normalResult.failedFileSizedEditCount().count() > 0 ? 1 : 0;
-            failedFilePatches += normalResult.failedFileSizedEditCount().count();
-            failedLinePatches += normalResult.failedLineSizedEditCount().count();
+            filePatches += normalResult.fileSizedCount().count();
+            linePatches += normalResult.lineSizedCount().count();
+            failedCommitPatches += normalResult.failedFileSizedCount().count() > 0 ? 1 : 0;
+            failedFilePatches += normalResult.failedFileSizedCount().count();
+            failedLinePatches += normalResult.failedLineSizedCount().count();
         }
 
         System.out.println("Commit-sized patches: " + (commitPatches - failedCommitPatches) + " / " + commitPatches + " or " + new PatchOutcome.Percentage(commitPatches - failedCommitPatches, commitPatches) + " succeeded.");
@@ -124,10 +124,10 @@ public class SimpleResultAnalysis {
                 null,
                 new PatchOutcome.ActualVsExpectedTargetV1(new OriginalDiff(new LinkedList<>())),
                 null,
-                new PatchOutcome.FileSizedEditCount(object.get("filePatches").getAsInt()),
-                new PatchOutcome.LineSizedEditCount(object.get("linePatches").getAsInt()),
-                new PatchOutcome.FailedFileSizedEditCount(object.get("failedFilePatches").getAsInt()),
-                new PatchOutcome.FailedLineSizedEditCount(object.get("failedLinePatches").getAsInt())
+                new PatchOutcome.FileSizedCount(object.get("filePatches").getAsInt()),
+                new PatchOutcome.LineSizedCount(object.get("linePatches").getAsInt()),
+                new PatchOutcome.FailedFileSizedCount(object.get("failedFilePatches").getAsInt()),
+                new PatchOutcome.FailedLineSizedCount(object.get("failedLinePatches").getAsInt())
         );
     }
 }

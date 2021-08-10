@@ -52,9 +52,8 @@ public class SynchronizationStudy {
     private static final int randomRepeats = 1;
     private static final int numVariants = 5;
     private static final String DATASET = "BUSYBOX";
-    private static final Path resultFileNormal = workDir.resolve("results-normal.txt");
-    private static final Path resultFilePCBased = workDir.resolve("results-pc-based.txt");
-    private static final Path resultFileEditPC = workDir.resolve("results-edit-based.txt");
+    private static final Path resultFileNormalPatch = workDir.resolve("results-normal-patch.txt");
+    private static final Path resultFileFilteredPatch = workDir.resolve("results-filtered-patch.txt");
     private static final Path splRepositoryPath = workDir.getParent().resolve("BAK_busybox");
     private static final Path splRepositoryV0Path = workDir.resolve("busybox-V0");
     private static final Path splRepositoryV1Path = workDir.resolve("busybox-V1");
@@ -62,8 +61,7 @@ public class SynchronizationStudy {
     private static final CaseSensitivePath variantsDirV1 = new CaseSensitivePath(workDir.resolve("V1Variants"));
     private static final Path patchDir = workDir.resolve("TARGET");
     private static final Path normalPatchFile = workDir.resolve("patch.txt");
-    private static final Path fullPCPatchFile = workDir.resolve("pc-patch.txt");
-    private static final Path editPCPatchFile = workDir.resolve("edit-patch.txt");
+    private static final Path filteredPatchFile = workDir.resolve("filtered-patch.txt");
     private static final Path rejectFile = workDir.resolve("rejects.txt");
     private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
     private static final ShellExecutor shell = new ShellExecutor(Logger::debug, Logger::error, workDir);
@@ -162,10 +160,6 @@ public class SynchronizationStudy {
                             continue;
                         }
                         Logger.status("Considering variant " + target.getName() + " as next target.");
-                        if (Files.exists(fullPCPatchFile)) {
-                            Logger.info("Cleaning old PC-based patch file " + fullPCPatchFile);
-                            shell.execute(new RmCommand(fullPCPatchFile));
-                        }
                         Path pathToTarget = variantsDirV0.path().resolve(target.getName());
                         Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
 
@@ -177,7 +171,7 @@ public class SynchronizationStudy {
                             // Evaluate the patch result
                             PatchOutcome normalPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.NORMAL, commitV0, commitV1, source, target, pathToExpectedResult, fineDiff);
                             try {
-                                normalPatchOutcome.writeAsJSON(resultFileNormal, true);
+                                normalPatchOutcome.writeAsJSON(resultFileNormalPatch, true);
                             } catch (IOException e) {
                                 Logger.error("Was not able to write normal result file for run " + runID, e);
                             }
@@ -185,37 +179,19 @@ public class SynchronizationStudy {
 
                         /* Application of patches with knowledge about PC of edit only */
                         {
-                            Logger.info("Applying patch with knowledge about edit PC...");
+                            Logger.info("Applying patch with knowledge about edits' PCs...");
                             // Create target variant specific patch that respects PCs
-                            FineDiff editPCDiff = getEditPCBasedDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
-                            boolean emptyPatch = editPCDiff.content().isEmpty();
-                            saveDiff(editPCDiff, editPCPatchFile);
+                            FineDiff filteredDiff = getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
+                            boolean emptyPatch = filteredDiff.content().isEmpty();
+                            saveDiff(filteredDiff, filteredPatchFile);
                             // Apply the patch
-                            applyPatch(editPCPatchFile, pathToTarget, emptyPatch);
+                            applyPatch(filteredPatchFile, pathToTarget, emptyPatch);
                             // Evaluate the result
-                            PatchOutcome editBasedPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.EDIT_PC, commitV0, commitV1, source, target, pathToExpectedResult, editPCDiff);
+                            PatchOutcome filteredPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.FILTERED, commitV0, commitV1, source, target, pathToExpectedResult, filteredDiff);
                             try {
-                                editBasedPatchOutcome.writeAsJSON(resultFileEditPC, true);
+                                filteredPatchOutcome.writeAsJSON(resultFileFilteredPatch, true);
                             } catch (IOException e) {
-                                Logger.error("Was not able to write edit-based result file for run " + runID, e);
-                            }
-                        }
-
-                        /* Application of patches with full knowledge about features */
-                        {
-                            Logger.info("Applying patch with knowledge about all PCs...");
-                            // Create target variant specific patch that respects PCs
-                            FineDiff pcBasedDiff = getFullPCBasedDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
-                            boolean emptyPatch = pcBasedDiff.content().isEmpty();
-                            saveDiff(pcBasedDiff, fullPCPatchFile);
-                            // Apply the patch
-                            applyPatch(fullPCPatchFile, pathToTarget, emptyPatch);
-                            // Evaluate the result
-                            PatchOutcome pcBasedPatchOutcome = evaluatePatchResult(DATASET, runID, EPatchType.FULL_PC, commitV0, commitV1, source, target, pathToExpectedResult, pcBasedDiff);
-                            try {
-                                pcBasedPatchOutcome.writeAsJSON(resultFilePCBased, true);
-                            } catch (IOException e) {
-                                Logger.error("Was not able to write pc-based result file for run " + runID, e);
+                                Logger.error("Was not able to write filtered patch result file for run " + runID, e);
                             }
                         }
 
@@ -431,10 +407,10 @@ public class SynchronizationStudy {
                 new PatchOutcome.AppliedPatch(appliedPatch),
                 new PatchOutcome.ActualVsExpectedTargetV1(actualVsExpected),
                 rejectsDiff == null ? null : new PatchOutcome.PatchRejects(rejectsDiff),
-                new PatchOutcome.FileSizedEditCount(fileSized),
-                new PatchOutcome.LineSizedEditCount(lineSized),
-                new PatchOutcome.FailedFileSizedEditCount(fileSizedFail),
-                new PatchOutcome.FailedLineSizedEditCount(lineSizedFail));
+                new PatchOutcome.FileSizedCount(fileSized),
+                new PatchOutcome.LineSizedCount(lineSized),
+                new PatchOutcome.FailedFileSizedCount(fileSizedFail),
+                new PatchOutcome.FailedLineSizedCount(lineSizedFail));
     }
 
     @NotNull
@@ -443,17 +419,10 @@ public class SynchronizationStudy {
         return DiffSplitter.split(originalDiff, contextProvider);
     }
 
-    private static FineDiff getEditPCBasedDiff(OriginalDiff originalDiff, Artefact tracesV0, Artefact tracesV1, Variant target) {
+    private static FineDiff getFilteredDiff(OriginalDiff originalDiff, Artefact tracesV0, Artefact tracesV1, Variant target) {
         PCBasedFilter pcBasedFilter = new PCBasedFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
         // Create target variant specific patch that respects PCs
         IContextProvider contextProvider = new NaiveContextProvider(workDir);
-        return DiffSplitter.split(originalDiff, pcBasedFilter, pcBasedFilter, contextProvider);
-    }
-
-    private static FineDiff getFullPCBasedDiff(OriginalDiff originalDiff, Artefact tracesV0, Artefact tracesV1, Variant target) {
-        PCBasedFilter pcBasedFilter = new PCBasedFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
-        // Create target variant specific patch that respects PCs
-        DefaultContextProvider contextProvider = new DefaultContextProvider(workDir);
         return DiffSplitter.split(originalDiff, pcBasedFilter, pcBasedFilter, contextProvider);
     }
 
