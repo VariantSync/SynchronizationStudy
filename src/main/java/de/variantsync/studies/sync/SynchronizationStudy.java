@@ -69,7 +69,7 @@ public class SynchronizationStudy {
 
 
     public static void main(String... args) {
-        Set<CommitPair<SPLCommit>> pairs = studyInitialization();
+        Set<CommitPair<SPLCommit>> pairs = init();
 
         // Initialize the SPL repositories for different versions
         final SPLRepository splRepositoryV0 = new SPLRepository(splRepositoryV0Path);
@@ -297,7 +297,7 @@ public class SynchronizationStudy {
         }
     }
 
-    private static Set<CommitPair<SPLCommit>> studyInitialization() {
+    private static Set<CommitPair<SPLCommit>> init() {
         // Initialize the library
         de.variantsync.evolution.Main.Initialize();
         Logger.setLogLevel(logLevel);

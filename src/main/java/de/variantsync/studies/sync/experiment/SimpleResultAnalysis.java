@@ -13,22 +13,18 @@ import java.util.List;
 public class SimpleResultAnalysis {
 
     public static void main(String... args) throws IOException {
-        Path normalResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-normal.txt");
-        Path editBasedResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-edit-based.txt");
-        Path pcBasedResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-pc-based.txt");
+        Path normalResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-normal-patch.txt");
+        Path editBasedResultPath = Path.of("/home/alex/data/synchronization-study/workdir/results-filtered-patch.txt");
         var normalResults = loadResultObjects(normalResultPath);
         var editResults = loadResultObjects(editBasedResultPath);
-        var pcBasedResults = loadResultObjects(pcBasedResultPath);
 
         printResults(normalResults);
-
-        printResults(editResults);
-
-        printResults(pcBasedResults);
-
         printPrecisionRecall(normalResults, editResults);
+        System.out.println();
+        System.out.println("+++++++++++++++++++++++++++++");
+        System.out.println();
+        printResults(editResults);
         printPrecisionRecall(editResults, editResults);
-        printPrecisionRecall(pcBasedResults, pcBasedResults);
     }
 
     private static void printPrecisionRecall(List<PatchOutcome> normalResults, List<PatchOutcome> editResults) {
