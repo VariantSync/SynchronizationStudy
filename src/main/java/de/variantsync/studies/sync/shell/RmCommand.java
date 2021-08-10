@@ -7,7 +7,7 @@ public class RmCommand extends ShellCommand {
     private static final String COMMAND = "rm";
     private final String file;
     private final LinkedList<String> args = new LinkedList<>();
-    
+
     public RmCommand(Path file) {
         this.file = file.toString();
     }
@@ -25,8 +25,8 @@ public class RmCommand extends ShellCommand {
         for (; index < args.size(); index++) {
             parts[index + 1] = args.get(index);
         }
-        
-        parts[index+1] = file;
+
+        parts[index + 1] = file;
         return parts;
     }
 

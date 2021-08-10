@@ -30,7 +30,7 @@ public class SimpleResultAnalysis {
         printPrecisionRecall(editResults, editResults);
         printPrecisionRecall(pcBasedResults, pcBasedResults);
     }
-    
+
     private static void printPrecisionRecall(List<PatchOutcome> normalResults, List<PatchOutcome> editResults) {
         System.out.println();
         int all = 0;
@@ -55,13 +55,13 @@ public class SimpleResultAnalysis {
 
         int tp = relevant - fn;
         int fp = selected - tp;
-        
+
         int tn = all - relevant - fp;
-        
+
         double precision = (double) tp / ((double) tp + fp);
         double recall = (double) tp / ((double) tp + fn);
         double f_measure = (2 * precision * recall) / (precision + recall);
-        
+
         System.out.println("TP: " + tp);
         System.out.println("FP: " + fp);
         System.out.println("TN: " + tn);

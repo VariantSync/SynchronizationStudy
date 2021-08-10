@@ -25,7 +25,10 @@ import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.filter.PCBasedFilter;
-import de.variantsync.studies.sync.diff.splitting.*;
+import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
+import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
+import de.variantsync.studies.sync.diff.splitting.IContextProvider;
+import de.variantsync.studies.sync.diff.splitting.NaiveContextProvider;
 import de.variantsync.studies.sync.error.Panic;
 import de.variantsync.studies.sync.error.ShellException;
 import de.variantsync.studies.sync.experiment.BusyboxPreparation;
@@ -68,39 +71,11 @@ public class SynchronizationStudy {
 
 
     public static void main(String... args) {
-        // Initialize the library
-        de.variantsync.evolution.Main.Initialize();
-        Logger.setLogLevel(logLevel);
-        // Clean old SPL repo files
-        if (Files.exists(splRepositoryV0Path)) {
-            shell.execute(new RmCommand(splRepositoryV0Path).recursive()).expect("Was not able to remove SPL-V0.");
-        }
-        if (Files.exists(splRepositoryV1Path)) {
-            shell.execute(new RmCommand(splRepositoryV1Path).recursive()).expect("Was not able to remove SPL-V1.");
-        }
-        // Copy the SPL repo
-        shell.execute(new CpCommand(splRepositoryPath, splRepositoryV0Path).recursive()).expect("Was not able to copy SPL-V0.");
-        shell.execute(new CpCommand(splRepositoryPath, splRepositoryV1Path).recursive()).expect("Was not able to copy SPL-V1.");
-        
+        Set<CommitPair<SPLCommit>> pairs = studyInitialization();
+
         // Initialize the SPL repositories for different versions
         final SPLRepository splRepositoryV0 = new SPLRepository(splRepositoryV0Path);
         final SPLRepository splRepositoryV1 = new SPLRepository(splRepositoryV1Path);
-
-        // Load VariabilityDataset
-        Logger.status("Loading variability dataset.");
-        VariabilityDataset dataset = null;
-        try {
-            Resources instance = Resources.Instance();
-            final VariabilityDatasetLoader datasetLoader = new VariabilityDatasetLoader();
-            instance.registerLoader(VariabilityDataset.class, datasetLoader);
-            dataset = instance.load(VariabilityDataset.class, datasetPath);
-        } catch (Resources.ResourceIOException e) {
-            panic("Was not able to load dataset.", e);
-        }
-
-        // Retrieve pairs/sequences of usable commits
-        Logger.status("Retrieving commit pairs");
-        Set<CommitPair<SPLCommit>> pairs = Objects.requireNonNull(dataset).getCommitPairsForEvolutionStudy();
 
         // For each pair
         Logger.status("Starting diffing and patching...");
@@ -110,55 +85,20 @@ public class SynchronizationStudy {
             SPLCommit commitV0 = pair.parent();
             SPLCommit commitV1 = pair.child();
 
-            Logger.info("Next V0 commit: " + commitV0);
-            Logger.info("Next V1 commit: " + commitV1);
-            Logger.info("Checkout of commits in SPL repo...");
-            // Checkout the commits in the SPL repository
-            try {
-                // Stash all changes and drop the stash. This is a workaround as the JGit API does not support restore.
-                splRepositoryV0.stashCreate(true);
-                splRepositoryV0.dropStash();
-                splRepositoryV1.stashCreate(true);
-                splRepositoryV1.dropStash();
-                
-                splRepositoryV0.checkoutCommit(commitV0, true);
-                splRepositoryV1.checkoutCommit(commitV1, true);
-                
-            } catch (GitAPIException | IOException e) {
-                panic("Was not able to checkout commit for SPL repository.", e);
-            }
-            Logger.info("Done.");
-            
-            if (DATASET.equals("BUSYBOX")) {
-                Logger.status("Normalizing BusyBox files...");
-                try {
-                    BusyboxPreparation.normalizeDir(splRepositoryV0Path.toFile());
-                    BusyboxPreparation.normalizeDir(splRepositoryV1Path.toFile());
-                } catch (IOException e) {
-                    Logger.error("", e);
-                    panic("Was not able to normalize BusyBox.", e);
-                }
-            }
+            splRepoPreparation(splRepositoryV0, splRepositoryV1, commitV0, commitV1);
 
             IFeatureModel modelV0 = commitV0.featureModel().run().orElseThrow();
             IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
             // We use the union of both models to sample configurations, so that all features are included
             IFeatureModel modelUnion = FeatureModelUtils.UnionModel(modelV0, modelV1);
-            // However, we set all features in the symmetric difference to unselected
-//            Map<String, Boolean> fixedAssignment = new HashMap<>();
-            Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1); 
-//            featuresInDifference.forEach(f -> fixedAssignment.put(f, false));
-            
+            Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1);
+
             // While more random configurations to consider
             for (int i = 0; i < randomRepeats; i++) {
                 Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with (random) variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
                 Sample sample = variantSampler.sample(modelUnion);
-//                Sample sampleV1 = variantSampler.sample(modelV1);
-//                Configuration configV0 = ((FeatureIDEConfiguration) sampleV0.variants().get(0).getConfiguration()).getConfiguration();
-//                Configuration configV1 = ((FeatureIDEConfiguration) sampleV1.variants().get(0).getConfiguration()).getConfiguration();
-//                long missingFeatures = configV0.getFeatures().stream().map(SelectableFeature::getName).filter(f -> configV1.getFeatures().stream().map(SelectableFeature::getName).noneMatch(f2 -> f2.equals(f))).count();
                 Logger.status("Done. Sampled " + sample.variants().size() + " variants.");
 
                 if (Files.exists(debugDir)) {
@@ -177,68 +117,14 @@ public class SynchronizationStudy {
                 }
 
                 // Write information about the commits
-                try {
-                    Resources.Instance().write(Artefact.class, commitV0.presenceConditions().run().get(), debugDir.resolve("V0.spl.csv"));
-                    Resources.Instance().write(Artefact.class, commitV1.presenceConditions().run().get(), debugDir.resolve("V1.spl.csv"));
-                    Files.write(debugDir.resolve("features-V0.txt"), modelV0.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
-                    Files.write(debugDir.resolve("features-V1.txt"), modelV1.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
-                    Files.write(debugDir.resolve("variables-in-difference.txt"), featuresInDifference);
-                } catch (Resources.ResourceIOException | IOException e) {
-                    Logger.error("Was not able to write commit data.");
-                }
+                featureModelDebug(commitV0, commitV1, modelV0, modelV1, featuresInDifference);
 
                 // Generate the randomly selected variants at both versions
                 Map<Variant, GroundTruth> groundTruthV0 = new HashMap<>();
                 Map<Variant, GroundTruth> groundTruthV1 = new HashMap<>();
                 Logger.status("Generating variants...");
                 for (Variant variant : sample.variants()) {
-                    Logger.status("Generating variant " + variant.getName());
-                    if (variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
-                        try {
-                            Files.write(debugDir.resolve(variant.getName() + ".config"), config.toAssignment().entrySet().stream().map(entry -> entry.getKey() + " : " + entry.getValue()).collect(Collectors.toList()));
-                        } catch (IOException e) {
-                            Logger.error("Was not able to write configuration of " + variant.getName(), e);
-                        }
-                    }
-
-                    // TODO: Check whether this is enough. It only checks satisfiability, but might not check whether the variables exist in the feature model. Maybe check whether the set of selected variables exists?
-                    if (!variant.isImplementing(new FeatureModelFormula(modelUnion).getPropositionalNode())) {
-                        panic("Sampled " + variant + " is not valid for feature model!");
-                    }
-
-                    GroundTruth gtV0 = commitV0
-                            .presenceConditions()
-                            .run()
-                            .orElseThrow()
-                            .generateVariant(
-                                    variant,
-                                    new CaseSensitivePath(splRepositoryV0Path),
-                                    variantsDirV0.resolve(variant.getName()),
-                                    VariantGenerationOptions.ExitOnError)
-                            .expect("Was not able to generate V0 of " + variant);
-                    try {
-                        Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
-                    } catch (Resources.ResourceIOException e) {
-                        Logger.error("Was not able to write ground truth.");
-                    }
-                    groundTruthV0.put(variant, gtV0);
-
-                    GroundTruth gtV1 = commitV1
-                            .presenceConditions()
-                            .run()
-                            .orElseThrow()
-                            .generateVariant(
-                                    variant,
-                                    new CaseSensitivePath(splRepositoryV1Path),
-                                    variantsDirV1.resolve(variant.getName()),
-                                    VariantGenerationOptions.ExitOnError)
-                            .expect("Was not able to generate V1 of " + variant);
-                    try {
-                        Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
-                    } catch (Resources.ResourceIOException e) {
-                        Logger.error("Was not able to write ground truth.", e);
-                    }
-                    groundTruthV1.put(variant, gtV1);
+                    generateVariant(commitV0, commitV1, modelUnion, groundTruthV0, groundTruthV1, variant);
                 }
                 Logger.status("Done.");
 
@@ -341,6 +227,133 @@ public class SynchronizationStudy {
         }
     }
 
+    private static void featureModelDebug(SPLCommit commitV0, SPLCommit commitV1, IFeatureModel modelV0, IFeatureModel modelV1, Collection<String> featuresInDifference) {
+        try {
+            Resources.Instance().write(Artefact.class, commitV0.presenceConditions().run().get(), debugDir.resolve("V0.spl.csv"));
+            Resources.Instance().write(Artefact.class, commitV1.presenceConditions().run().get(), debugDir.resolve("V1.spl.csv"));
+            Files.write(debugDir.resolve("features-V0.txt"), modelV0.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
+            Files.write(debugDir.resolve("features-V1.txt"), modelV1.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
+            Files.write(debugDir.resolve("variables-in-difference.txt"), featuresInDifference);
+        } catch (Resources.ResourceIOException | IOException e) {
+            Logger.error("Was not able to write commit data.");
+        }
+    }
+
+    private static void generateVariant(SPLCommit commitV0, SPLCommit commitV1, IFeatureModel modelUnion, Map<Variant, GroundTruth> groundTruthV0, Map<Variant, GroundTruth> groundTruthV1, Variant variant) {
+        Logger.status("Generating variant " + variant.getName());
+        if (variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
+            try {
+                Files.write(debugDir.resolve(variant.getName() + ".config"), config.toAssignment().entrySet().stream().map(entry -> entry.getKey() + " : " + entry.getValue()).collect(Collectors.toList()));
+            } catch (IOException e) {
+                Logger.error("Was not able to write configuration of " + variant.getName(), e);
+            }
+        }
+
+        // TODO: Check whether this is enough. It only checks satisfiability, but might not check whether the variables exist in the feature model. Maybe check whether the set of selected variables exists?
+        if (!variant.isImplementing(new FeatureModelFormula(modelUnion).getPropositionalNode())) {
+            panic("Sampled " + variant + " is not valid for feature model!");
+        }
+
+        GroundTruth gtV0 = commitV0
+                .presenceConditions()
+                .run()
+                .orElseThrow()
+                .generateVariant(
+                        variant,
+                        new CaseSensitivePath(splRepositoryV0Path),
+                        variantsDirV0.resolve(variant.getName()),
+                        VariantGenerationOptions.ExitOnError)
+                .expect("Was not able to generate V0 of " + variant);
+        try {
+            Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
+        } catch (Resources.ResourceIOException e) {
+            Logger.error("Was not able to write ground truth.");
+        }
+        groundTruthV0.put(variant, gtV0);
+
+        GroundTruth gtV1 = commitV1
+                .presenceConditions()
+                .run()
+                .orElseThrow()
+                .generateVariant(
+                        variant,
+                        new CaseSensitivePath(splRepositoryV1Path),
+                        variantsDirV1.resolve(variant.getName()),
+                        VariantGenerationOptions.ExitOnError)
+                .expect("Was not able to generate V1 of " + variant);
+        try {
+            Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
+        } catch (Resources.ResourceIOException e) {
+            Logger.error("Was not able to write ground truth.", e);
+        }
+        groundTruthV1.put(variant, gtV1);
+    }
+
+    private static void splRepoPreparation(SPLRepository splRepositoryV0, SPLRepository splRepositoryV1, SPLCommit commitV0, SPLCommit commitV1) {
+        Logger.info("Next V0 commit: " + commitV0);
+        Logger.info("Next V1 commit: " + commitV1);
+        Logger.info("Checkout of commits in SPL repo...");
+        // Checkout the commits in the SPL repository
+        try {
+            // Stash all changes and drop the stash. This is a workaround as the JGit API does not support restore.
+            splRepositoryV0.stashCreate(true);
+            splRepositoryV0.dropStash();
+            splRepositoryV1.stashCreate(true);
+            splRepositoryV1.dropStash();
+
+            splRepositoryV0.checkoutCommit(commitV0, true);
+            splRepositoryV1.checkoutCommit(commitV1, true);
+
+        } catch (GitAPIException | IOException e) {
+            panic("Was not able to checkout commit for SPL repository.", e);
+        }
+        Logger.info("Done.");
+
+        if (DATASET.equals("BUSYBOX")) {
+            Logger.status("Normalizing BusyBox files...");
+            try {
+                BusyboxPreparation.normalizeDir(splRepositoryV0Path.toFile());
+                BusyboxPreparation.normalizeDir(splRepositoryV1Path.toFile());
+            } catch (IOException e) {
+                Logger.error("", e);
+                panic("Was not able to normalize BusyBox.", e);
+            }
+        }
+    }
+
+    private static Set<CommitPair<SPLCommit>> studyInitialization() {
+        // Initialize the library
+        de.variantsync.evolution.Main.Initialize();
+        Logger.setLogLevel(logLevel);
+        // Clean old SPL repo files
+        if (Files.exists(splRepositoryV0Path)) {
+            shell.execute(new RmCommand(splRepositoryV0Path).recursive()).expect("Was not able to remove SPL-V0.");
+        }
+        if (Files.exists(splRepositoryV1Path)) {
+            shell.execute(new RmCommand(splRepositoryV1Path).recursive()).expect("Was not able to remove SPL-V1.");
+        }
+        // Copy the SPL repo
+        shell.execute(new CpCommand(splRepositoryPath, splRepositoryV0Path).recursive()).expect("Was not able to copy SPL-V0.");
+        shell.execute(new CpCommand(splRepositoryPath, splRepositoryV1Path).recursive()).expect("Was not able to copy SPL-V1.");
+
+
+        // Load VariabilityDataset
+        Logger.status("Loading variability dataset.");
+        VariabilityDataset dataset = null;
+        try {
+            Resources instance = Resources.Instance();
+            final VariabilityDatasetLoader datasetLoader = new VariabilityDatasetLoader();
+            instance.registerLoader(VariabilityDataset.class, datasetLoader);
+            dataset = instance.load(VariabilityDataset.class, datasetPath);
+        } catch (Resources.ResourceIOException e) {
+            panic("Was not able to load dataset.", e);
+        }
+
+        // Retrieve pairs/sequences of usable commits
+        Logger.status("Retrieving commit pairs");
+        return Objects.requireNonNull(dataset).getCommitPairsForEvolutionStudy();
+    }
+
     private static void saveDiff(FineDiff fineDiff, Path file) {
         // Save the fine diff to a file
         try {
@@ -429,7 +442,7 @@ public class SynchronizationStudy {
         DefaultContextProvider contextProvider = new DefaultContextProvider(workDir);
         return DiffSplitter.split(originalDiff, contextProvider);
     }
-    
+
     private static FineDiff getEditPCBasedDiff(OriginalDiff originalDiff, Artefact tracesV0, Artefact tracesV1, Variant target) {
         PCBasedFilter pcBasedFilter = new PCBasedFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
         // Create target variant specific patch that respects PCs

@@ -17,6 +17,7 @@ public class CpCommand extends ShellCommand {
 
     /**
      * copy directories recursively
+     *
      * @return this command
      */
     public CpCommand recursive() {
@@ -33,8 +34,8 @@ public class CpCommand extends ShellCommand {
         for (; index < args.size(); index++) {
             parts[index + 1] = args.get(index);
         }
-        parts[index+1] = from;
-        parts[index+2] = to;
+        parts[index + 1] = from;
+        parts[index + 2] = to;
         return parts;
     }
 }

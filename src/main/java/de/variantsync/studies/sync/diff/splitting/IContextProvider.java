@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface IContextProvider {
     List<Line> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, int index);
+
     List<Line> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, int index);
 }

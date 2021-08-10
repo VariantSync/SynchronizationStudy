@@ -51,8 +51,8 @@ public class PatchCommand extends ShellCommand {
         this.args.add("--output=" + outputPath);
         return this;
     }
-    
-    /** 
+
+    /**
      * Put rejects into rejectPath instead of the default .rej file. When rejectfile is -, discard rejects.
      **/
     public PatchCommand rejectFile(Path rejectPath) {
@@ -73,8 +73,9 @@ public class PatchCommand extends ShellCommand {
 
     /**
      * Do not back up a file if the patch does not match the file
-     *           exactly and if backups are not otherwise requested.  This is
-     *           the default if patch is conforming to POSIX.
+     * exactly and if backups are not otherwise requested.  This is
+     * the default if patch is conforming to POSIX.
+     *
      * @return this command
      */
     public PatchCommand noBackup() {
@@ -84,11 +85,12 @@ public class PatchCommand extends ShellCommand {
 
     /**
      * Assume that the user knows exactly what he or she is doing,
-     *           and do not ask any questions.  Skip patches whose headers do
-     *           not say which file is to be patched; patch files even though
-     *           they have the wrong version for the Prereq: line in the patch;
-     *           and assume that patches are not reversed even if they look
-     *           like they are.
+     * and do not ask any questions.  Skip patches whose headers do
+     * not say which file is to be patched; patch files even though
+     * they have the wrong version for the Prereq: line in the patch;
+     * and assume that patches are not reversed even if they look
+     * like they are.
+     *
      * @return this command
      */
     public PatchCommand force() {

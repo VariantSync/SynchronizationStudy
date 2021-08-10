@@ -23,7 +23,7 @@ public abstract class ShellCommand {
     public Result<List<String>, ShellException> interpretResult(int resultCode, List<String> output) {
         return resultCode == 0 ? Result.Success(output) : Result.Failure(new ShellException(output));
     }
-    
+
     @Override
     public String toString() {
         return Arrays.toString(this.parts());

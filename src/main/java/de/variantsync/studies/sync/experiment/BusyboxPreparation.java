@@ -33,7 +33,6 @@ public class BusyboxPreparation {
      * Starting point for modifying the c preprocessor source files based on Manuel Zerpies Busyfix.
      *
      * @param dir The directory to normalize all source files in.
-     *
      * @throws IOException If writing the replaced files fails.
      */
     public static void normalizeDir(@NonNull File dir) throws IOException {
@@ -53,7 +52,6 @@ public class BusyboxPreparation {
      * Normalizes a single file in style of Busyfix.
      *
      * @param file The file to normalize.
-     *
      * @throws IOException If writing the replaced file fails.
      */
     private static void normalizeFile(@NonNull File file) throws IOException {
@@ -91,7 +89,6 @@ public class BusyboxPreparation {
      * Package visibility for test cases.
      *
      * @param inputFile The input file as a list of lines.
-     *
      * @return The list of lines with substituted line continuation
      */
     static @NonNull List<@NonNull String> substituteLineContinuation(@NonNull List<@NonNull String> inputFile) {
@@ -145,7 +142,6 @@ public class BusyboxPreparation {
      * Normalizes a single line in style of Busyfix.
      *
      * @param line The line to normalize
-     *
      * @return The normalized line.
      */
     private static @NonNull String normalizeLine(@NonNull String line) {
@@ -199,7 +195,6 @@ public class BusyboxPreparation {
      * Checks whether the given line is a #define or #undef line.
      *
      * @param line The line to check.
-     *
      * @return Whether the given line is a #define or #undef.
      */
     private static boolean doNotNormalizeDefUndef(@NonNull String line) {
@@ -211,7 +206,6 @@ public class BusyboxPreparation {
      * Normalize defined enable macro in Busyfix style.
      *
      * @param line The line to normalize.
-     *
      * @return The normalized line.
      */
     private static @NonNull String normalizeDefinedEnableMacro(@NonNull String line) {
@@ -222,7 +216,6 @@ public class BusyboxPreparation {
      * Normalizes enable macro in Busyfix style.
      *
      * @param temp The string to normalize.
-     *
      * @return The normalized string.
      */
     private static @NonNull String normalizeEnableMacro(@NonNull String temp) {
@@ -252,7 +245,6 @@ public class BusyboxPreparation {
      * Normalizes enable inline in Busyfix style.
      *
      * @param line The line to normalize.
-     *
      * @return The normalized line.
      */
     private static @NonNull String normalizeEnableInline(@NonNull String line) {
@@ -304,7 +296,6 @@ public class BusyboxPreparation {
      * Normalizes if structures in Busyfix style.
      *
      * @param line The line to do normalization in.
-     *
      * @return The normalized line.
      */
     private static @NonNull String normalizeIf(@NonNull String line) {

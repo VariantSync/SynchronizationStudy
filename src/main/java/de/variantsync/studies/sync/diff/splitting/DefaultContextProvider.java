@@ -3,7 +3,9 @@ package de.variantsync.studies.sync.diff.splitting;
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.studies.sync.diff.components.FileDiff;
 import de.variantsync.studies.sync.diff.filter.ILineFilter;
-import de.variantsync.studies.sync.diff.lines.*;
+import de.variantsync.studies.sync.diff.lines.ContextLine;
+import de.variantsync.studies.sync.diff.lines.Line;
+import de.variantsync.studies.sync.diff.lines.MetaLine;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -32,13 +34,14 @@ public class DefaultContextProvider implements IContextProvider {
         List<String> lines;
         try {
             if (Files.exists(rootDir.resolve(fileDiff.newFile()))) {
-                lines = Files.readAllLines(rootDir.resolve(fileDiff.newFile()));;
+                lines = Files.readAllLines(rootDir.resolve(fileDiff.newFile()));
+                ;
             } else {
                 return new LinkedList<>();
             }
             for (int i = index - 1; i >= 0; i--) {
                 String currentLine = " " + lines.get(i);
-                if (lineFilter.shouldKeep(fileDiff.newFile(), i+1)) {
+                if (lineFilter.shouldKeep(fileDiff.newFile(), i + 1)) {
                     if (context.size() >= contextSize) {
                         break;
                     }
@@ -62,9 +65,9 @@ public class DefaultContextProvider implements IContextProvider {
             } else {
                 return new LinkedList<>();
             }
-            for (int i = index-1; i < lines.size(); i++) {
+            for (int i = index - 1; i < lines.size(); i++) {
                 String currentLine = " " + lines.get(i);
-                if (lineFilter.shouldKeep(fileDiff.oldFile(), i+1)) {
+                if (lineFilter.shouldKeep(fileDiff.oldFile(), i + 1)) {
                     if (context.size() >= contextSize) {
                         break;
                     }
