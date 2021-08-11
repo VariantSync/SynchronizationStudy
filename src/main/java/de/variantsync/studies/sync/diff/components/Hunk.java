@@ -38,7 +38,9 @@ public record Hunk(HunkLocation location, List<Line> content) implements IDiffCo
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for (String line : this.toLines()) {
-            sb.append(line).append(System.lineSeparator());
+            if (!line.contains("\\ No newline at end of file")) {
+                sb.append(line).append(System.lineSeparator());
+            }
         }
         return sb.toString();
     }

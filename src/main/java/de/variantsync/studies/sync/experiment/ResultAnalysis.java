@@ -26,6 +26,7 @@ public class ResultAnalysis {
                                               String targetVariant,
                                               SPLCommit commitV0, SPLCommit commitV1,
                                               FineDiff normalPatch, FineDiff filteredPatch,
+                                              FineDiff requiredPatch,
                                               OriginalDiff actualVsExpectedNormal, OriginalDiff actualVsExpectedFiltered,
                                               OriginalDiff rejectsNormal, OriginalDiff rejectsFiltered,
                                               List<Path> skippedFilesNormal) {
@@ -58,13 +59,18 @@ public class ResultAnalysis {
 
         Set<Hunk> allPatches = toHunks(normalPatch);
         assert allPatches.size() == normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        Set<Hunk> relevantPatches = toHunks(filteredPatch);
-        assert relevantPatches.size() == filteredPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        
+        Set<Hunk> relevantPatches = toHunks(requiredPatch);
+        assert relevantPatches.size() == requiredPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        
         Set<Hunk> failedNormalPatches = toHunks(rejectsNormal);
         assert rejectsNormal == null || failedNormalPatches.size() == rejectsNormal.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        
         Set<Hunk> failedFilteredPatches = toHunks(rejectsFiltered);
         assert rejectsFiltered == null || failedFilteredPatches.size() == rejectsFiltered.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        
         Set<Hunk> skippedNormalPatches = toHunks(normalPatch, skippedFilesNormal);
+        
         Set<Hunk> skippedFilteredPatches = new HashSet<>(allPatches);
         skippedFilteredPatches.removeAll(relevantPatches);
 
@@ -74,10 +80,7 @@ public class ResultAnalysis {
         successfulNormalPatches.removeAll(failedNormalPatches);
         successfulNormalPatches.removeAll(skippedNormalPatches);
 
-        Set<Hunk> successfulFilteredPatches = new HashSet<>(relevantPatches);
-        successfulFilteredPatches.removeAll(failedFilteredPatches);
-
-        int filteredTP = successfulFilteredPatches.size();
+        int filteredTP = relevantPatches.size() - failedFilteredPatches.size();
         int filteredFP = 0;
         int filteredTN = skippedFilteredPatches.size();
         int filteredFN = failedFilteredPatches.size();
@@ -88,14 +91,23 @@ public class ResultAnalysis {
         normalTN += failedNormalPatches.stream().filter(p -> !relevantPatches.contains(p)).count();
         int normalFN = (int) failedNormalPatches.stream().filter(relevantPatches::contains).count();
         
+        assert normalTP + normalFP + normalFN + normalTN == filteredTP + filteredFP + filteredTN + filteredFN;
+        assert filteredTP + filteredFN == relevantPatches.size();
+        assert normalTP + normalFN == relevantPatches.size();
+        assert filteredFP + filteredTN == allPatches.size() - relevantPatches.size();
+        assert normalFP + normalTN == allPatches.size() - relevantPatches.size();
+        
         if (normalTP > filteredTP) {
             System.out.println("BREAK");
+            assert false;
         }
         if (normalTN > filteredTN) {
             System.out.println("BREAK");
+            assert false;
         }
         if (normalFN < filteredFN) {
             System.out.println("BREAK");
+            assert false;
         }
         return new PatchOutcome(dataset,
                 runID,
