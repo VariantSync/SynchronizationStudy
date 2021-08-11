@@ -24,6 +24,7 @@ import de.variantsync.evolution.variability.pc.groundtruth.GroundTruth;
 import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
+import de.variantsync.studies.sync.diff.filter.EditFilter;
 import de.variantsync.studies.sync.diff.filter.PCBasedFilter;
 import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
 import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
@@ -50,7 +51,7 @@ public class SynchronizationStudy {
     private static final Path datasetPath = Path.of("/home/alex/data/synchronization-study/better-dataset/VariabilityExtraction/extraction-results/busybox/output");
     private static final Path workDir = Path.of("/home/alex/data/synchronization-study/workdir");
     private static final Path debugDir = workDir.resolve("DEBUG");
-    private static final int randomRepeats = 1;
+    private static final int randomRepeats = 3;
     private static final int numVariants = 5;
     private static final String DATASET = "BUSYBOX";
     private static final Path resultFile = workDir.resolve("results.txt");
@@ -385,8 +386,8 @@ public class SynchronizationStudy {
             if (result.isSuccess()) {
                 result.getSuccess().forEach(Logger::info);
             } else {
-                Logger.error("Failed to apply part of patch.");
                 List<String> lines = result.getFailure().getOutput();
+                Logger.error("Failed to apply part of patch.");
                 String oldFile;
                 for (String nextLine : lines) {
                     if (nextLine.startsWith("|---")) {
@@ -406,10 +407,10 @@ public class SynchronizationStudy {
     }
 
     private static FineDiff getFilteredDiff(OriginalDiff originalDiff, Artefact tracesV0, Artefact tracesV1, Variant target) {
-        PCBasedFilter pcBasedFilter = new PCBasedFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
+        EditFilter editFilter = new EditFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
         // Create target variant specific patch that respects PCs
-        IContextProvider contextProvider = new NaiveContextProvider(workDir);
-        return DiffSplitter.split(originalDiff, pcBasedFilter, pcBasedFilter, contextProvider);
+        IContextProvider contextProvider = new DefaultContextProvider(workDir);
+        return DiffSplitter.split(originalDiff, editFilter, editFilter, contextProvider);
     }
 
     private static OriginalDiff getOriginalDiff(Path v0Path, Path v1Path) {

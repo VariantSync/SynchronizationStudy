@@ -57,12 +57,18 @@ public class ResultAnalysis {
         }
 
         Set<Hunk> allPatches = toHunks(normalPatch);
+        assert allPatches.size() == normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
         Set<Hunk> relevantPatches = toHunks(filteredPatch);
+        assert relevantPatches.size() == filteredPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
         Set<Hunk> failedNormalPatches = toHunks(rejectsNormal);
+        assert rejectsNormal == null || failedNormalPatches.size() == rejectsNormal.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
         Set<Hunk> failedFilteredPatches = toHunks(rejectsFiltered);
+        assert rejectsFiltered == null || failedFilteredPatches.size() == rejectsFiltered.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
         Set<Hunk> skippedNormalPatches = toHunks(normalPatch, skippedFilesNormal);
         Set<Hunk> skippedFilteredPatches = new HashSet<>(allPatches);
         skippedFilteredPatches.removeAll(relevantPatches);
+
+        assert skippedNormalPatches.size() <= skippedFilteredPatches.size();
 
         Set<Hunk> successfulNormalPatches = new HashSet<>(allPatches);
         successfulNormalPatches.removeAll(failedNormalPatches);
@@ -81,7 +87,16 @@ public class ResultAnalysis {
         int normalTN = (int) skippedNormalPatches.stream().filter(p -> !relevantPatches.contains(p)).count();
         normalTN += failedNormalPatches.stream().filter(p -> !relevantPatches.contains(p)).count();
         int normalFN = (int) failedNormalPatches.stream().filter(relevantPatches::contains).count();
-
+        
+        if (normalTP > filteredTP) {
+            System.out.println("BREAK");
+        }
+        if (normalTN > filteredTN) {
+            System.out.println("BREAK");
+        }
+        if (normalFN < filteredFN) {
+            System.out.println("BREAK");
+        }
         return new PatchOutcome(dataset,
                 runID,
                 commitV0.id(),

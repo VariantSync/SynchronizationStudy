@@ -63,7 +63,7 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
     }
 
     @Override
-    public boolean shouldKeep(Path filePath, int index) {
+    public boolean keepEdit(Path filePath, int index) {
         if (oldVersion.endsWith(filePath.getName(0))) {
             return shouldKeep(targetVariant, oldTraces, filePath, index);
         } else if (newVersion.endsWith(filePath.getName(0))) {

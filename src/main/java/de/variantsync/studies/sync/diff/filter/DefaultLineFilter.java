@@ -4,7 +4,7 @@ import java.nio.file.Path;
 
 public class DefaultLineFilter implements ILineFilter {
     @Override
-    public boolean shouldKeep(Path filePath, int index) {
+    public boolean keepEdit(Path filePath, int index) {
         return true;
     }
 }
