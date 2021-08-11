@@ -80,6 +80,7 @@ public class SynchronizationStudy {
         // For each pair
         Logger.status("Starting diffing and patching...");
         long runID = 0;
+        int pairCount = 0;
         for (CommitPair<SPLCommit> pair : pairs) {
             // Take next commit pair
             SPLCommit commitV0 = pair.parent();
@@ -211,6 +212,8 @@ public class SynchronizationStudy {
                     runID++;
                 }
             }
+            pairCount++;
+            System.out.printf("Finished commit pair %d of %d.%n", pairCount, pairs.size());
         }
     }
 

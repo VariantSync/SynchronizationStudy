@@ -186,6 +186,10 @@ public class ResultAnalysis {
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
+        long countNormal = allOutcomes.stream().filter(PatchOutcome::normalAsExpected).count();
+        long countFiltered = allOutcomes.stream().filter(PatchOutcome::filteredAsExpected).count();
+        System.out.printf("Normal patching achieved the expected result %d out of %d times.%n", countNormal, allOutcomes.size());
+        System.out.printf("Filtered patching achieved the expected result %d out of %d times.%n", countFiltered, allOutcomes.size());
     }
 
     private static void printTechnicalSuccess(List<PatchOutcome> allOutcomes) {
