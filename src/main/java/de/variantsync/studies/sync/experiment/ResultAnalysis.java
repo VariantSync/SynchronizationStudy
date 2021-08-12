@@ -96,19 +96,10 @@ public class ResultAnalysis {
         assert normalTP + normalFN == relevantPatches.size();
         assert filteredFP + filteredTN == allPatches.size() - relevantPatches.size();
         assert normalFP + normalTN == allPatches.size() - relevantPatches.size();
+        assert normalTP <= filteredTP;
+        assert normalTN <= filteredTN;
+        assert normalFN >= filteredFN;
         
-        if (normalTP > filteredTP) {
-            System.out.println("BREAK");
-            assert false;
-        }
-        if (normalTN > filteredTN) {
-            System.out.println("BREAK");
-            assert false;
-        }
-        if (normalFN < filteredFN) {
-            System.out.println("BREAK");
-            assert false;
-        }
         return new PatchOutcome(dataset,
                 runID,
                 commitV0.id(),

@@ -31,7 +31,9 @@ public class DiffParser {
         }
 
         List<String> fileDiffContent = null;
+        int indexNext = 0;
         for (String line : lines) {
+            indexNext++;
             if (line.startsWith(fileDiffStart)) {
                 // Create a FileDiff from the collected lines
                 if (fileDiffContent != null) {
@@ -39,6 +41,22 @@ public class DiffParser {
                 }
                 // Reset the lines that should go into the next FileDiff
                 fileDiffContent = new LinkedList<>();
+            } else if (line.contains(fileDiffStart)) {
+                if (indexNext < lines.size() ) {
+                    String nextLine = lines.get(indexNext);
+                    if (nextLine.startsWith("+++")) {
+                        String additionalContent = line.substring(0, line.indexOf(fileDiffStart));
+                        // Create a FileDiff from the collected lines
+                        if (fileDiffContent != null) {
+                            fileDiffContent.add(additionalContent);
+                            fileDiffs.add(parseFileDiff(fileDiffContent));
+                        }
+                        // Reset the lines that should go into the next FileDiff
+                        fileDiffContent = new LinkedList<>();
+                        fileDiffContent.add(line.substring(line.indexOf(fileDiffStart)));
+                        continue;
+                    }
+                }
             }
             if (fileDiffContent == null) {
                 throw new IllegalArgumentException("The provided lines do not contain one of the expected fileDiffStart values");

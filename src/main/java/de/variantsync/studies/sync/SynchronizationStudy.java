@@ -50,7 +50,7 @@ public class SynchronizationStudy {
     private static final Path datasetPath = Path.of("/home/alex/data/synchronization-study/better-dataset/VariabilityExtraction/extraction-results/busybox/output");
     private static final Path workDir = Path.of("/home/alex/data/synchronization-study/workdir");
     private static final Path debugDir = workDir.resolve("DEBUG");
-    private static final int randomRepeats = 3;
+    private static final int randomRepeats = 1;
     private static final int numVariants = 5;
     private static final String DATASET = "BUSYBOX";
     private static final Path resultFile = workDir.resolve("results.txt");
@@ -62,7 +62,8 @@ public class SynchronizationStudy {
     private static final Path patchDir = workDir.resolve("TARGET");
     private static final Path normalPatchFile = workDir.resolve("patch.txt");
     private static final Path filteredPatchFile = workDir.resolve("filtered-patch.txt");
-    private static final Path rejectFile = workDir.resolve("rejects.txt");
+    private static final Path rejectsNormalFile = workDir.resolve("rejects-normal.txt");
+    private static final Path rejectsFilteredFile = workDir.resolve("rejects-filtered.txt");
     private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
     private static final ShellExecutor shell = new ShellExecutor(Logger::debug, Logger::error, workDir);
     private static final LogLevel logLevel = LogLevel.STATUS;
@@ -170,10 +171,10 @@ public class SynchronizationStudy {
                     /* Application of patches without knowledge about features */
                     Logger.info("Applying patch without knowledge about features...");
                     // Apply the fine diff to the target variant
-                    List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget);
+                    List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget, rejectsNormalFile);
                     // Evaluate the patch result
                     OriginalDiff actualVsExpectedNormal = getOriginalDiff(patchDir, pathToExpectedResult);
-                    OriginalDiff rejectsNormal = readRejects();
+                    OriginalDiff rejectsNormal = readRejects(rejectsNormalFile);
 
                     /* Application of patches with knowledge about PC of edit only */
                     Logger.info("Applying patch with knowledge about edits' PCs...");
@@ -182,11 +183,11 @@ public class SynchronizationStudy {
                     boolean emptyPatch = filteredPatch.content().isEmpty();
                     saveDiff(filteredPatch, filteredPatchFile);
                     // Apply the patch
-                    List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, emptyPatch);
+                    List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, rejectsFilteredFile, emptyPatch);
                     assert skippedFiltered.isEmpty();
                     // Evaluate the result
                     OriginalDiff actualVsExpectedFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
-                    OriginalDiff rejectsFiltered = readRejects();
+                    OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
 
                     /* Result Evaluation */
                     FineDiff requiredPatch = getRequiredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
@@ -213,7 +214,7 @@ public class SynchronizationStudy {
                 }
             }
             pairCount++;
-            System.out.printf("Finished commit pair %d of %d.%n", pairCount, pairs.size());
+            Logger.status(String.format("Finished commit pair %d of %d.%n", pairCount, pairs.size()));
         }
     }
 
@@ -225,7 +226,7 @@ public class SynchronizationStudy {
     }
 
     @Nullable
-    private static OriginalDiff readRejects() {
+    private static OriginalDiff readRejects(Path rejectFile) {
         OriginalDiff rejectsDiff = null;
         if (Files.exists(rejectFile)) {
             try {
@@ -379,11 +380,11 @@ public class SynchronizationStudy {
         }
     }
 
-    private static List<Path> applyPatch(Path patchFile, Path targetVariant) {
-        return applyPatch(patchFile, targetVariant, false);
+    private static List<Path> applyPatch(Path patchFile, Path targetVariant, Path rejectFile) {
+        return applyPatch(patchFile, targetVariant, rejectFile, false);
     }
 
-    private static List<Path> applyPatch(Path patchFile, Path targetVariant, boolean emptyPatch) {
+    private static List<Path> applyPatch(Path patchFile, Path targetVariant, Path rejectFile, boolean emptyPatch) {
         // Clean patch directory
         if (Files.exists(patchDir.toAbsolutePath())) {
             shell.execute(new RmCommand(patchDir.toAbsolutePath()).recursive());
