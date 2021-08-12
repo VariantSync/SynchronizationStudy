@@ -190,7 +190,6 @@ public class SynchronizationStudy {
                     OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
 
                     /* Result Evaluation */
-                    FineDiff requiredPatch = getRequiredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
                     PatchOutcome patchOutcome = ResultAnalysis.processOutcome(
                             DATASET,
                             runID,
@@ -198,7 +197,6 @@ public class SynchronizationStudy {
                             target.getName(),
                             commitV0, commitV1,
                             normalPatch, filteredPatch,
-                            requiredPatch,
                             actualVsExpectedNormal, actualVsExpectedFiltered,
                             rejectsNormal, rejectsFiltered,
                             skippedNormal);
@@ -216,13 +214,6 @@ public class SynchronizationStudy {
             pairCount++;
             Logger.status(String.format("Finished commit pair %d of %d.%n", pairCount, pairs.size()));
         }
-    }
-
-    private static FineDiff getRequiredDiff(OriginalDiff originalDiff, Artefact tracesV0, Artefact tracesV1, Variant target) {
-        NaiveFilter filter = new NaiveFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
-        // Create target variant specific patch that respects PCs
-        IContextProvider contextProvider = new DefaultContextProvider(workDir);
-        return DiffSplitter.split(originalDiff, filter, filter, contextProvider);
     }
 
     @Nullable

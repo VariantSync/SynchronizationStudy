@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.variability.SPLCommit;
 import de.variantsync.studies.sync.diff.components.FineDiff;
-import de.variantsync.studies.sync.diff.components.Hunk;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 
 import java.io.IOException;
@@ -14,7 +13,6 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ResultAnalysis {
@@ -26,7 +24,6 @@ public class ResultAnalysis {
                                               String targetVariant,
                                               SPLCommit commitV0, SPLCommit commitV1,
                                               FineDiff normalPatch, FineDiff filteredPatch,
-                                              FineDiff requiredPatch,
                                               OriginalDiff actualVsExpectedNormal, OriginalDiff actualVsExpectedFiltered,
                                               OriginalDiff rejectsNormal, OriginalDiff rejectsFiltered,
                                               List<Path> skippedFilesNormal) {
@@ -57,49 +54,32 @@ public class ResultAnalysis {
             Logger.status("" + lineFilteredFailed + " of " + lineFiltered + " filtered line-sized patches failed");
         }
 
-        Set<Hunk> allPatches = toHunks(normalPatch);
-        assert allPatches.size() == normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        
-        Set<Hunk> relevantPatches = toHunks(requiredPatch);
-        assert relevantPatches.size() == requiredPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        
-        Set<Hunk> failedNormalPatches = toHunks(rejectsNormal);
-        assert rejectsNormal == null || failedNormalPatches.size() == rejectsNormal.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        
-        Set<Hunk> failedFilteredPatches = toHunks(rejectsFiltered);
-        assert rejectsFiltered == null || failedFilteredPatches.size() == rejectsFiltered.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        
-        Set<Hunk> skippedNormalPatches = toHunks(normalPatch, skippedFilesNormal);
-        
-        Set<Hunk> skippedFilteredPatches = new HashSet<>(allPatches);
-        skippedFilteredPatches.removeAll(relevantPatches);
+        int selected = lineNormal;
+        selected -= lineNormalFailed;
+        selected -= skippedFilesNormal.size();
 
-        assert skippedNormalPatches.size() <= skippedFilteredPatches.size();
+        // false negatives = relevant that failed
+        int normalFN = lineFilteredFailed;
+        // true positives = relevant - false negatives
+        int normalTP = lineFiltered - normalFN;
+        // false positive = selected - true positive
+        int normalFP = selected - normalTP;
+        // true negative = all - relevant - false positive
+        int normalTN = lineNormal - lineFiltered - normalFP;
 
-        Set<Hunk> successfulNormalPatches = new HashSet<>(allPatches);
-        successfulNormalPatches.removeAll(failedNormalPatches);
-        successfulNormalPatches.removeAll(skippedNormalPatches);
-
-        int filteredTP = relevantPatches.size() - failedFilteredPatches.size();
+        int filteredTP = lineFiltered - lineFilteredFailed;
         int filteredFP = 0;
-        int filteredTN = skippedFilteredPatches.size();
-        int filteredFN = failedFilteredPatches.size();
+        int filteredTN = lineNormal - lineFiltered;
+        int filteredFN = lineFilteredFailed;
 
-        int normalTP = (int) successfulNormalPatches.stream().filter(relevantPatches::contains).count();
-        int normalFP = (int) successfulNormalPatches.stream().filter(p -> !relevantPatches.contains(p)).count();
-        int normalTN = (int) skippedNormalPatches.stream().filter(p -> !relevantPatches.contains(p)).count();
-        normalTN += failedNormalPatches.stream().filter(p -> !relevantPatches.contains(p)).count();
-        int normalFN = (int) failedNormalPatches.stream().filter(relevantPatches::contains).count();
-        
         assert normalTP + normalFP + normalFN + normalTN == filteredTP + filteredFP + filteredTN + filteredFN;
-        assert filteredTP + filteredFN == relevantPatches.size();
-        assert normalTP + normalFN == relevantPatches.size();
-        assert filteredFP + filteredTN == allPatches.size() - relevantPatches.size();
-        assert normalFP + normalTN == allPatches.size() - relevantPatches.size();
+        assert filteredTP + filteredFN == lineFiltered;
+        assert normalTP + normalFN == lineFiltered;
+        assert filteredFP + filteredTN == lineNormal - lineFiltered;
+        assert normalFP + normalTN == lineNormal - lineFiltered;
         assert normalTP <= filteredTP;
         assert normalTN <= filteredTN;
-        assert normalFN >= filteredFN;
-        
+
         return new PatchOutcome(dataset,
                 runID,
                 commitV0.id(),
@@ -124,27 +104,6 @@ public class ResultAnalysis {
                 filteredFP,
                 filteredTN,
                 filteredFN);
-    }
-
-    private static Set<Hunk> toHunks(FineDiff diff) {
-        if (diff == null) {
-            return new HashSet<>();
-        }
-        return diff.content().stream().flatMap(fd -> fd.hunks().stream()).collect(Collectors.toSet());
-    }
-
-    private static Set<Hunk> toHunks(FineDiff diff, List<Path> skippedFiles) {
-        if (diff == null) {
-            return new HashSet<>();
-        }
-        return diff.content().stream().filter(fd -> skippedFiles.contains(fd.oldFile())).flatMap(fd -> fd.hunks().stream()).collect(Collectors.toSet());
-    }
-
-    private static Set<Hunk> toHunks(OriginalDiff diff) {
-        if (diff == null) {
-            return new HashSet<>();
-        }
-        return diff.fileDiffs().stream().flatMap(fd -> fd.hunks().stream()).collect(Collectors.toSet());
     }
 
     public static void main(String... args) throws IOException {
@@ -190,7 +149,7 @@ public class ResultAnalysis {
 
         long fileNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileNormal).sum();
         long fileSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessNormal).sum();
-        
+
         System.out.printf("%d of %d file-sized patch applications succeeded (%s)%n", fileSuccessNormal, fileNormal, percentage(fileSuccessNormal, fileNormal));
 
         long lineNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineNormal).sum();
