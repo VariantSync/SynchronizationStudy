@@ -74,4 +74,14 @@ public class DiffParserTest {
             }
         }
     }
+    
+    @Test
+    public void parseDiffThatCausedException() throws IOException {
+        Path diff = Path.of("src/test/resources/patch-breakdown/problem.txt");
+        List<String> lines = Files.readAllLines(diff);
+        OriginalDiff originalDiff = DiffParser.toOriginalDiff(lines);
+
+        List<FileDiff> fileDiffs = originalDiff.fileDiffs();
+        assert fileDiffs.size() == 6;
+    }
 }

@@ -22,12 +22,15 @@ public class DiffParser {
         List<FileDiff> fileDiffs = new LinkedList<>();
         // Determine the substring which a FileDiff starts with
         String fileDiffStart = "";
+        String fileDiffFollow = "";
         if (lines.get(0).startsWith("diff")) {
             // Several files were processed, the diff of each file starts with the 'diff' command that was used
             fileDiffStart = "diff";
+            fileDiffFollow = "---";
         } else if (lines.get(0).startsWith("---")) {
             // Only one file was processed, the diff of the file starts with the hunk header
             fileDiffStart = "---";
+            fileDiffFollow = "+++";
         }
 
         List<String> fileDiffContent = null;
@@ -44,7 +47,7 @@ public class DiffParser {
             } else if (line.contains(fileDiffStart)) {
                 if (indexNext < lines.size() ) {
                     String nextLine = lines.get(indexNext);
-                    if (nextLine.startsWith("+++")) {
+                    if (nextLine.startsWith(fileDiffFollow)) {
                         String additionalContent = line.substring(0, line.indexOf(fileDiffStart));
                         // Create a FileDiff from the collected lines
                         if (fileDiffContent != null) {
