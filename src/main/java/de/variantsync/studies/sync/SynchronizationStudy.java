@@ -25,7 +25,6 @@ import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.filter.EditFilter;
-import de.variantsync.studies.sync.diff.filter.NaiveFilter;
 import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
 import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
 import de.variantsync.studies.sync.diff.splitting.IContextProvider;
@@ -40,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -50,11 +50,21 @@ public class SynchronizationStudy {
     private static final String DATASET = "BUSYBOX";
     private static final int randomRepeats = 3;
     private static final int numVariants = 10;
-    private static final Path workDir = Path.of("workdir").toAbsolutePath();
-    private static final Path datasetPath = workDir.resolve("variability-busybox").toAbsolutePath();
+    private static final Path mainDir = Path.of("empirical-study").toAbsolutePath();
+    private static final Path workDir;
+
+    static {
+        try {
+            workDir = Files.createTempDirectory(mainDir, null);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static final Path datasetPath = mainDir.resolve("variability-busybox").toAbsolutePath();
     private static final Path debugDir = workDir.resolve("DEBUG");
-    private static final Path resultFile = workDir.resolve("results.txt");
-    private static final Path splRepositoryPath = workDir.resolve("busybox");
+    private static final Path resultFile = mainDir.resolve("results.txt");
+    private static final Path splRepositoryPath = mainDir.resolve("busybox");
     private static final Path splRepositoryV0Path = workDir.resolve("busybox-V0");
     private static final Path splRepositoryV1Path = workDir.resolve("busybox-V1");
     private static final CaseSensitivePath variantsDirV0 = new CaseSensitivePath(workDir.resolve("V0Variants"));
@@ -144,6 +154,7 @@ public class SynchronizationStudy {
                 if (originalDiff.isEmpty()) {
                     // There was no change to this variant, so we can skip it as source
                     Logger.status("Skipping " + source + " as diff source. Diff is empty");
+                    runID += numVariants;
                     continue;
                 } else {
                     try {
@@ -161,6 +172,7 @@ public class SynchronizationStudy {
                 // For each target variant,
                 Logger.status("Starting patch application for source variant " + source.getName());
                 for (Variant target : sample.variants()) {
+                    runID++;
                     if (target == source) {
                         continue;
                     }
@@ -208,7 +220,6 @@ public class SynchronizationStudy {
                     }
 
                     Logger.info("Finished patching for source " + source.getName() + " and target " + target.getName());
-                    runID++;
                 }
             }
             pairCount++;

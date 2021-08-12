@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ResultAnalysis {
-    static Path resultPath = Path.of("/home/alex/data/synchronization-study/workdir/results.txt");
+    static Path resultPath = Path.of("empirical-study").toAbsolutePath().resolve("results.txt");
 
     public static PatchOutcome processOutcome(String dataset,
                                               long runID,
@@ -56,7 +56,7 @@ public class ResultAnalysis {
 
         int selected = lineNormal;
         selected -= lineNormalFailed;
-        selected -= skippedFilesNormal.size();
+        selected -= normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
 
         // false negatives = relevant that failed
         int normalFN = lineFilteredFailed;
@@ -133,13 +133,18 @@ public class ResultAnalysis {
                 allOutcomes.stream().mapToLong(PatchOutcome::filteredTN).sum(),
                 allOutcomes.stream().mapToLong(PatchOutcome::filteredFN).sum());
 
+        System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
+        System.out.println("Actual vs. Expected");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
         long countNormal = allOutcomes.stream().filter(PatchOutcome::normalAsExpected).count();
         long countFiltered = allOutcomes.stream().filter(PatchOutcome::filteredAsExpected).count();
         System.out.printf("Normal patching achieved the expected result %d out of %d times.%n", countNormal, allOutcomes.size());
         System.out.printf("Filtered patching achieved the expected result %d out of %d times.%n", countFiltered, allOutcomes.size());
+        
+        System.out.println("++++++++++++++++++++++++++++++++++++++");
+        System.out.println("++++++++++++++++++++++++++++++++++++++");
     }
 
     private static void printTechnicalSuccess(List<PatchOutcome> allOutcomes) {
