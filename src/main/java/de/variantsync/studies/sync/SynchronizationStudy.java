@@ -47,14 +47,14 @@ import java.util.stream.Collectors;
 
 public class SynchronizationStudy {
     // TODO: Set in external config
-    private static final Path datasetPath = Path.of("/home/alex/data/synchronization-study/better-dataset/VariabilityExtraction/extraction-results/busybox/output");
-    private static final Path workDir = Path.of("/home/alex/data/synchronization-study/workdir");
+    private static final Path datasetPath = Path.of("variability-busybox");
+    private static final Path workDir = Path.of("workdir");
     private static final Path debugDir = workDir.resolve("DEBUG");
     private static final int randomRepeats = 1;
     private static final int numVariants = 5;
     private static final String DATASET = "BUSYBOX";
     private static final Path resultFile = workDir.resolve("results.txt");
-    private static final Path splRepositoryPath = workDir.getParent().resolve("BAK_busybox");
+    private static final Path splRepositoryPath = Path.of("busybox");
     private static final Path splRepositoryV0Path = workDir.resolve("busybox-V0");
     private static final Path splRepositoryV1Path = workDir.resolve("busybox-V1");
     private static final CaseSensitivePath variantsDirV0 = new CaseSensitivePath(workDir.resolve("V0Variants"));
