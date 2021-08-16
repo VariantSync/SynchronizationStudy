@@ -48,14 +48,14 @@ import java.util.stream.Collectors;
 public class SynchronizationStudy {
     // TODO: Set in external config
     private static final String DATASET = "BUSYBOX";
-    private static final int randomRepeats = 1;
+    private static final int randomRepeats = 6;
     private static final int numVariants = 10;
     private static final Path mainDir = Path.of("empirical-study").toAbsolutePath();
     private static final Path workDir;
 
     static {
         try {
-            workDir = Files.createTempDirectory(mainDir, null);
+            workDir = Files.createTempDirectory(mainDir, "workdir");
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
