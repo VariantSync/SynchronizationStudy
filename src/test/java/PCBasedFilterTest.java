@@ -5,7 +5,6 @@ import de.variantsync.evolution.feature.Variant;
 import de.variantsync.evolution.feature.config.FeatureIDEConfiguration;
 import de.variantsync.evolution.io.ResourceLoader;
 import de.variantsync.evolution.io.kernelhaven.KernelHavenVariantPCIO;
-import de.variantsync.evolution.util.NotImplementedException;
 import de.variantsync.evolution.util.fide.FeatureModelUtils;
 import de.variantsync.evolution.variability.pc.Artefact;
 import de.variantsync.studies.sync.diff.DiffParser;
