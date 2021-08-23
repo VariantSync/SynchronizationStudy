@@ -15,7 +15,7 @@
 /out/
 /bin/
 /target/
-
+/empirical-study/
 # Package Files #
 *.jar
 *.war

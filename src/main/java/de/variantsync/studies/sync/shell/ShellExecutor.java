@@ -83,7 +83,7 @@ public class ShellExecutor {
 
     private Runnable collectOutput(InputStream inputStream, Consumer<String> consumer) {
         return () -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            try (inputStream; BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 reader.lines().forEach(consumer);
             } catch (IOException e) {
                 Logger.error("Exception thrown while reading stream of Shell command.", e);

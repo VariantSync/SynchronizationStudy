@@ -1,19 +1,18 @@
 package de.variantsync.studies.sync;
 
-import de.ovgu.featureide.fm.core.analysis.cnf.formula.FeatureModelFormula;
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
 import de.variantsync.evolution.feature.Sample;
+import de.variantsync.evolution.feature.Sampler;
 import de.variantsync.evolution.feature.Variant;
 import de.variantsync.evolution.feature.config.FeatureIDEConfiguration;
-import de.variantsync.evolution.feature.sampling.FeatureIDESampler;
+import de.variantsync.evolution.feature.sampling.ConstSampler;
 import de.variantsync.evolution.io.Resources;
 import de.variantsync.evolution.io.data.VariabilityDatasetLoader;
 import de.variantsync.evolution.repository.SPLRepository;
 import de.variantsync.evolution.util.CaseSensitivePath;
 import de.variantsync.evolution.util.LogLevel;
 import de.variantsync.evolution.util.Logger;
-import de.variantsync.evolution.util.fide.FeatureModelUtils;
 import de.variantsync.evolution.util.functional.Result;
 import de.variantsync.evolution.variability.CommitPair;
 import de.variantsync.evolution.variability.SPLCommit;
@@ -47,26 +46,30 @@ import java.util.stream.Collectors;
 
 public class SynchronizationStudy {
     // TODO: Set in external config
-    private static final String DATASET = "BUSYBOX";
-    private static final int randomRepeats = 6;
+    private static final String DATASET = "LINUX";
+    private static final int randomRepeats = 1;
     private static final int numVariants = 10;
     private static final Path mainDir = Path.of("empirical-study").toAbsolutePath();
     private static final Path workDir;
-
     static {
+        // Initialize the library
+        de.variantsync.evolution.Main.Initialize();
         try {
+            if (mainDir.toFile().mkdirs()) {
+                Logger.status("Created main directory " + mainDir);
+            }
             workDir = Files.createTempDirectory(mainDir, "workdir");
+            variantSampler = new ConstSampler(Sample.LinuxDistros());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
-
-    private static final Path datasetPath = mainDir.resolve("variability-busybox").toAbsolutePath();
+    private static final Path datasetPath = mainDir.resolve("variability-linux").toAbsolutePath();
     private static final Path debugDir = workDir.resolve("DEBUG");
     private static final Path resultFile = mainDir.resolve("results.txt");
-    private static final Path splRepositoryPath = mainDir.resolve("busybox");
-    private static final Path splRepositoryV0Path = workDir.resolve("busybox-V0");
-    private static final Path splRepositoryV1Path = workDir.resolve("busybox-V1");
+    private static final Path splRepositoryPath = mainDir.resolve("linux");
+    private static final Path splRepositoryV0Path = workDir.resolve("linux-V0");
+    private static final Path splRepositoryV1Path = workDir.resolve("linux-V1");
     private static final CaseSensitivePath variantsDirV0 = new CaseSensitivePath(workDir.resolve("V0Variants"));
     private static final CaseSensitivePath variantsDirV1 = new CaseSensitivePath(workDir.resolve("V1Variants"));
     private static final Path patchDir = workDir.resolve("TARGET");
@@ -74,10 +77,12 @@ public class SynchronizationStudy {
     private static final Path filteredPatchFile = workDir.resolve("filtered-patch.txt");
     private static final Path rejectsNormalFile = workDir.resolve("rejects-normal.txt");
     private static final Path rejectsFilteredFile = workDir.resolve("rejects-filtered.txt");
-    private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
+    //    private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
+    private static final Sampler variantSampler;
     private static final ShellExecutor shell = new ShellExecutor(Logger::debug, Logger::error, workDir);
-    private static final LogLevel logLevel = LogLevel.STATUS;
+    private static final LogLevel logLevel = LogLevel.DEBUG;
 
+    
 
     public static void main(String... args) {
         Set<CommitPair<SPLCommit>> pairs = init();
@@ -99,19 +104,19 @@ public class SynchronizationStudy {
 
             splRepoPreparation(splRepositoryV0, splRepositoryV1, commitV0, commitV1);
             Logger.status("Loading feature models.");
-            IFeatureModel modelV0 = commitV0.featureModel().run().orElseThrow();
-            IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
+//            IFeatureModel modelV0 = commitV0.featureModel().run().orElseThrow();
+//            IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
             // We use the union of both models to sample configurations, so that all features are included
             Logger.status("Creating model union.");
-            IFeatureModel modelUnion = FeatureModelUtils.UnionModel(modelV0, modelV1);
-            Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1);
+//            IFeatureModel modelUnion = FeatureModelUtils.UnionModel(modelV0, modelV1);
+//            Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1);
 
             // While more random configurations to consider
             for (int i = 0; i < randomRepeats; i++) {
                 Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with (random) variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
-                Sample sample = variantSampler.sample(modelUnion);
+                Sample sample = variantSampler.sample(null);
                 Logger.status("Done. Sampled " + sample.variants().size() + " variants.");
 
                 if (Files.exists(debugDir)) {
@@ -130,14 +135,20 @@ public class SynchronizationStudy {
                 }
 
                 // Write information about the commits
-                featureModelDebug(commitV0, commitV1, modelV0, modelV1, featuresInDifference);
+                try {
+                    Resources.Instance().write(Artefact.class, commitV0.presenceConditions().run().get(), debugDir.resolve("V0.spl.csv"));
+                    Resources.Instance().write(Artefact.class, commitV1.presenceConditions().run().get(), debugDir.resolve("V1.spl.csv"));
+                } catch (Resources.ResourceIOException e) {
+                    panic("Was not able to write PCs", e);
+                }
+                //                featureModelDebug(commitV0, commitV1, modelV0, modelV1, featuresInDifference);
 
                 // Generate the randomly selected variants at both versions
                 Map<Variant, GroundTruth> groundTruthV0 = new HashMap<>();
                 Map<Variant, GroundTruth> groundTruthV1 = new HashMap<>();
                 Logger.status("Generating variants...");
                 for (Variant variant : sample.variants()) {
-                    generateVariant(commitV0, commitV1, modelUnion, groundTruthV0, groundTruthV1, variant);
+                    generateVariant(commitV0, commitV1, groundTruthV0, groundTruthV1, variant);
                 }
                 Logger.status("Done.");
 
@@ -243,17 +254,15 @@ public class SynchronizationStudy {
 
     private static void featureModelDebug(SPLCommit commitV0, SPLCommit commitV1, IFeatureModel modelV0, IFeatureModel modelV1, Collection<String> featuresInDifference) {
         try {
-            Resources.Instance().write(Artefact.class, commitV0.presenceConditions().run().get(), debugDir.resolve("V0.spl.csv"));
-            Resources.Instance().write(Artefact.class, commitV1.presenceConditions().run().get(), debugDir.resolve("V1.spl.csv"));
             Files.write(debugDir.resolve("features-V0.txt"), modelV0.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
             Files.write(debugDir.resolve("features-V1.txt"), modelV1.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
             Files.write(debugDir.resolve("variables-in-difference.txt"), featuresInDifference);
-        } catch (Resources.ResourceIOException | IOException e) {
+        } catch (IOException e) {
             Logger.error("Was not able to write commit data.");
         }
     }
 
-    private static void generateVariant(SPLCommit commitV0, SPLCommit commitV1, IFeatureModel modelUnion, Map<Variant, GroundTruth> groundTruthV0, Map<Variant, GroundTruth> groundTruthV1, Variant variant) {
+    private static void generateVariant(SPLCommit commitV0, SPLCommit commitV1, Map<Variant, GroundTruth> groundTruthV0, Map<Variant, GroundTruth> groundTruthV1, Variant variant) {
         Logger.status("Generating variant " + variant.getName());
         if (variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
             try {
@@ -261,11 +270,6 @@ public class SynchronizationStudy {
             } catch (IOException e) {
                 Logger.error("Was not able to write configuration of " + variant.getName(), e);
             }
-        }
-
-        // TODO: Check whether this is enough. It only checks satisfiability, but might not check whether the variables exist in the feature model. Maybe check whether the set of selected variables exists?
-        if (!variant.isImplementing(new FeatureModelFormula(modelUnion).getPropositionalNode())) {
-            panic("Sampled " + variant + " is not valid for feature model!");
         }
 
         GroundTruth gtV0 = commitV0
@@ -338,8 +342,6 @@ public class SynchronizationStudy {
     }
 
     private static Set<CommitPair<SPLCommit>> init() {
-        // Initialize the library
-        de.variantsync.evolution.Main.Initialize();
         Logger.status("Starting experiment initialization.");
         Logger.setLogLevel(logLevel);
         // Clean old SPL repo files
