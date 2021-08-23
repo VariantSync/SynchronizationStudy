@@ -60,7 +60,7 @@ public class SynchronizationStudy {
             }
             workDir = Files.createTempDirectory(mainDir, "workdir");
             variantSampler = new ConstSampler(Sample.LinuxDistros());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -80,13 +80,13 @@ public class SynchronizationStudy {
     //    private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
     private static final Sampler variantSampler;
     private static final ShellExecutor shell = new ShellExecutor(Logger::debug, Logger::error, workDir);
-    private static final LogLevel logLevel = LogLevel.DEBUG;
+    private static final LogLevel logLevel = LogLevel.STATUS;
 
     
 
-    public static void main(String... args) {
-        Set<CommitPair<SPLCommit>> pairs = init();
-        Random random = new Random();
+    public static void main(final String... args) {
+        final Set<CommitPair<SPLCommit>> pairs = init();
+        final Random random = new Random();
 
         // Initialize the SPL repositories for different versions
         Logger.status("Initializing SPL repos.");
@@ -97,10 +97,10 @@ public class SynchronizationStudy {
         Logger.status("Starting diffing and patching...");
         long runID = 0;
         int pairCount = 0;
-        for (CommitPair<SPLCommit> pair : pairs) {
+        for (final CommitPair<SPLCommit> pair : pairs) {
             // Take next commit pair
-            SPLCommit commitV0 = pair.parent();
-            SPLCommit commitV1 = pair.child();
+            final SPLCommit commitV0 = pair.parent();
+            final SPLCommit commitV1 = pair.child();
 
             splRepoPreparation(splRepositoryV0, splRepositoryV1, commitV0, commitV1);
             Logger.status("Loading feature models.");
@@ -116,7 +116,7 @@ public class SynchronizationStudy {
                 Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with (random) variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
-                Sample sample = variantSampler.sample(null);
+                final Sample sample = variantSampler.sample(null);
                 Logger.status("Done. Sampled " + sample.variants().size() + " variants.");
 
                 if (Files.exists(debugDir)) {
@@ -144,16 +144,16 @@ public class SynchronizationStudy {
                 //                featureModelDebug(commitV0, commitV1, modelV0, modelV1, featuresInDifference);
 
                 // Generate the randomly selected variants at both versions
-                Map<Variant, GroundTruth> groundTruthV0 = new HashMap<>();
-                Map<Variant, GroundTruth> groundTruthV1 = new HashMap<>();
+                final Map<Variant, GroundTruth> groundTruthV0 = new HashMap<>();
+                final Map<Variant, GroundTruth> groundTruthV1 = new HashMap<>();
                 Logger.status("Generating variants...");
-                for (Variant variant : sample.variants()) {
+                for (final Variant variant : sample.variants()) {
                     generateVariant(commitV0, commitV1, groundTruthV0, groundTruthV1, variant);
                 }
                 Logger.status("Done.");
 
                 // Select a random source variant
-                Variant source = sample.variants().get(random.nextInt(sample.size()));
+                final Variant source = sample.variants().get(random.nextInt(sample.size()));
                 Logger.status("Starting diff application for source variant " + source.getName());
                 if (Files.exists(normalPatchFile)) {
                     Logger.status("Cleaning old patch file " + normalPatchFile);
@@ -161,7 +161,7 @@ public class SynchronizationStudy {
                 }
                 // Apply diff to both versions of source variant
                 Logger.info("Diffing source...");
-                OriginalDiff originalDiff = getOriginalDiff(variantsDirV0.path().resolve(source.getName()), variantsDirV1.path().resolve(source.getName()));
+                final OriginalDiff originalDiff = getOriginalDiff(variantsDirV0.path().resolve(source.getName()), variantsDirV1.path().resolve(source.getName()));
                 if (originalDiff.isEmpty()) {
                     // There was no change to this variant, so we can skip it as source
                     Logger.status("Skipping " + source + " as diff source. Diff is empty");
@@ -176,44 +176,44 @@ public class SynchronizationStudy {
                 }
                 Logger.info("Converting diff...");
                 // Convert the original diff into a fine diff
-                FineDiff normalPatch = getFineDiff(originalDiff);
+                final FineDiff normalPatch = getFineDiff(originalDiff);
                 saveDiff(normalPatch, normalPatchFile);
                 Logger.info("Saved fine diff.");
 
                 // For each target variant,
                 Logger.status("Starting patch application for source variant " + source.getName());
-                for (Variant target : sample.variants()) {
+                for (final Variant target : sample.variants()) {
                     runID++;
                     if (target == source) {
                         continue;
                     }
                     Logger.status("Considering variant " + target.getName() + " as next target.");
-                    Path pathToTarget = variantsDirV0.path().resolve(target.getName());
-                    Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
+                    final Path pathToTarget = variantsDirV0.path().resolve(target.getName());
+                    final Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
 
                     /* Application of patches without knowledge about features */
                     Logger.info("Applying patch without knowledge about features...");
                     // Apply the fine diff to the target variant
-                    List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget, rejectsNormalFile);
+                    final List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget, rejectsNormalFile);
                     // Evaluate the patch result
-                    OriginalDiff actualVsExpectedNormal = getOriginalDiff(patchDir, pathToExpectedResult);
-                    OriginalDiff rejectsNormal = readRejects(rejectsNormalFile);
+                    final OriginalDiff actualVsExpectedNormal = getOriginalDiff(patchDir, pathToExpectedResult);
+                    final OriginalDiff rejectsNormal = readRejects(rejectsNormalFile);
 
                     /* Application of patches with knowledge about PC of edit only */
                     Logger.info("Applying patch with knowledge about edits' PCs...");
                     // Create target variant specific patch that respects PCs
-                    FineDiff filteredPatch = getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
-                    boolean emptyPatch = filteredPatch.content().isEmpty();
+                    final FineDiff filteredPatch = getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
+                    final boolean emptyPatch = filteredPatch.content().isEmpty();
                     saveDiff(filteredPatch, filteredPatchFile);
                     // Apply the patch
-                    List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, rejectsFilteredFile, emptyPatch);
+                    final List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, rejectsFilteredFile, emptyPatch);
                     assert skippedFiltered.isEmpty();
                     // Evaluate the result
-                    OriginalDiff actualVsExpectedFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
-                    OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
+                    final OriginalDiff actualVsExpectedFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
+                    final OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
 
                     /* Result Evaluation */
-                    PatchOutcome patchOutcome = ResultAnalysis.processOutcome(
+                    final PatchOutcome patchOutcome = ResultAnalysis.processOutcome(
                             DATASET,
                             runID,
                             source.getName(),
@@ -226,7 +226,7 @@ public class SynchronizationStudy {
 
                     try {
                         patchOutcome.writeAsJSON(resultFile, true);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         Logger.error("Was not able to write filtered patch result file for run " + runID, e);
                     }
 
@@ -239,13 +239,13 @@ public class SynchronizationStudy {
     }
 
     @Nullable
-    private static OriginalDiff readRejects(Path rejectFile) {
+    private static OriginalDiff readRejects(final Path rejectFile) {
         OriginalDiff rejectsDiff = null;
         if (Files.exists(rejectFile)) {
             try {
-                List<String> rejects = Files.readAllLines(rejectFile);
+                final List<String> rejects = Files.readAllLines(rejectFile);
                 rejectsDiff = DiffParser.toOriginalDiff(rejects);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 Logger.error("Was not able to read rejects file.", e);
             }
         }

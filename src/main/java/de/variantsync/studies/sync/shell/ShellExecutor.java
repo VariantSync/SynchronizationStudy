@@ -81,7 +81,7 @@ public class ShellExecutor {
         return command.interpretResult(exitCode, output);
     }
 
-    private Runnable collectOutput(InputStream inputStream, Consumer<String> consumer) {
+    private Runnable collectOutput(final InputStream inputStream, final Consumer<String> consumer) {
         return () -> {
             try (inputStream; BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 reader.lines().forEach(consumer);
