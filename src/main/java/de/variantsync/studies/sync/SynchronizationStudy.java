@@ -280,7 +280,7 @@ public class SynchronizationStudy {
                         variant,
                         new CaseSensitivePath(splRepositoryV0Path),
                         variantsDirV0.resolve(variant.getName()),
-                        VariantGenerationOptions.ExitOnError)
+                        VariantGenerationOptions.ExitOnErrorButAllowNonExistentFiles)
                 .expect("Was not able to generate V0 of " + variant);
         try {
             Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
@@ -297,7 +297,7 @@ public class SynchronizationStudy {
                         variant,
                         new CaseSensitivePath(splRepositoryV1Path),
                         variantsDirV1.resolve(variant.getName()),
-                        VariantGenerationOptions.ExitOnError)
+                        VariantGenerationOptions.ExitOnErrorButAllowNonExistentFiles)
                 .expect("Was not able to generate V1 of " + variant);
         try {
             Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
