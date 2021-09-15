@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -58,12 +59,12 @@ public class ShellExecutor {
             output.add(s);
             outputReader.accept(s);
         };
+        ExecutorService outputCollection = Executors.newSingleThreadExecutor();
+        ExecutorService errorCollection = Executors.newSingleThreadExecutor();
         try {
             process = builder.start();
-            outputFuture = Executors.newSingleThreadExecutor()
-                    .submit(collectOutput(process.getInputStream(), shareOutput));
-            errorFuture = Executors.newSingleThreadExecutor()
-                    .submit(collectOutput(process.getErrorStream(), errorReader));
+            outputFuture = outputCollection.submit(collectOutput(process.getInputStream(), shareOutput));
+            errorFuture = errorCollection.submit(collectOutput(process.getErrorStream(), errorReader));
         } catch (IOException e) {
             Logger.error("Was not able to execute " + command, e);
             return Result.Failure(new ShellException(e));
@@ -77,6 +78,9 @@ public class ShellExecutor {
         } catch (InterruptedException | ExecutionException e) {
             Logger.error("Interrupted while waiting for process to end.", e);
             return Result.Failure(new ShellException(e));
+        } finally {
+            outputCollection.shutdown();
+            errorCollection.shutdown();
         }
         return command.interpretResult(exitCode, output);
     }

@@ -2,15 +2,16 @@ package de.variantsync.studies.sync;
 
 import de.ovgu.featureide.fm.core.base.IFeatureModel;
 import de.ovgu.featureide.fm.core.base.IFeatureModelElement;
-import de.variantsync.evolution.feature.Sample;
-import de.variantsync.evolution.feature.Sampler;
+import de.variantsync.evolution.feature.sampling.LinuxKernel;
+import de.variantsync.evolution.feature.sampling.Sample;
+import de.variantsync.evolution.feature.sampling.Sampler;
 import de.variantsync.evolution.feature.Variant;
 import de.variantsync.evolution.feature.config.FeatureIDEConfiguration;
 import de.variantsync.evolution.feature.sampling.ConstSampler;
 import de.variantsync.evolution.io.Resources;
 import de.variantsync.evolution.io.data.VariabilityDatasetLoader;
 import de.variantsync.evolution.repository.SPLRepository;
-import de.variantsync.evolution.util.CaseSensitivePath;
+import de.variantsync.evolution.util.io.CaseSensitivePath;
 import de.variantsync.evolution.util.LogLevel;
 import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.util.functional.Result;
@@ -46,7 +47,7 @@ import java.util.stream.Collectors;
 
 public class SynchronizationStudy {
     // TODO: Set in external config
-    private static final String DATASET = "LINUX";
+    private static final String DATASET = "BUSYBOX";
     private static final int randomRepeats = 1;
     private static final int numVariants = 10;
     private static final Path mainDir = Path.of("empirical-study").toAbsolutePath();
@@ -59,17 +60,17 @@ public class SynchronizationStudy {
                 Logger.status("Created main directory " + mainDir);
             }
             workDir = Files.createTempDirectory(mainDir, "workdir");
-            variantSampler = new ConstSampler(Sample.LinuxDistros());
+            variantSampler = new ConstSampler(LinuxKernel.GetSample());
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
-    private static final Path datasetPath = mainDir.resolve("variability-linux").toAbsolutePath();
+    private static final Path datasetPath = mainDir.resolve("variability-busybox").toAbsolutePath();
     private static final Path debugDir = workDir.resolve("DEBUG");
     private static final Path resultFile = mainDir.resolve("results.txt");
-    private static final Path splRepositoryPath = mainDir.resolve("linux");
-    private static final Path splRepositoryV0Path = workDir.resolve("linux-V0");
-    private static final Path splRepositoryV1Path = workDir.resolve("linux-V1");
+    private static final Path splRepositoryPath = mainDir.resolve("busybox");
+    private static final Path splRepositoryV0Path = workDir.resolve("busybox-V0");
+    private static final Path splRepositoryV1Path = workDir.resolve("busybox-V1");
     private static final CaseSensitivePath variantsDirV0 = new CaseSensitivePath(workDir.resolve("V0Variants"));
     private static final CaseSensitivePath variantsDirV1 = new CaseSensitivePath(workDir.resolve("V1Variants"));
     private static final Path patchDir = workDir.resolve("TARGET");
@@ -80,7 +81,7 @@ public class SynchronizationStudy {
     //    private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
     private static final Sampler variantSampler;
     private static final ShellExecutor shell = new ShellExecutor(Logger::debug, Logger::error, workDir);
-    private static final LogLevel logLevel = LogLevel.STATUS;
+    private static final LogLevel logLevel = LogLevel.INFO;
 
     
 
@@ -97,6 +98,7 @@ public class SynchronizationStudy {
         Logger.status("Starting diffing and patching...");
         long runID = 0;
         int pairCount = 0;
+        Logger.status("There are " + pairs.size() + " pairs to work on.");
         for (final CommitPair<SPLCommit> pair : pairs) {
             // Take next commit pair
             final SPLCommit commitV0 = pair.parent();
@@ -236,6 +238,7 @@ public class SynchronizationStudy {
             pairCount++;
             Logger.status(String.format("Finished commit pair %d of %d.%n", pairCount, pairs.size()));
         }
+        Logger.status("All done.");
     }
 
     @Nullable
@@ -366,6 +369,7 @@ public class SynchronizationStudy {
             final VariabilityDatasetLoader datasetLoader = new VariabilityDatasetLoader();
             instance.registerLoader(VariabilityDataset.class, datasetLoader);
             dataset = instance.load(VariabilityDataset.class, datasetPath);
+            Logger.status("Dataset loaded.");
         } catch (Resources.ResourceIOException e) {
             panic("Was not able to load dataset.", e);
         }
