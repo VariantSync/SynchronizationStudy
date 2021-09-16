@@ -81,7 +81,7 @@ public class SynchronizationStudy {
     //    private static final FeatureIDESampler variantSampler = FeatureIDESampler.CreateRandomSampler(numVariants);
     private static final Sampler variantSampler;
     private static final ShellExecutor shell = new ShellExecutor(Logger::debug, Logger::error, workDir);
-    private static final LogLevel logLevel = LogLevel.INFO;
+    private static final LogLevel logLevel = LogLevel.STATUS;
 
     
 
@@ -237,6 +237,10 @@ public class SynchronizationStudy {
             }
             pairCount++;
             Logger.status(String.format("Finished commit pair %d of %d.%n", pairCount, pairs.size()));
+            Logger.status(String.format("Cleaning data of commit %s", commitV0.id()));
+            shell.execute(new RmCommand(commitV0.getCommitDataDirectory()).recursive());
+            Logger.status(String.format("Cleaning data of commit %s", commitV1.id()));
+            shell.execute(new RmCommand(commitV1.getCommitDataDirectory()).recursive());
         }
         Logger.status("All done.");
     }
