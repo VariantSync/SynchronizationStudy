@@ -11,6 +11,7 @@ import de.variantsync.evolution.feature.sampling.ConstSampler;
 import de.variantsync.evolution.io.Resources;
 import de.variantsync.evolution.io.data.VariabilityDatasetLoader;
 import de.variantsync.evolution.repository.SPLRepository;
+import de.variantsync.evolution.util.fide.FeatureModelUtils;
 import de.variantsync.evolution.util.io.CaseSensitivePath;
 import de.variantsync.evolution.util.LogLevel;
 import de.variantsync.evolution.util.Logger;
@@ -106,12 +107,12 @@ public class SynchronizationStudy {
 
             splRepoPreparation(splRepositoryV0, splRepositoryV1, commitV0, commitV1);
             Logger.status("Loading feature models.");
-//            IFeatureModel modelV0 = commitV0.featureModel().run().orElseThrow();
-//            IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
+            IFeatureModel modelV0 = commitV0.featureModel().run().orElseThrow();
+            IFeatureModel modelV1 = commitV1.featureModel().run().orElseThrow();
             // We use the union of both models to sample configurations, so that all features are included
             Logger.status("Creating model union.");
-//            IFeatureModel modelUnion = FeatureModelUtils.UnionModel(modelV0, modelV1);
-//            Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1);
+            IFeatureModel modelUnion = FeatureModelUtils.UnionModel(modelV0, modelV1);
+            Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1);
 
             // While more random configurations to consider
             for (int i = 0; i < randomRepeats; i++) {
