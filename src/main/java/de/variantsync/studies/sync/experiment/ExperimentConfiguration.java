@@ -12,18 +12,18 @@ import java.io.File;
 
 public class ExperimentConfiguration {
     private final Configuration config;
-    public final String EXPERIMENT_NAME = "experiment.name";
-    public final String EXPERIMENT_REPEATS = "experiment.repeats";
-    public final String EXPERIMENT_VARIANT_COUNT = "experiment.variant.count";
-    public final String EXPERIMENT_DIR_MAIN = "experiment.dir.main";
-    public final String EXPERIMENT_DIR_DATASET = "experiment.dir.dataset";
-    public final String EXPERIMENT_DIR_SPL = "experiment.dir.spl";
-    public final String EXPERIMENT_LOGGER_LEVEL = "experiment.logger.level";
+    private static final String EXPERIMENT_SUBJECT = "experiment.subject";
+    private static final String EXPERIMENT_REPEATS = "experiment.repeats";
+    private static final String EXPERIMENT_VARIANT_COUNT = "experiment.variant.count";
+    private static final String EXPERIMENT_DIR_MAIN = "experiment.dir.main";
+    private static final String EXPERIMENT_DIR_DATASET = "experiment.dir.dataset";
+    private static final String EXPERIMENT_DIR_SPL = "experiment.dir.spl";
+    private static final String EXPERIMENT_LOGGER_LEVEL = "experiment.logger.level";
 
-    public ExperimentConfiguration(File propertiesFile) {
-        Parameters params = new Parameters();
+    public ExperimentConfiguration(final File propertiesFile) {
+        final Parameters params = new Parameters();
         try {
-            var builder =
+            final var builder =
                     new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
                             .configure(params.properties()
                                     .setFile(propertiesFile)
@@ -35,8 +35,8 @@ public class ExperimentConfiguration {
         }
     }
 
-    public String EXPERIMENT_NAME() {
-        return config.getString(EXPERIMENT_NAME);
+    public EExperimentalSubject EXPERIMENT_SUBJECT() {
+        return EExperimentalSubject.valueOf(config.getString(EXPERIMENT_SUBJECT));
     }
 
     public int EXPERIMENT_REPEATS() {
