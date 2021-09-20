@@ -118,7 +118,7 @@ public abstract class Experiment {
 
             // While more random configurations to consider
             for (int i = 0; i < randomRepeats; i++) {
-                Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with (random) variants.");
+                Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with " + numVariants + " variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
                 final Sample sample = sample(commitV0, commitV1);
@@ -169,7 +169,6 @@ public abstract class Experiment {
                 if (originalDiff.isEmpty()) {
                     // There was no change to this variant, so we can skip it as source
                     Logger.status("Skipping " + source + " as diff source. Diff is empty");
-                    runID += numVariants;
                     continue;
                 } else {
                     try {
@@ -187,10 +186,10 @@ public abstract class Experiment {
                 // For each target variant,
                 Logger.status("Starting patch application for source variant " + source.getName());
                 for (final Variant target : sample.variants()) {
-                    runID++;
                     if (target == source) {
                         continue;
                     }
+                    runID++;
                     Logger.status("Considering variant " + target.getName() + " as next target.");
                     final Path pathToTarget = variantsDirV0.path().resolve(target.getName());
                     final Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
