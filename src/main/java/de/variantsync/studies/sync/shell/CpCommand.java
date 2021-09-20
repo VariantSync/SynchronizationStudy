@@ -10,7 +10,7 @@ public class CpCommand extends ShellCommand {
     private final LinkedList<String> args = new LinkedList<>();
 
 
-    public CpCommand(Path from, Path to) {
+    public CpCommand(final Path from, final Path to) {
         this.from = from.toString();
         this.to = to.toString();
     }
@@ -27,7 +27,7 @@ public class CpCommand extends ShellCommand {
 
     @Override
     public String[] parts() {
-        String[] parts = new String[args.size() + 3];
+        final String[] parts = new String[args.size() + 3];
 
         parts[0] = COMMAND;
         int index = 0;

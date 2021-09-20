@@ -7,12 +7,12 @@ import java.util.List;
 public class ShellException extends Exception {
     private final List<String> output; 
 
-    public ShellException(Exception e) {
+    public ShellException(final Exception e) {
         super(e);
         this.output = new LinkedList<>();
     }
 
-    public ShellException(List<String> output) {
+    public ShellException(final List<String> output) {
         super(convert(output));
         this.output = output;
     }
@@ -21,8 +21,8 @@ public class ShellException extends Exception {
         return output;
     }
 
-    private static String convert(Collection<String> output) {
-        StringBuilder sb = new StringBuilder();
+    private static String convert(final Collection<String> output) {
+        final StringBuilder sb = new StringBuilder();
         output.forEach(l -> sb.append(l).append(System.lineSeparator()));
         return sb.toString();
     }

@@ -8,7 +8,7 @@ public class PatchCommand extends ShellCommand {
     private static final String COMMAND = "patch";
     private final LinkedList<String> args = new LinkedList<>();
 
-    public static PatchCommand Recommended(Path patchFile) {
+    public static PatchCommand Recommended(final Path patchFile) {
         return new PatchCommand().input(patchFile).forward().strip(1).noBackup();
     }
 
@@ -34,7 +34,7 @@ public class PatchCommand extends ShellCommand {
      * @param number how many leading slashes to slash from the file name
      * @return this command
      */
-    public PatchCommand strip(int number) {
+    public PatchCommand strip(final int number) {
         this.args.add("--strip=" + number);
         return this;
     }
@@ -47,7 +47,7 @@ public class PatchCommand extends ShellCommand {
      * @param outputPath The outfile path
      * @return this command
      */
-    public PatchCommand outfile(Path outputPath) {
+    public PatchCommand outfile(final Path outputPath) {
         this.args.add("--output=" + outputPath);
         return this;
     }
@@ -55,7 +55,7 @@ public class PatchCommand extends ShellCommand {
     /**
      * Put rejects into rejectPath instead of the default .rej file. When rejectfile is -, discard rejects.
      **/
-    public PatchCommand rejectFile(Path rejectPath) {
+    public PatchCommand rejectFile(final Path rejectPath) {
         this.args.add("--reject-file=" + rejectPath);
         return this;
     }
@@ -66,7 +66,7 @@ public class PatchCommand extends ShellCommand {
      * @param patchFile the file to load
      * @return this command
      */
-    public PatchCommand input(Path patchFile) {
+    public PatchCommand input(final Path patchFile) {
         this.args.add("--input=" + patchFile);
         return this;
     }
@@ -100,7 +100,7 @@ public class PatchCommand extends ShellCommand {
 
     @Override
     public String[] parts() {
-        String[] parts = new String[args.size() + 1];
+        final String[] parts = new String[args.size() + 1];
 
         parts[0] = COMMAND;
         int index = 0;

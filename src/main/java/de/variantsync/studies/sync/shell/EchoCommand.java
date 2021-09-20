@@ -6,13 +6,13 @@ public class EchoCommand extends ShellCommand {
     private final String COMMAND = "echo";
     private final String message;
 
-    public EchoCommand(String echoMessage) {
+    public EchoCommand(final String echoMessage) {
         this.message = echoMessage;
     }
 
     @Override
     public String[] parts() {
-        String[] parts = new String[2];
+        final String[] parts = new String[2];
         parts[0] = COMMAND;
         parts[1] = message;
         return parts;

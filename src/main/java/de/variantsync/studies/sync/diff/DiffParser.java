@@ -14,12 +14,12 @@ import java.util.Objects;
 
 public class DiffParser {
 
-    public static OriginalDiff toOriginalDiff(List<String> lines) {
+    public static OriginalDiff toOriginalDiff(final List<String> lines) {
         // The diff is empty, but this is also a valid scenario
         if (lines.isEmpty()) {
             return new OriginalDiff(new ArrayList<>());
         }
-        List<FileDiff> fileDiffs = new LinkedList<>();
+        final List<FileDiff> fileDiffs = new LinkedList<>();
         // Determine the substring which a FileDiff starts with
         String fileDiffStart = "";
         String fileDiffFollow = "";
@@ -35,7 +35,7 @@ public class DiffParser {
 
         List<String> fileDiffContent = null;
         int indexNext = 0;
-        for (String line : lines) {
+        for (final String line : lines) {
             indexNext++;
             if (line.startsWith(fileDiffStart)) {
                 // Create a FileDiff from the collected lines
@@ -46,9 +46,9 @@ public class DiffParser {
                 fileDiffContent = new LinkedList<>();
             } else if (line.contains(fileDiffStart)) {
                 if (indexNext < lines.size() ) {
-                    String nextLine = lines.get(indexNext);
+                    final String nextLine = lines.get(indexNext);
                     if (nextLine.startsWith(fileDiffFollow)) {
-                        String additionalContent = line.substring(0, line.indexOf(fileDiffStart));
+                        final String additionalContent = line.substring(0, line.indexOf(fileDiffStart));
                         // Create a FileDiff from the collected lines
                         if (fileDiffContent != null) {
                             fileDiffContent.add(additionalContent);
@@ -72,13 +72,13 @@ public class DiffParser {
         return new OriginalDiff(fileDiffs);
     }
 
-    private static FileDiff parseFileDiff(List<String> fileDiffContent) {
+    private static FileDiff parseFileDiff(final List<String> fileDiffContent) {
         int index = 0;
         final String HUNK_START = "@@";
         String nextLine = fileDiffContent.get(index);
 
         // Parse the header
-        List<String> header = new LinkedList<>();
+        final List<String> header = new LinkedList<>();
         String oldFile = null;
         String newFile = null;
         {
@@ -99,7 +99,7 @@ public class DiffParser {
         }
 
         // Parse the hunks
-        List<Hunk> hunks = new LinkedList<>();
+        final List<Hunk> hunks = new LinkedList<>();
         {
             List<String> hunkLines = new LinkedList<>();
             hunkLines.add(nextLine);
@@ -118,12 +118,12 @@ public class DiffParser {
         return new FileDiff(header, hunks, Paths.get(Objects.requireNonNull(oldFile)), Paths.get(Objects.requireNonNull(newFile)));
     }
 
-    private static Hunk parseHunk(List<String> lines) {
+    private static Hunk parseHunk(final List<String> lines) {
         // Parse the header
-        HunkLocation location = parseHunkHeader(lines.get(0));
-        List<Line> content = new LinkedList<>();
+        final HunkLocation location = parseHunkHeader(lines.get(0));
+        final List<Line> content = new LinkedList<>();
         for (int i = 1; i < lines.size(); i++) {
-            String line = lines.get(i);
+            final String line = lines.get(i);
             if (line.startsWith("+")) {
                 content.add(new AddedLine(line));
             } else if (line.startsWith("-")) {
@@ -137,10 +137,10 @@ public class DiffParser {
         return new Hunk(location, content);
     }
 
-    private static HunkLocation parseHunkHeader(String line) {
-        String[] parts = line.split("\\s+");
-        String sourceLocationString = parts[1].substring(1);
-        String targetLocationString = parts[2].substring(1);
+    private static HunkLocation parseHunkHeader(final String line) {
+        final String[] parts = line.split("\\s+");
+        final String sourceLocationString = parts[1].substring(1);
+        final String targetLocationString = parts[2].substring(1);
 
         return new HunkLocation(Integer.parseInt(sourceLocationString.split(",")[0]), Integer.parseInt(targetLocationString.split(",")[0]));
     }

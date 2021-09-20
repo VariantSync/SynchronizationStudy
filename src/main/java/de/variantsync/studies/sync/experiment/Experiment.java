@@ -143,10 +143,9 @@ public abstract class Experiment {
                 try {
                     Resources.Instance().write(Artefact.class, commitV0.presenceConditions().run().get(), debugDir.resolve("V0.spl.csv"));
                     Resources.Instance().write(Artefact.class, commitV1.presenceConditions().run().get(), debugDir.resolve("V1.spl.csv"));
-                } catch (Resources.ResourceIOException e) {
+                } catch (final Resources.ResourceIOException e) {
                     panic("Was not able to write PCs", e);
                 }
-                //                featureModelDebug(commitV0, commitV1, modelV0, modelV1, featuresInDifference);
 
                 // Generate the randomly selected variants at both versions
                 final Map<Variant, GroundTruth> groundTruthV0 = new HashMap<>();
@@ -175,7 +174,7 @@ public abstract class Experiment {
                 } else {
                     try {
                         Files.write(debugDir.resolve("diff.txt"), originalDiff.toLines());
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         Logger.error("Was not able to save diff", e);
                     }
                 }
@@ -264,17 +263,17 @@ public abstract class Experiment {
         return rejectsDiff;
     }
 
-    private void generateVariant(SPLCommit commitV0, SPLCommit commitV1, Map<Variant, GroundTruth> groundTruthV0, Map<Variant, GroundTruth> groundTruthV1, Variant variant) {
+    private void generateVariant(final SPLCommit commitV0, final SPLCommit commitV1, final Map<Variant, GroundTruth> groundTruthV0, final Map<Variant, GroundTruth> groundTruthV1, final Variant variant) {
         Logger.status("Generating variant " + variant.getName());
         if (variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
             try {
                 Files.write(debugDir.resolve(variant.getName() + ".config"), config.toAssignment().entrySet().stream().map(entry -> entry.getKey() + " : " + entry.getValue()).collect(Collectors.toList()));
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 Logger.error("Was not able to write configuration of " + variant.getName(), e);
             }
         }
 
-        GroundTruth gtV0 = commitV0
+        final GroundTruth gtV0 = commitV0
                 .presenceConditions()
                 .run()
                 .orElseThrow()
@@ -286,12 +285,12 @@ public abstract class Experiment {
                 .expect("Was not able to generate V0 of " + variant);
         try {
             Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
-        } catch (Resources.ResourceIOException e) {
+        } catch (final Resources.ResourceIOException e) {
             Logger.error("Was not able to write ground truth.");
         }
         groundTruthV0.put(variant, gtV0);
 
-        GroundTruth gtV1 = commitV1
+        final GroundTruth gtV1 = commitV1
                 .presenceConditions()
                 .run()
                 .orElseThrow()
@@ -303,13 +302,13 @@ public abstract class Experiment {
                 .expect("Was not able to generate V1 of " + variant);
         try {
             Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
-        } catch (Resources.ResourceIOException e) {
+        } catch (final Resources.ResourceIOException e) {
             Logger.error("Was not able to write ground truth.", e);
         }
         groundTruthV1.put(variant, gtV1);
     }
 
-    private void splRepoPreparation(SPLRepository splRepositoryV0, SPLRepository splRepositoryV1, SPLCommit commitV0, SPLCommit commitV1) {
+    private void splRepoPreparation(final SPLRepository splRepositoryV0, final SPLRepository splRepositoryV1, final SPLCommit commitV0, final SPLCommit commitV1) {
         Logger.info("Next V0 commit: " + commitV0);
         Logger.info("Next V1 commit: " + commitV1);
         // Checkout the commits in the SPL repository
@@ -326,17 +325,17 @@ public abstract class Experiment {
             splRepositoryV0.checkoutCommit(commitV0, true);
             splRepositoryV1.checkoutCommit(commitV1, true);
 
-        } catch (GitAPIException | IOException e) {
+        } catch (final GitAPIException | IOException e) {
             panic("Was not able to checkout commit for SPL repository.", e);
         }
         Logger.info("Done.");
 
-        if (experimentalSubject.equals("BUSYBOX")) {
+        if (experimentalSubject == EExperimentalSubject.BUSYBOX) {
             Logger.status("Normalizing BusyBox files...");
             try {
                 BusyboxPreparation.normalizeDir(splRepositoryV0Path.toFile());
                 BusyboxPreparation.normalizeDir(splRepositoryV1Path.toFile());
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 Logger.error("", e);
                 panic("Was not able to normalize BusyBox.", e);
             }
@@ -364,12 +363,12 @@ public abstract class Experiment {
         Logger.status("Loading variability dataset.");
         VariabilityDataset dataset = null;
         try {
-            Resources instance = Resources.Instance();
+            final Resources instance = Resources.Instance();
             final VariabilityDatasetLoader datasetLoader = new VariabilityDatasetLoader();
             instance.registerLoader(VariabilityDataset.class, datasetLoader);
             dataset = instance.load(VariabilityDataset.class, datasetPath);
             Logger.status("Dataset loaded.");
-        } catch (Resources.ResourceIOException e) {
+        } catch (final Resources.ResourceIOException e) {
             panic("Was not able to load dataset.", e);
         }
 
@@ -378,20 +377,20 @@ public abstract class Experiment {
         return Objects.requireNonNull(dataset).getCommitPairsForEvolutionStudy();
     }
 
-    private void saveDiff(FineDiff fineDiff, Path file) {
+    private void saveDiff(final FineDiff fineDiff, final Path file) {
         // Save the fine diff to a file
         try {
             Files.write(file, fineDiff.toLines());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             panic("Was not able to save diff to file " + file);
         }
     }
 
-    private List<Path> applyPatch(Path patchFile, Path targetVariant, Path rejectFile) {
+    private List<Path> applyPatch(final Path patchFile, final Path targetVariant, final Path rejectFile) {
         return applyPatch(patchFile, targetVariant, rejectFile, false);
     }
 
-    private List<Path> applyPatch(Path patchFile, Path targetVariant, Path rejectFile, boolean emptyPatch) {
+    private List<Path> applyPatch(final Path patchFile, final Path targetVariant, final Path rejectFile, final boolean emptyPatch) {
         // Clean patch directory
         if (Files.exists(patchDir.toAbsolutePath())) {
             shell.execute(new RmCommand(patchDir.toAbsolutePath()).recursive());
@@ -406,16 +405,16 @@ public abstract class Experiment {
         shell.execute(new CpCommand(targetVariant, patchDir).recursive()).expect("Was not able to copy variant " + targetVariant);
 
         // apply patch to copied target variant
-        List<Path> skipped = new LinkedList<>();
+        final List<Path> skipped = new LinkedList<>();
         if (!emptyPatch) {
-            Result<List<String>, ShellException> result = shell.execute(PatchCommand.Recommended(patchFile).strip(2).rejectFile(rejectFile).force(), patchDir);
+            final Result<List<String>, ShellException> result = shell.execute(PatchCommand.Recommended(patchFile).strip(2).rejectFile(rejectFile).force(), patchDir);
             if (result.isSuccess()) {
                 result.getSuccess().forEach(Logger::info);
             } else {
-                List<String> lines = result.getFailure().getOutput();
+                final List<String> lines = result.getFailure().getOutput();
                 Logger.error("Failed to apply part of patch.");
                 String oldFile;
-                for (String nextLine : lines) {
+                for (final String nextLine : lines) {
                     if (nextLine.startsWith("|---")) {
                         oldFile = nextLine.split("\\s+")[1];
                         skipped.add(Path.of(oldFile));
@@ -427,30 +426,30 @@ public abstract class Experiment {
     }
 
     @NotNull
-    private FineDiff getFineDiff(OriginalDiff originalDiff) {
-        DefaultContextProvider contextProvider = new DefaultContextProvider(workDir);
+    private FineDiff getFineDiff(final OriginalDiff originalDiff) {
+        final DefaultContextProvider contextProvider = new DefaultContextProvider(workDir);
         return DiffSplitter.split(originalDiff, contextProvider);
     }
 
-    private FineDiff getFilteredDiff(OriginalDiff originalDiff, Artefact tracesV0, Artefact tracesV1, Variant target) {
-        EditFilter editFilter = new EditFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
+    private FineDiff getFilteredDiff(final OriginalDiff originalDiff, final Artefact tracesV0, final Artefact tracesV1, final Variant target) {
+        final EditFilter editFilter = new EditFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
         // Create target variant specific patch that respects PCs
-        IContextProvider contextProvider = new DefaultContextProvider(workDir);
+        final IContextProvider contextProvider = new DefaultContextProvider(workDir);
         return DiffSplitter.split(originalDiff, editFilter, editFilter, contextProvider);
     }
 
-    private OriginalDiff getOriginalDiff(Path v0Path, Path v1Path) {
-        DiffCommand diffCommand = DiffCommand.Recommended(workDir.relativize(v0Path), workDir.relativize(v1Path));
-        List<String> output = shell.execute(diffCommand, workDir).expect("Was not able to diff variants.");
+    private OriginalDiff getOriginalDiff(final Path v0Path, final Path v1Path) {
+        final DiffCommand diffCommand = DiffCommand.Recommended(workDir.relativize(v0Path), workDir.relativize(v1Path));
+        final List<String> output = shell.execute(diffCommand, workDir).expect("Was not able to diff variants.");
         return DiffParser.toOriginalDiff(output);
     }
 
-    private void panic(String message) {
+    private void panic(final String message) {
         Logger.error(message);
         throw new Panic(message);
     }
 
-    private void panic(String message, Exception e) {
+    private void panic(final String message, final Exception e) {
         Logger.error(message, e);
         e.printStackTrace();
         throw new Panic(message);

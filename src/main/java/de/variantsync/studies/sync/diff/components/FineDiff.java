@@ -8,7 +8,7 @@ public record FineDiff(
 
     @Override
     public List<String> toLines() {
-        List<String> lines = new LinkedList<>();
+        final List<String> lines = new LinkedList<>();
         content.stream().map(IDiffComponent::toLines).forEach(lines::addAll);
         return lines;
     }

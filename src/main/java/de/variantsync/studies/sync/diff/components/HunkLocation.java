@@ -5,10 +5,10 @@ import java.util.Objects;
 public record HunkLocation(int startLineSource, int startLineTarget) {
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        HunkLocation that = (HunkLocation) o;
+        final HunkLocation that = (HunkLocation) o;
         return startLineSource == that.startLineSource && startLineTarget == that.startLineTarget;
     }
 

@@ -8,21 +8,21 @@ import java.nio.file.Path;
 import java.util.List;
 
 public class NaiveContextProvider extends DefaultContextProvider {
-    public NaiveContextProvider(Path rootDir) {
+    public NaiveContextProvider(final Path rootDir) {
         super(rootDir);
     }
 
-    public NaiveContextProvider(Path rootDir, int contextSize) {
+    public NaiveContextProvider(final Path rootDir, final int contextSize) {
         super(rootDir, contextSize);
     }
 
     @Override
-    public List<Line> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, int index) {
+    public List<Line> leadingContext(final ILineFilter lineFilter, final FileDiff fileDiff, final int index) {
         return super.leadingContext((p, i) -> true, fileDiff, index);
     }
 
     @Override
-    public List<Line> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, int index) {
+    public List<Line> trailingContext(final ILineFilter lineFilter, final FileDiff fileDiff, final int index) {
         return super.trailingContext((p, i) -> true, fileDiff, index);
     }
 }

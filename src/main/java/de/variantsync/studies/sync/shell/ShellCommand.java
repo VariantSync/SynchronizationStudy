@@ -20,7 +20,7 @@ public abstract class ShellCommand {
      * @param resultCode the code that is to be parsed
      * @return the result
      */
-    public Result<List<String>, ShellException> interpretResult(int resultCode, List<String> output) {
+    public Result<List<String>, ShellException> interpretResult(final int resultCode, final List<String> output) {
         return resultCode == 0 ? Result.Success(output) : Result.Failure(new ShellException(output));
     }
 
