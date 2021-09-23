@@ -44,13 +44,15 @@ public class ExperimentBusyBox extends Experiment{
     }
 
     private void featureModelDebug(final IFeatureModel modelV0, final IFeatureModel modelV1) {
-        final Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1);
-        try {
-            Files.write(debugDir.resolve("features-V0.txt"), modelV0.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
-            Files.write(debugDir.resolve("features-V1.txt"), modelV1.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
-            Files.write(debugDir.resolve("variables-in-difference.txt"), featuresInDifference);
-        } catch (final IOException e) {
-            Logger.error("Was not able to write commit data.");
+        if (inDebug) {
+            final Collection<String> featuresInDifference = FeatureModelUtils.getSymmetricFeatureDifference(modelV0, modelV1);
+            try {
+                Files.write(debugDir.resolve("features-V0.txt"), modelV0.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
+                Files.write(debugDir.resolve("features-V1.txt"), modelV1.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
+                Files.write(debugDir.resolve("variables-in-difference.txt"), featuresInDifference);
+            } catch (final IOException e) {
+                Logger.error("Was not able to write commit data.");
+            }
         }
     }
 }
