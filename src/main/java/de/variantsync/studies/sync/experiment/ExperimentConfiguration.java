@@ -18,6 +18,7 @@ public class ExperimentConfiguration {
     private static final String EXPERIMENT_DIR_MAIN = "experiment.dir.main";
     private static final String EXPERIMENT_DIR_DATASET = "experiment.dir.dataset";
     private static final String EXPERIMENT_DIR_SPL = "experiment.dir.spl";
+    private static final String EXPERIMENT_DEBUG = "experiment.debug";
     private static final String EXPERIMENT_LOGGER_LEVEL = "experiment.logger.level";
 
     public ExperimentConfiguration(final File propertiesFile) {
@@ -57,6 +58,10 @@ public class ExperimentConfiguration {
 
     public String EXPERIMENT_DIR_SPL() {
         return config.getString(EXPERIMENT_DIR_SPL);
+    }
+
+    public Boolean EXPERIMENT_DEBUG() {
+        return config.getBoolean(EXPERIMENT_DEBUG);
     }
 
     public LogLevel EXPERIMENT_LOGGER_LEVEL() {

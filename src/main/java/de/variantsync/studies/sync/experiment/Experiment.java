@@ -42,6 +42,7 @@ public abstract class Experiment {
     // TODO: Set in external config
     protected final Path workDir;
     protected final Path debugDir;
+    protected final boolean inDebug;
     protected final Path resultFile;
     protected final Path splRepositoryV0Path;
     protected final Path splRepositoryV1Path;
@@ -75,6 +76,7 @@ public abstract class Experiment {
             throw new UncheckedIOException(e);
         }
         debugDir = workDir.resolve("DEBUG");
+        inDebug = config.EXPERIMENT_DEBUG();
         resultFile = mainDir.resolve("results.txt");
         splRepositoryPath = Path.of(config.EXPERIMENT_DIR_SPL());
         datasetPath = Path.of(config.EXPERIMENT_DIR_DATASET());
@@ -125,10 +127,10 @@ public abstract class Experiment {
                 final Sample sample = sample(commitV0, commitV1);
                 Logger.status("Done. Sampled " + sample.variants().size() + " variants.");
 
-                if (Files.exists(debugDir)) {
+                if (inDebug && Files.exists(debugDir)) {
                     shell.execute(new RmCommand(debugDir).recursive());
                 }
-                if (debugDir.toFile().mkdirs()) {
+                if (inDebug && debugDir.toFile().mkdirs()) {
                     Logger.warning("Created Debug directory.");
                 }
                 if (Files.exists(variantsDirV0.path())) {
@@ -141,11 +143,20 @@ public abstract class Experiment {
                 }
 
                 // Write information about the commits
-                try {
-                    Resources.Instance().write(Artefact.class, commitV0.presenceConditions().run().get(), debugDir.resolve("V0.spl.csv"));
-                    Resources.Instance().write(Artefact.class, commitV1.presenceConditions().run().get(), debugDir.resolve("V1.spl.csv"));
-                } catch (final Resources.ResourceIOException e) {
-                    panic("Was not able to write PCs", e);
+                if (inDebug) {
+                    try {
+                        final var v0PCs = commitV0.presenceConditions().run();
+                        if (v0PCs.isPresent()) {
+                            Resources.Instance().write(Artefact.class, v0PCs.get(), debugDir.resolve("V0.spl.csv"));
+                        }
+
+                        final var v1PCs = commitV1.presenceConditions().run();
+                        if (v1PCs.isPresent()) {
+                            Resources.Instance().write(Artefact.class, v1PCs.get(), debugDir.resolve("V1.spl.csv"));
+                        }
+                    } catch (final Resources.ResourceIOException e) {
+                        panic("Was not able to write PCs", e);
+                    }
                 }
 
                 // Generate the randomly selected variants at both versions
@@ -171,7 +182,7 @@ public abstract class Experiment {
                     // There was no change to this variant, so we can skip it as source
                     Logger.status("Skipping " + source + " as diff source. Diff is empty");
                     continue;
-                } else {
+                } else if(inDebug) {
                     try {
                         Files.write(debugDir.resolve("diff.txt"), originalDiff.toLines());
                     } catch (final IOException e) {
@@ -270,7 +281,7 @@ public abstract class Experiment {
                                  final Variant variant,
                                  final SimpleFileFilter filter) {
         Logger.status("Generating variant " + variant.getName());
-        if (variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
+        if (inDebug && variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
             try {
                 Files.write(debugDir.resolve(variant.getName() + ".config"), config.toAssignment().entrySet().stream().map(entry -> entry.getKey() + " : " + entry.getValue()).collect(Collectors.toList()));
             } catch (final IOException e) {
@@ -296,10 +307,12 @@ public abstract class Experiment {
                         variantsDirV0.resolve(variant.getName()),
                         VariantGenerationOptions.ExitOnErrorButAllowNonExistentFiles(filter))
                 .expect("Was not able to generate V0 of " + variant);
-        try {
-            Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
-        } catch (final Resources.ResourceIOException e) {
-            Logger.error("Was not able to write ground truth.");
+        if (inDebug) {
+            try {
+                Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
+            } catch (final Resources.ResourceIOException e) {
+                Logger.error("Was not able to write ground truth.");
+            }
         }
         groundTruthV0.put(variant, gtV0);
 
@@ -313,10 +326,12 @@ public abstract class Experiment {
                         variantsDirV1.resolve(variant.getName()),
                         VariantGenerationOptions.ExitOnErrorButAllowNonExistentFiles(filter))
                 .expect("Was not able to generate V1 of " + variant);
-        try {
-            Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
-        } catch (final Resources.ResourceIOException e) {
-            Logger.error("Was not able to write ground truth.", e);
+        if (inDebug) {
+            try {
+                Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
+            } catch (final Resources.ResourceIOException e) {
+                Logger.error("Was not able to write ground truth.", e);
+            }
         }
         groundTruthV1.put(variant, gtV1);
     }
