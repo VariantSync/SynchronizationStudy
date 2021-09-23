@@ -1,7 +1,7 @@
 package de.variantsync.studies.sync.error;
 
 public class Panic extends Error {
-    public Panic(String message) {
+    public Panic(final String message) {
         super(message);
     }
 

@@ -19,7 +19,7 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
     private final Path newVersion;
     private final int strip;
 
-    public PCBasedFilter(Artefact oldTraces, Artefact newTraces, Variant targetVariant, Path oldVersionRoot, Path newVersionRoot) {
+    public PCBasedFilter(final Artefact oldTraces, final Artefact newTraces, final Variant targetVariant, final Path oldVersionRoot, final Path newVersionRoot) {
         this.oldTraces = oldTraces;
         this.newTraces = newTraces;
         this.targetVariant = targetVariant;
@@ -28,7 +28,7 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
         this.strip = 0;
     }
 
-    public PCBasedFilter(Artefact oldTraces, Artefact newTraces, Variant targetVariant, Path oldVersionRoot, Path newVersionRoot, int strip) {
+    public PCBasedFilter(final Artefact oldTraces, final Artefact newTraces, final Variant targetVariant, final Path oldVersionRoot, final Path newVersionRoot, final int strip) {
         this.oldTraces = oldTraces;
         this.newTraces = newTraces;
         this.targetVariant = targetVariant;
@@ -37,39 +37,39 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
         this.strip = strip;
     }
 
-    private boolean shouldKeep(Variant targetVariant, Artefact traces, Path filePath, int index) {
+    private boolean shouldKeep(final Variant targetVariant, final Artefact traces, Path filePath, final int index) {
         filePath = filePath.subpath(strip, filePath.getNameCount());
-        Node pc = traces
+        final Node pc = traces
                 .getPresenceConditionOf(new CaseSensitivePath(filePath), index)
                 .expect("Was not able to load PC for line " + index + " of " + filePath);
         return targetVariant.isImplementing(pc);
     }
 
-    private boolean shouldKeep(Variant targetVariant, Artefact traces, Path filePath) {
+    private boolean shouldKeep(final Variant targetVariant, final Artefact traces, Path filePath) {
         filePath = filePath.subpath(strip, filePath.getNameCount());
-        Result<Node, Exception> result = traces.getPresenceConditionOf(new CaseSensitivePath(filePath));
+        final Result<Node, Exception> result = traces.getPresenceConditionOf(new CaseSensitivePath(filePath));
         if (result.isFailure()) {
             Logger.warning("No PC found for " + filePath);
             return false;
         } else {
-            Node pc = result.getSuccess();
+            final Node pc = result.getSuccess();
             return targetVariant.isImplementing(pc);
         }
     }
 
     @Override
-    public boolean shouldKeep(FileDiff fileDiff) {
+    public boolean shouldKeep(final FileDiff fileDiff) {
         return shouldKeep(targetVariant, oldTraces, fileDiff.oldFile()) && shouldKeep(targetVariant, newTraces, fileDiff.newFile());
     }
 
     @Override
-    public boolean keepEdit(Path filePath, int index) {
+    public boolean keepEdit(final Path filePath, final int index) {
         if (oldVersion.endsWith(filePath.getName(0))) {
             return shouldKeep(targetVariant, oldTraces, filePath, index);
         } else if (newVersion.endsWith(filePath.getName(0))) {
             return shouldKeep(targetVariant, newTraces, filePath, index);
         } else {
-            String message = "The given path '" + filePath + "' does not match any of the versions' paths";
+            final String message = "The given path '" + filePath + "' does not match any of the versions' paths";
             Logger.error(message);
             throw new Panic(message);
         }

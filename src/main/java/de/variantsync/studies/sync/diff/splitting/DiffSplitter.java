@@ -16,19 +16,19 @@ import java.util.List;
 
 public class DiffSplitter {
 
-    public static FineDiff split(OriginalDiff diff, IContextProvider contextProvider) {
+    public static FineDiff split(final OriginalDiff diff, final IContextProvider contextProvider) {
         return split(diff, null, null, contextProvider);
     }
 
-    public static FineDiff split(OriginalDiff originalDiff, IFileDiffFilter fileFilter, ILineFilter lineFilter, IContextProvider contextProvider) {
+    public static FineDiff split(final OriginalDiff originalDiff, IFileDiffFilter fileFilter, ILineFilter lineFilter, final IContextProvider contextProvider) {
         fileFilter = fileFilter == null ? new DefaultFileDiffFilter() : fileFilter;
         lineFilter = lineFilter == null ? new DefaultLineFilter() : lineFilter;
 
         // The list in which we will collect the
-        List<FileDiff> splitFileDiffs = new LinkedList<>();
+        final List<FileDiff> splitFileDiffs = new LinkedList<>();
 
         // Go over all FileDiff in diff
-        for (FileDiff fileDiff : originalDiff.fileDiffs()) {
+        for (final FileDiff fileDiff : originalDiff.fileDiffs()) {
             // Only process file diffs that should be taken into account according to the filter
             if (fileFilter.shouldKeep(fileDiff)) {
                 // Split FileDiff into edit-sized FileDiffs
@@ -39,25 +39,25 @@ public class DiffSplitter {
         return new FineDiff(splitFileDiffs);
     }
 
-    private static List<FileDiff> split(FileDiff fileDiff, IContextProvider contextProvider, ILineFilter lineFilter) {
-        List<FileDiff> fileDiffs = new LinkedList<>();
+    private static List<FileDiff> split(final FileDiff fileDiff, final IContextProvider contextProvider, final ILineFilter lineFilter) {
+        final List<FileDiff> fileDiffs = new LinkedList<>();
 
-        for (Hunk hunk : fileDiff.hunks()) {
+        for (final Hunk hunk : fileDiff.hunks()) {
             // Index that points to the location of the current line in the current hunk
             int oldIndex = 0;
             int newIndex = 0;
-            for (Line line : hunk.content()) {
+            for (final Line line : hunk.content()) {
                 if (line instanceof RemovedLine) {
                     if (lineFilter.keepEdit(fileDiff.oldFile(), hunk.location().startLineSource() + oldIndex)) {
-                        int leadContextStart = hunk.location().startLineTarget() + newIndex - 1;
-                        int trailContextStart = hunk.location().startLineSource() + oldIndex + 1;
+                        final int leadContextStart = hunk.location().startLineTarget() + newIndex - 1;
+                        final int trailContextStart = hunk.location().startLineSource() + oldIndex + 1;
                         fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, trailContextStart, leadContextStart));
                     }
                     oldIndex++;
                 } else if (line instanceof AddedLine) {
                     if (lineFilter.keepEdit(fileDiff.newFile(), hunk.location().startLineTarget() + newIndex)) {
-                        int leadContextStart = hunk.location().startLineTarget() + newIndex - 1;
-                        int trailContextStart = hunk.location().startLineSource() + oldIndex;
+                        final int leadContextStart = hunk.location().startLineTarget() + newIndex - 1;
+                        final int trailContextStart = hunk.location().startLineSource() + oldIndex;
                         fileDiffs.add(calculateMiniDiff(contextProvider, lineFilter, fileDiff, hunk, line, trailContextStart, leadContextStart));
                     }
                     newIndex++;
@@ -71,17 +71,17 @@ public class DiffSplitter {
         return fileDiffs;
     }
 
-    private static FileDiff calculateMiniDiff(IContextProvider contextProvider, ILineFilter lineFilter,
-                                              FileDiff fileDiff, Hunk hunk, Line line, int trailContextStart, int leadContextStart) {
-        List<Line> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, leadContextStart);
-        List<Line> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, trailContextStart);
-        List<Line> content = new LinkedList<>(leadingContext);
+    private static FileDiff calculateMiniDiff(final IContextProvider contextProvider, final ILineFilter lineFilter,
+                                              final FileDiff fileDiff, final Hunk hunk, final Line line, final int trailContextStart, final int leadContextStart) {
+        final List<Line> leadingContext = contextProvider.leadingContext(lineFilter, fileDiff, leadContextStart);
+        final List<Line> trailingContext = contextProvider.trailingContext(lineFilter, fileDiff, trailContextStart);
+        final List<Line> content = new LinkedList<>(leadingContext);
         content.add(line);
         content.addAll(trailingContext);
 
-        HunkLocation location = new HunkLocation(hunk.location().startLineSource(), hunk.location().startLineTarget());
+        final HunkLocation location = new HunkLocation(hunk.location().startLineSource(), hunk.location().startLineTarget());
 
-        Hunk miniHunk = new Hunk(location, content);
+        final Hunk miniHunk = new Hunk(location, content);
         return new FileDiff(fileDiff.header(), Collections.singletonList(miniHunk), fileDiff.oldFile(), fileDiff.newFile());
 
     }

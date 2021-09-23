@@ -8,17 +8,17 @@ public class RmCommand extends ShellCommand {
     private final String file;
     private final LinkedList<String> args = new LinkedList<>();
 
-    public RmCommand(Path file) {
+    public RmCommand(final Path file) {
         this.file = file.toString();
     }
 
-    public RmCommand(String file) {
+    public RmCommand(final String file) {
         this.file = file;
     }
 
     @Override
     public String[] parts() {
-        String[] parts = new String[args.size() + 2];
+        final String[] parts = new String[args.size() + 2];
 
         parts[0] = COMMAND;
         int index = 0;

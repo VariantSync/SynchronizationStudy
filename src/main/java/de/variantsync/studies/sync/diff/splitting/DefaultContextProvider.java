@@ -18,29 +18,28 @@ public class DefaultContextProvider implements IContextProvider {
     private final int contextSize;
     private final Path rootDir;
 
-    public DefaultContextProvider(Path rootDir) {
+    public DefaultContextProvider(final Path rootDir) {
         // Three is the default size set in unix diff
         this(rootDir, 3);
     }
 
-    public DefaultContextProvider(Path rootDir, int contextSize) {
+    public DefaultContextProvider(final Path rootDir, final int contextSize) {
         this.rootDir = rootDir;
         this.contextSize = contextSize;
     }
 
     @Override
-    public List<Line> leadingContext(ILineFilter lineFilter, FileDiff fileDiff, int index) {
-        LinkedList<Line> context = new LinkedList<>();
-        List<String> lines;
+    public List<Line> leadingContext(final ILineFilter lineFilter, final FileDiff fileDiff, final int index) {
+        final LinkedList<Line> context = new LinkedList<>();
+        final List<String> lines;
         try {
             if (Files.exists(rootDir.resolve(fileDiff.newFile()))) {
                 lines = Files.readAllLines(rootDir.resolve(fileDiff.newFile()));
-                ;
             } else {
                 return new LinkedList<>();
             }
             for (int i = index - 1; i >= 0; i--) {
-                String currentLine = " " + lines.get(i);
+                final String currentLine = " " + lines.get(i);
                 if (lineFilter.keepContext(fileDiff.newFile(), i + 1)) {
                     if (context.size() >= contextSize) {
                         break;
@@ -49,16 +48,16 @@ public class DefaultContextProvider implements IContextProvider {
                 }
             }
             return context;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             Logger.error("Was not able to load file:" + rootDir.resolve(fileDiff.newFile()), e);
             throw new UncheckedIOException(e);
         }
     }
 
     @Override
-    public List<Line> trailingContext(ILineFilter lineFilter, FileDiff fileDiff, int index) {
-        LinkedList<Line> context = new LinkedList<>();
-        List<String> lines;
+    public List<Line> trailingContext(final ILineFilter lineFilter, final FileDiff fileDiff, final int index) {
+        final LinkedList<Line> context = new LinkedList<>();
+        final List<String> lines;
         try {
             if (Files.exists(rootDir.resolve(fileDiff.oldFile()))) {
                 lines = Files.readAllLines(rootDir.resolve(fileDiff.oldFile()));
@@ -66,7 +65,7 @@ public class DefaultContextProvider implements IContextProvider {
                 return new LinkedList<>();
             }
             for (int i = index - 1; i < lines.size(); i++) {
-                String currentLine = " " + lines.get(i);
+                final String currentLine = " " + lines.get(i);
                 if (lineFilter.keepContext(fileDiff.oldFile(), i + 1)) {
                     if (context.size() >= contextSize) {
                         break;
@@ -79,7 +78,7 @@ public class DefaultContextProvider implements IContextProvider {
                 }
             }
             return context;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             Logger.error("Was not able to load file:" + rootDir.resolve(fileDiff.newFile()), e);
             throw new UncheckedIOException(e);
         }

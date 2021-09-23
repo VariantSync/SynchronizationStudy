@@ -3,7 +3,7 @@ package de.variantsync.studies.sync.diff.lines;
 public abstract class Line {
     private final String line;
 
-    protected Line(String line) {
+    protected Line(final String line) {
         this.line = line;
     }
 

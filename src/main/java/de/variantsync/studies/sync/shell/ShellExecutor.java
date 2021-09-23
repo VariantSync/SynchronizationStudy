@@ -23,49 +23,49 @@ public class ShellExecutor {
     private final Consumer<String> errorReader;
     private final Path workDir;
 
-    public ShellExecutor(Consumer<String> outputReader, Consumer<String> errorReader) {
+    public ShellExecutor(final Consumer<String> outputReader, final Consumer<String> errorReader) {
         this.workDir = null;
         this.outputReader = outputReader;
         this.errorReader = errorReader;
     }
 
-    public ShellExecutor(Consumer<String> outputReader, Consumer<String> errorReader, Path workDir) {
+    public ShellExecutor(final Consumer<String> outputReader, final Consumer<String> errorReader, final Path workDir) {
         this.workDir = workDir;
         this.outputReader = outputReader;
         this.errorReader = errorReader;
     }
 
-    public Result<List<String>, ShellException> execute(ShellCommand command) {
+    public Result<List<String>, ShellException> execute(final ShellCommand command) {
         return execute(command, this.workDir);
     }
 
-    public Result<List<String>, ShellException> execute(ShellCommand command, Path executionDir) {
+    public Result<List<String>, ShellException> execute(final ShellCommand command, final Path executionDir) {
         if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
             throw new SetupError("The synchronization study can only be executed under Linux!");
         }
 
-        ProcessBuilder builder = new ProcessBuilder();
+        final ProcessBuilder builder = new ProcessBuilder();
         if (executionDir != null) {
             builder.directory(executionDir.toFile());
         }
         Logger.debug("Executing '" + command + "' in directory " + builder.directory());
         builder.command(command.parts());
 
-        Process process;
-        Future<?> outputFuture;
-        Future<?> errorFuture;
-        List<String> output = new LinkedList<>();
-        Consumer<String> shareOutput = s -> {
+        final Process process;
+        final Future<?> outputFuture;
+        final Future<?> errorFuture;
+        final List<String> output = new LinkedList<>();
+        final Consumer<String> shareOutput = s -> {
             output.add(s);
             outputReader.accept(s);
         };
-        ExecutorService outputCollection = Executors.newSingleThreadExecutor();
-        ExecutorService errorCollection = Executors.newSingleThreadExecutor();
+        final ExecutorService outputCollection = Executors.newSingleThreadExecutor();
+        final ExecutorService errorCollection = Executors.newSingleThreadExecutor();
         try {
             process = builder.start();
             outputFuture = outputCollection.submit(collectOutput(process.getInputStream(), shareOutput));
             errorFuture = errorCollection.submit(collectOutput(process.getErrorStream(), errorReader));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             Logger.error("Was not able to execute " + command, e);
             return Result.Failure(new ShellException(e));
         }
@@ -75,7 +75,7 @@ public class ShellExecutor {
             exitCode = process.waitFor();
             outputFuture.get();
             errorFuture.get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (final InterruptedException | ExecutionException e) {
             Logger.error("Interrupted while waiting for process to end.", e);
             return Result.Failure(new ShellException(e));
         } finally {
@@ -87,9 +87,9 @@ public class ShellExecutor {
 
     private Runnable collectOutput(final InputStream inputStream, final Consumer<String> consumer) {
         return () -> {
-            try (inputStream; BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            try (inputStream; final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 reader.lines().forEach(consumer);
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 Logger.error("Exception thrown while reading stream of Shell command.", e);
             }
         };

@@ -13,11 +13,11 @@ public class DiffCommand extends ShellCommand {
     private final String[] files;
     private final LinkedList<String> args = new LinkedList<>();
 
-    public DiffCommand(String... files) {
+    public DiffCommand(final String... files) {
         this.files = files;
     }
 
-    public static DiffCommand Recommended(Path pathA, Path pathB) {
+    public static DiffCommand Recommended(final Path pathA, final Path pathB) {
         return new DiffCommand(pathA.toString(), pathB.toString())
                 .newFile()
                 .text()
@@ -27,7 +27,7 @@ public class DiffCommand extends ShellCommand {
 
     @Override
     public String[] parts() {
-        String[] parts = new String[files.length + args.size() + 1];
+        final String[] parts = new String[files.length + args.size() + 1];
 
         parts[0] = COMMAND;
         int index = 0;
@@ -86,7 +86,7 @@ public class DiffCommand extends ShellCommand {
     }
 
     @Override
-    public Result<List<String>, ShellException> interpretResult(int code, List<String> output) {
+    public Result<List<String>, ShellException> interpretResult(final int code, final List<String> output) {
         return code == 0 || code == 1 ? Result.Success(output) : Result.Failure(new ShellException(output));
     }
 }

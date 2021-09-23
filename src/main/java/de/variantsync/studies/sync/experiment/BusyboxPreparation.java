@@ -35,10 +35,10 @@ public class BusyboxPreparation {
      * @param dir The directory to normalize all source files in.
      * @throws IOException If writing the replaced files fails.
      */
-    public static void normalizeDir(@NonNull File dir) throws IOException {
-        File[] files = dir.listFiles();
+    public static void normalizeDir(@NonNull final File dir) throws IOException {
+        final File[] files = dir.listFiles();
         if (files != null) {
-            for (File file : files) {
+            for (final File file : files) {
                 if (file.isDirectory()) {
                     normalizeDir(file);
                 } else if (file.getName().endsWith(".h") || file.getName().endsWith(".c")) {
@@ -54,15 +54,15 @@ public class BusyboxPreparation {
      * @param file The file to normalize.
      * @throws IOException If writing the replaced file fails.
      */
-    private static void normalizeFile(@NonNull File file) throws IOException {
-        File tempFile;
+    private static void normalizeFile(@NonNull final File file) throws IOException {
+        final File tempFile;
         FileOutputStream fos = null;
         if (file.getName().contains("unicode") || file.getName().contains(".fnt")) {
             return;
         }
 
         List<@NonNull String> inputFile = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+        try (final BufferedReader br = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file.getPath()), StandardCharsets.UTF_8))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -75,8 +75,8 @@ public class BusyboxPreparation {
 
         inputFile = substituteLineContinuation(inputFile);
 
-        try (BufferedWriter bwr = new BufferedWriter(new OutputStreamWriter(fos))) {
-            for (String line : inputFile) {
+        try (final BufferedWriter bwr = new BufferedWriter(new OutputStreamWriter(fos))) {
+            for (final String line : inputFile) {
                 bwr.write(normalizeLine(line));
                 bwr.write('\n');
             }
@@ -91,10 +91,10 @@ public class BusyboxPreparation {
      * @param inputFile The input file as a list of lines.
      * @return The list of lines with substituted line continuation
      */
-    static @NonNull List<@NonNull String> substituteLineContinuation(@NonNull List<@NonNull String> inputFile) {
+    static @NonNull List<@NonNull String> substituteLineContinuation(@NonNull final List<@NonNull String> inputFile) {
         int start = -1;
         int end = -1;
-        List<@NonNull String> toReturn = new ArrayList<>(inputFile.size());
+        final List<@NonNull String> toReturn = new ArrayList<>(inputFile.size());
 
         for (int i = 0; i < inputFile.size(); i++) {
             if (notNull(inputFile.get(i)).endsWith("\\")) {
@@ -107,7 +107,7 @@ public class BusyboxPreparation {
                 end = i;
             }
             if (start != -1) {
-                StringBuilder toAdd = new StringBuilder();
+                final StringBuilder toAdd = new StringBuilder();
                 for (int j = start; j <= end; j++) {
                     String line = notNull(inputFile.get(j));
                     if (j != end) {
@@ -126,7 +126,7 @@ public class BusyboxPreparation {
 
         // we found a \ at the last line of the file
         if (start != -1) {
-            StringBuilder toAdd = new StringBuilder();
+            final StringBuilder toAdd = new StringBuilder();
             for (int j = start; j <= end; j++) {
                 String line = notNull(inputFile.get(j));
                 line = line.substring(0, line.length() - 1); // remove trailing \
@@ -144,8 +144,8 @@ public class BusyboxPreparation {
      * @param line The line to normalize
      * @return The normalized line.
      */
-    private static @NonNull String normalizeLine(@NonNull String line) {
-        int index;
+    private static @NonNull String normalizeLine(@NonNull final String line) {
+        final int index;
         String temp;
         if (line.length() == 0) {
             return line;
@@ -160,7 +160,7 @@ public class BusyboxPreparation {
             index = line.indexOf("//");
             return normalizeLine(notNull(line.substring(0, index))) + line.substring(index);
         }
-        boolean startsWith = line.replace("\\t", " ").trim().startsWith("*");
+        final boolean startsWith = line.replace("\\t", " ").trim().startsWith("*");
         if (line.contains("/*") || line.contains("*/") || startsWith) {
             // lines that start with or are block comments
             if (line.replace("\\t", " ").trim().startsWith("/*") || startsWith) {
@@ -197,7 +197,7 @@ public class BusyboxPreparation {
      * @param line The line to check.
      * @return Whether the given line is a #define or #undef.
      */
-    private static boolean doNotNormalizeDefUndef(@NonNull String line) {
+    private static boolean doNotNormalizeDefUndef(@NonNull final String line) {
         return line.contains("#undef") || line.contains("#define") || line.contains("# define")
                 || line.contains("# undef");
     }
@@ -208,7 +208,7 @@ public class BusyboxPreparation {
      * @param line The line to normalize.
      * @return The normalized line.
      */
-    private static @NonNull String normalizeDefinedEnableMacro(@NonNull String line) {
+    private static @NonNull String normalizeDefinedEnableMacro(@NonNull final String line) {
         return notNull(line.replace("defined ENABLE_", "defined CONFIG_"));
     }
 
@@ -254,15 +254,15 @@ public class BusyboxPreparation {
         }
         if (line.contains("ENABLE_")) {
             line = notNull(line.replace("ENABLE_", "\n#if defined CONFIG_"));
-            StringBuilder strB = new StringBuilder(line);
-            int indexDefinedConfig = line.indexOf(")", line.indexOf("defined CONFIG_") + 10);
+            final StringBuilder strB = new StringBuilder(line);
+            final int indexDefinedConfig = line.indexOf(")", line.indexOf("defined CONFIG_") + 10);
             if (line.contains("if (\n#if defined CONFIG_")) {
                 try {
                     strB.insert(indexDefinedConfig, "\n1\n#else\n0\n#endif\n");
-                } catch (StringIndexOutOfBoundsException exc) {
+                } catch (final StringIndexOutOfBoundsException exc) {
                     try {
                         strB.insert(indexDefinedConfig, "\n1\n#else\n0\n#endif\n");
-                    } catch (Exception exc2) {
+                    } catch (final Exception exc2) {
                         strB.append("\n1\n#else\n0\n#endif\n");
                     }
 
@@ -272,8 +272,8 @@ public class BusyboxPreparation {
             }
 
             // findOutWhat CONFIG_X is followed by and at which index of string
-            int indexOfWhitespace = line.indexOf(" ", line.indexOf("defined CONFIG_") + 10);
-            int indexOfComma = line.indexOf(",", line.indexOf("defined CONFIG_") + 10);
+            final int indexOfWhitespace = line.indexOf(" ", line.indexOf("defined CONFIG_") + 10);
+            final int indexOfComma = line.indexOf(",", line.indexOf("defined CONFIG_") + 10);
             int indexToInsert = indexOfWhitespace;
             if (indexOfComma != -1 && (indexOfComma < indexToInsert || indexToInsert == -1)) {
                 indexToInsert = indexOfComma;
@@ -307,12 +307,12 @@ public class BusyboxPreparation {
         String toRet;
 
         if (line.contains("(") && line.contains(")")) {
-            int indexOpening = line.indexOf("(", line.indexOf("IF_"));
+            final int indexOpening = line.indexOf("(", line.indexOf("IF_"));
             int indexClosing = line.length() - 1;
 
             int openingCount = 0;
 
-            char[] chars = line.toCharArray();
+            final char[] chars = line.toCharArray();
 
             for (int i = indexOpening + 1; i < chars.length; i++) {
                 if (chars[i] == '(') {

@@ -7,7 +7,7 @@ import java.util.List;
 public record FileDiff(List<String> header, List<Hunk> hunks, Path oldFile, Path newFile) implements IDiffComponent {
     @Override
     public List<String> toLines() {
-        List<String> lines = new LinkedList<>(header);
+        final List<String> lines = new LinkedList<>(header);
         hunks.stream().map(IDiffComponent::toLines).forEach(lines::addAll);
         return lines;
     }

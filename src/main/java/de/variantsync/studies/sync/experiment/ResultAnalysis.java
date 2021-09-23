@@ -18,18 +18,18 @@ import java.util.stream.Collectors;
 public class ResultAnalysis {
     static Path resultPath = Path.of("empirical-study").toAbsolutePath().resolve("results.txt");
 
-    public static PatchOutcome processOutcome(String dataset,
-                                              long runID,
-                                              String sourceVariant,
-                                              String targetVariant,
-                                              SPLCommit commitV0, SPLCommit commitV1,
-                                              FineDiff normalPatch, FineDiff filteredPatch,
-                                              OriginalDiff actualVsExpectedNormal, OriginalDiff actualVsExpectedFiltered,
-                                              OriginalDiff rejectsNormal, OriginalDiff rejectsFiltered,
-                                              List<Path> skippedFilesNormal) {
+    public static PatchOutcome processOutcome(final String dataset,
+                                              final long runID,
+                                              final String sourceVariant,
+                                              final String targetVariant,
+                                              final SPLCommit commitV0, final SPLCommit commitV1,
+                                              final FineDiff normalPatch, final FineDiff filteredPatch,
+                                              final OriginalDiff actualVsExpectedNormal, final OriginalDiff actualVsExpectedFiltered,
+                                              final OriginalDiff rejectsNormal, final OriginalDiff rejectsFiltered,
+                                              final List<Path> skippedFilesNormal) {
         // evaluate patch rejects
-        int fileNormal = new HashSet<>(normalPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-        int lineNormal = normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        final int fileNormal = new HashSet<>(normalPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
+        final int lineNormal = normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
         int fileNormalFailed = 0;
         int lineNormalFailed = 0;
         if (rejectsNormal != null) {
@@ -43,8 +43,8 @@ public class ResultAnalysis {
             Logger.status("Commit-sized patch succeeded.");
         }
 
-        int fileFiltered = new HashSet<>(filteredPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-        int lineFiltered = filteredPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        final int fileFiltered = new HashSet<>(filteredPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
+        final int lineFiltered = filteredPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
         int fileFilteredFailed = 0;
         int lineFilteredFailed = 0;
         if (rejectsFiltered != null) {
@@ -59,18 +59,18 @@ public class ResultAnalysis {
         selected -= normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
 
         // false negatives = relevant that failed
-        int normalFN = lineFilteredFailed;
+        final int normalFN = lineFilteredFailed;
         // true positives = relevant - false negatives
-        int normalTP = lineFiltered - normalFN;
+        final int normalTP = lineFiltered - normalFN;
         // false positive = selected - true positive
-        int normalFP = selected - normalTP;
+        final int normalFP = selected - normalTP;
         // true negative = all - relevant - false positive
-        int normalTN = lineNormal - lineFiltered - normalFP;
+        final int normalTN = lineNormal - lineFiltered - normalFP;
 
-        int filteredTP = lineFiltered - lineFilteredFailed;
-        int filteredFP = 0;
-        int filteredTN = lineNormal - lineFiltered;
-        int filteredFN = lineFilteredFailed;
+        final int filteredTP = lineFiltered - lineFilteredFailed;
+        final int filteredFP = 0;
+        final int filteredTN = lineNormal - lineFiltered;
+        final int filteredFN = lineFilteredFailed;
 
         assert normalTP + normalFP + normalFN + normalTN == filteredTP + filteredFP + filteredTN + filteredFN;
         assert filteredTP + filteredFN == lineFiltered;
@@ -106,8 +106,8 @@ public class ResultAnalysis {
                 filteredFN);
     }
 
-    public static void main(String... args) throws IOException {
-        List<PatchOutcome> allOutcomes = loadResultObjects(resultPath);
+    public static void main(final String... args) throws IOException {
+        final List<PatchOutcome> allOutcomes = loadResultObjects(resultPath);
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("Patch Success");
@@ -138,8 +138,8 @@ public class ResultAnalysis {
         System.out.println("Actual vs. Expected");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
-        long countNormal = allOutcomes.stream().filter(PatchOutcome::normalAsExpected).count();
-        long countFiltered = allOutcomes.stream().filter(PatchOutcome::filteredAsExpected).count();
+        final long countNormal = allOutcomes.stream().filter(PatchOutcome::normalAsExpected).count();
+        final long countFiltered = allOutcomes.stream().filter(PatchOutcome::filteredAsExpected).count();
         System.out.printf("Normal patching achieved the expected result %d out of %d times.%n", countNormal, allOutcomes.size());
         System.out.printf("Filtered patching achieved the expected result %d out of %d times.%n", countFiltered, allOutcomes.size());
         
@@ -147,34 +147,34 @@ public class ResultAnalysis {
         System.out.println("++++++++++++++++++++++++++++++++++++++");
     }
 
-    private static void printTechnicalSuccess(List<PatchOutcome> allOutcomes) {
-        long commitPatches = allOutcomes.size();
-        long commitSuccess = allOutcomes.stream().filter(o -> o.lineSuccessNormal() == o.lineNormal()).count();
+    private static void printTechnicalSuccess(final List<PatchOutcome> allOutcomes) {
+        final long commitPatches = allOutcomes.size();
+        final long commitSuccess = allOutcomes.stream().filter(o -> o.lineSuccessNormal() == o.lineNormal()).count();
         System.out.printf("%d of %d commit-sized patch applications succeeded (%s)%n", commitSuccess, commitPatches, percentage(commitSuccess, commitPatches));
 
-        long fileNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileNormal).sum();
-        long fileSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessNormal).sum();
+        final long fileNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileNormal).sum();
+        final long fileSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessNormal).sum();
 
         System.out.printf("%d of %d file-sized patch applications succeeded (%s)%n", fileSuccessNormal, fileNormal, percentage(fileSuccessNormal, fileNormal));
 
-        long lineNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineNormal).sum();
-        long lineSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineSuccessNormal).sum();
+        final long lineNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineNormal).sum();
+        final long lineSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineSuccessNormal).sum();
         System.out.printf("%d of %d line-sized patch applications succeeded (%s)%n", lineSuccessNormal, lineNormal, percentage(lineSuccessNormal, lineNormal));
 
-        long fileFiltered = allOutcomes.stream().mapToLong(PatchOutcome::fileFiltered).sum();
-        long fileSuccessFiltered = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessFiltered).sum();
+        final long fileFiltered = allOutcomes.stream().mapToLong(PatchOutcome::fileFiltered).sum();
+        final long fileSuccessFiltered = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessFiltered).sum();
         System.out.printf("%d of %d filtered file-sized patch applications succeeded (%s)%n", fileSuccessFiltered, fileFiltered, percentage(fileSuccessFiltered, fileFiltered));
 
-        long lineFiltered = allOutcomes.stream().mapToLong(PatchOutcome::lineFiltered).sum();
-        long lineSuccessFiltered = allOutcomes.stream().mapToLong(PatchOutcome::lineSuccessFiltered).sum();
+        final long lineFiltered = allOutcomes.stream().mapToLong(PatchOutcome::lineFiltered).sum();
+        final long lineSuccessFiltered = allOutcomes.stream().mapToLong(PatchOutcome::lineSuccessFiltered).sum();
         System.out.printf("%d of %d filtered line-sized patch applications succeeded (%s)%n", lineSuccessFiltered, lineFiltered, percentage(lineSuccessFiltered, lineFiltered));
 
     }
 
-    private static void printPrecisionRecall(long tp, long fp, long tn, long fn) {
-        double precision = (double) tp / ((double) tp + fp);
-        double recall = (double) tp / ((double) tp + fn);
-        double f_measure = (2 * precision * recall) / (precision + recall);
+    private static void printPrecisionRecall(final long tp, final long fp, final long tn, final long fn) {
+        final double precision = (double) tp / ((double) tp + fp);
+        final double recall = (double) tp / ((double) tp + fn);
+        final double f_measure = (2 * precision * recall) / (precision + recall);
 
         System.out.println("TP: " + tp);
         System.out.println("FP: " + fp);
@@ -185,11 +185,11 @@ public class ResultAnalysis {
         System.out.printf("F-Measure: %1.2f%n", f_measure);
     }
 
-    public static List<PatchOutcome> loadResultObjects(Path path) throws IOException {
-        List<PatchOutcome> results = new LinkedList<>();
-        List<String> lines = Files.readAllLines(path);
+    public static List<PatchOutcome> loadResultObjects(final Path path) throws IOException {
+        final List<PatchOutcome> results = new LinkedList<>();
+        final List<String> lines = Files.readAllLines(path);
         List<String> currentResult = new LinkedList<>();
-        for (String l : lines) {
+        for (final String l : lines) {
             if (l.isEmpty()) {
                 results.add(parseResult(currentResult));
                 currentResult = new LinkedList<>();
@@ -200,16 +200,16 @@ public class ResultAnalysis {
         return results;
     }
 
-    public static PatchOutcome parseResult(List<String> lines) {
-        Gson gson = new Gson();
-        StringBuilder sb = new StringBuilder();
+    public static PatchOutcome parseResult(final List<String> lines) {
+        final Gson gson = new Gson();
+        final StringBuilder sb = new StringBuilder();
         lines.forEach(l -> sb.append(l).append("\n"));
-        JsonObject object = gson.fromJson(sb.toString(), JsonObject.class);
+        final JsonObject object = gson.fromJson(sb.toString(), JsonObject.class);
         return PatchOutcome.FromJSON(object);
     }
 
-    public static String percentage(long x, long y) {
-        double percentage;
+    public static String percentage(final long x, final long y) {
+        final double percentage;
         if (y == 0) {
             percentage = 0;
         } else {

@@ -33,20 +33,20 @@ public record PatchOutcome(String dataset,
                            long filteredTN,
                            long filteredFN) {
 
-    public static String toJSON(String key, Object value) {
+    public static String toJSON(final String key, final Object value) {
         return "\"" + key + "\": " + value;
     }
 
-    public static String toJSON(String key, long value) {
+    public static String toJSON(final String key, final long value) {
         return "\"" + key + "\": " + value;
     }
 
-    public static String toJSON(String key, boolean value) {
+    public static String toJSON(final String key, final boolean value) {
         return "\"" + key + "\": " + value;
     }
 
-    public static String collectionToJSON(Collection<String> collection) {
-        StringBuilder sb = new StringBuilder();
+    public static String collectionToJSON(final Collection<String> collection) {
+        final StringBuilder sb = new StringBuilder();
         sb.append("[");
         collection.forEach(l -> sb.append("\"").append(l).append("\"").append(","));
         sb.deleteCharAt(sb.length() - 1);
@@ -54,7 +54,7 @@ public record PatchOutcome(String dataset,
         return sb.toString();
     }
 
-    public static PatchOutcome FromJSON(JsonObject object) {
+    public static PatchOutcome FromJSON(final JsonObject object) {
         return new PatchOutcome(
                 object.get("dataset").getAsString(),
                 object.get("runID").getAsLong(),
@@ -83,8 +83,8 @@ public record PatchOutcome(String dataset,
         );
     }
 
-    public void writeAsJSON(Path pathToFile, boolean append) throws IOException {
-        StringBuilder jsonBuilder = new StringBuilder();
+    public void writeAsJSON(final Path pathToFile, final boolean append) throws IOException {
+        final StringBuilder jsonBuilder = new StringBuilder();
         jsonBuilder.append("{").append("\n");
         jsonBuilder.append(toJSON("dataset", dataset)).append(",\n");
         jsonBuilder.append(toJSON("runID", runID)).append(",\n");

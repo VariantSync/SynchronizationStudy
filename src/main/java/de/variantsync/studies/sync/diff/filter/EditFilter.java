@@ -11,35 +11,34 @@ import java.util.Objects;
 public class EditFilter extends PCBasedFilter {
     private final Map<EditLocation, Boolean> keepDecisions = new HashMap<>();
     
-    public EditFilter(Artefact oldTraces, Artefact newTraces, Variant targetVariant, Path oldVersionRoot, Path newVersionRoot) {
+    public EditFilter(final Artefact oldTraces, final Artefact newTraces, final Variant targetVariant, final Path oldVersionRoot, final Path newVersionRoot) {
         super(oldTraces, newTraces, targetVariant, oldVersionRoot, newVersionRoot);
     }
 
-    public EditFilter(Artefact oldTraces, Artefact newTraces, Variant targetVariant, Path oldVersionRoot, Path newVersionRoot, int strip) {
+    public EditFilter(final Artefact oldTraces, final Artefact newTraces, final Variant targetVariant, final Path oldVersionRoot, final Path newVersionRoot, final int strip) {
         super(oldTraces, newTraces, targetVariant, oldVersionRoot, newVersionRoot, strip);
     }
 
     @Override
-    public boolean keepEdit(Path filePath, int index) {
-        EditLocation editLocation = new EditLocation(filePath, index);
-        boolean keep = super.keepEdit(filePath, index);
+    public boolean keepEdit(final Path filePath, final int index) {
+        final EditLocation editLocation = new EditLocation(filePath, index);
+        final boolean keep = super.keepEdit(filePath, index);
         keepDecisions.put(editLocation, keep);
         return keep;
     }
     
     @Override
-    public boolean keepContext(Path filePath, int index) {
-        EditLocation editLocation = new EditLocation(filePath, index);
-        boolean decision = keepDecisions.getOrDefault(editLocation, true);
-        return decision;
+    public boolean keepContext(final Path filePath, final int index) {
+        final EditLocation editLocation = new EditLocation(filePath, index);
+        return keepDecisions.getOrDefault(editLocation, true);
     }
     
     private record EditLocation(Path filePath, int index) {
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            EditLocation that = (EditLocation) o;
+            final EditLocation that = (EditLocation) o;
             return index == that.index && Objects.equals(filePath, that.filePath);
         }
 
