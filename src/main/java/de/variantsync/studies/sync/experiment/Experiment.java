@@ -238,7 +238,7 @@ public abstract class Experiment {
                 }
             }
             pairCount++;
-            Logger.status(String.format("Finished commit pair %d of %d.%n", pairCount, pairs.size()));
+            Logger.warning(String.format("Finished commit pair %d of %d.%n", pairCount, pairs.size()));
             Logger.status(String.format("Cleaning data of commit %s", commitV0.id()));
             shell.execute(new RmCommand(commitV0.getCommitDataDirectory()).recursive());
             Logger.status(String.format("Cleaning data of commit %s", commitV1.id()));

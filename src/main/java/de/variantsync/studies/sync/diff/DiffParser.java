@@ -74,7 +74,7 @@ public class DiffParser {
 
     private static FileDiff parseFileDiff(final List<String> fileDiffContent) {
         int index = 0;
-        final String HUNK_START = "@@";
+        final String HUNK_START = "@@ -";
         String nextLine = fileDiffContent.get(index);
 
         // Parse the header
