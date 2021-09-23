@@ -14,9 +14,10 @@ import de.variantsync.evolution.variability.CommitPair;
 import de.variantsync.evolution.variability.SPLCommit;
 import de.variantsync.evolution.variability.VariabilityDataset;
 import de.variantsync.evolution.variability.pc.Artefact;
-import de.variantsync.evolution.variability.pc.VariantGenerationOptions;
+import de.variantsync.evolution.variability.pc.options.VariantGenerationOptions;
 import de.variantsync.evolution.variability.pc.groundtruth.GroundTruth;
 import de.variantsync.studies.sync.diff.DiffParser;
+import de.variantsync.studies.sync.diff.components.FileDiff;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.filter.EditFilter;
@@ -114,11 +115,11 @@ public abstract class Experiment {
             final SPLCommit commitV0 = pair.parent();
             final SPLCommit commitV1 = pair.child();
 
-            splRepoPreparation(splRepositoryV0, splRepositoryV1, commitV0, commitV1);
+            final SimpleFileFilter fileFilter = splRepoPreparation(splRepositoryV0, splRepositoryV1, commitV0, commitV1);
 
             // While more random configurations to consider
             for (int i = 0; i < randomRepeats; i++) {
-                Logger.status("Starting repetition " + (i + 1) + " of " + randomRepeats + " with " + numVariants + " variants.");
+                Logger.warning("Starting repetition " + (i + 1) + " of " + randomRepeats + " with " + numVariants + " variants.");
                 // Sample set of random variants
                 Logger.status("Sampling next set of variants...");
                 final Sample sample = sample(commitV0, commitV1);
@@ -152,7 +153,7 @@ public abstract class Experiment {
                 final Map<Variant, GroundTruth> groundTruthV1 = new HashMap<>();
                 Logger.status("Generating variants...");
                 for (final Variant variant : sample.variants()) {
-                    generateVariant(commitV0, commitV1, groundTruthV0, groundTruthV1, variant);
+                    generateVariant(commitV0, commitV1, groundTruthV0, groundTruthV1, variant, fileFilter);
                 }
                 Logger.status("Done.");
 
@@ -262,7 +263,12 @@ public abstract class Experiment {
         return rejectsDiff;
     }
 
-    private void generateVariant(final SPLCommit commitV0, final SPLCommit commitV1, final Map<Variant, GroundTruth> groundTruthV0, final Map<Variant, GroundTruth> groundTruthV1, final Variant variant) {
+    private void generateVariant(final SPLCommit commitV0,
+                                 final SPLCommit commitV1,
+                                 final Map<Variant, GroundTruth> groundTruthV0,
+                                 final Map<Variant, GroundTruth> groundTruthV1,
+                                 final Variant variant,
+                                 final SimpleFileFilter filter) {
         Logger.status("Generating variant " + variant.getName());
         if (variant.getConfiguration() instanceof FeatureIDEConfiguration config) {
             try {
@@ -270,6 +276,14 @@ public abstract class Experiment {
             } catch (final IOException e) {
                 Logger.error("Was not able to write configuration of " + variant.getName(), e);
             }
+        }
+
+        try {
+            Files.createDirectories(variantsDirV0.path().resolve(variant.getName()));
+            Files.createDirectories(variantsDirV1.path().resolve(variant.getName()));
+        } catch (final IOException e) {
+            e.printStackTrace();
+            panic("Was not able to create directory for variant: " + variant.getName());
         }
 
         final GroundTruth gtV0 = commitV0
@@ -280,7 +294,7 @@ public abstract class Experiment {
                         variant,
                         new CaseSensitivePath(splRepositoryV0Path),
                         variantsDirV0.resolve(variant.getName()),
-                        VariantGenerationOptions.ExitOnErrorButAllowNonExistentFiles)
+                        VariantGenerationOptions.ExitOnErrorButAllowNonExistentFiles(filter))
                 .expect("Was not able to generate V0 of " + variant);
         try {
             Resources.Instance().write(Artefact.class, gtV0.artefact(), debugDir.resolve("V0-" + variant.getName() + ".variant.csv"));
@@ -297,7 +311,7 @@ public abstract class Experiment {
                         variant,
                         new CaseSensitivePath(splRepositoryV1Path),
                         variantsDirV1.resolve(variant.getName()),
-                        VariantGenerationOptions.ExitOnErrorButAllowNonExistentFiles)
+                        VariantGenerationOptions.ExitOnErrorButAllowNonExistentFiles(filter))
                 .expect("Was not able to generate V1 of " + variant);
         try {
             Resources.Instance().write(Artefact.class, gtV1.artefact(), debugDir.resolve("V1-" + variant.getName() + ".variant.csv"));
@@ -307,7 +321,7 @@ public abstract class Experiment {
         groundTruthV1.put(variant, gtV1);
     }
 
-    private void splRepoPreparation(final SPLRepository splRepositoryV0, final SPLRepository splRepositoryV1, final SPLCommit commitV0, final SPLCommit commitV1) {
+    private SimpleFileFilter splRepoPreparation(final SPLRepository splRepositoryV0, final SPLRepository splRepositoryV1, final SPLCommit commitV0, final SPLCommit commitV1) {
         Logger.info("Next V0 commit: " + commitV0);
         Logger.info("Next V1 commit: " + commitV1);
         // Checkout the commits in the SPL repository
@@ -329,6 +343,13 @@ public abstract class Experiment {
         }
         Logger.info("Done.");
 
+        Logger.info("Diffing SPL commits for find changed files.");
+        final OriginalDiff diff = getOriginalDiff(splRepositoryV0Path, splRepositoryV1Path);
+        final Set<Path> filesToKeep = new HashSet<>();
+        for (final FileDiff fileDiff : diff.fileDiffs()) {
+            filesToKeep.add(fileDiff.oldFile().subpath(1,fileDiff.oldFile().getNameCount()));
+        }
+
         if (experimentalSubject == EExperimentalSubject.BUSYBOX) {
             Logger.status("Normalizing BusyBox files...");
             try {
@@ -339,6 +360,8 @@ public abstract class Experiment {
                 panic("Was not able to normalize BusyBox.", e);
             }
         }
+
+        return new SimpleFileFilter(filesToKeep);
     }
 
     private Set<CommitPair<SPLCommit>> init() {
