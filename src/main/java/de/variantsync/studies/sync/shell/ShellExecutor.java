@@ -22,17 +22,19 @@ public class ShellExecutor {
     private final Consumer<String> outputReader;
     private final Consumer<String> errorReader;
     private final Path workDir;
+    private final ExecutorService outputCollection;
+    private final ExecutorService errorCollection;
 
     public ShellExecutor(final Consumer<String> outputReader, final Consumer<String> errorReader) {
-        this.workDir = null;
-        this.outputReader = outputReader;
-        this.errorReader = errorReader;
+        this(outputReader, errorReader, null);
     }
 
     public ShellExecutor(final Consumer<String> outputReader, final Consumer<String> errorReader, final Path workDir) {
         this.workDir = workDir;
         this.outputReader = outputReader;
         this.errorReader = errorReader;
+        outputCollection = Executors.newSingleThreadExecutor();
+        errorCollection = Executors.newSingleThreadExecutor();
     }
 
     public Result<List<String>, ShellException> execute(final ShellCommand command) {
@@ -59,8 +61,7 @@ public class ShellExecutor {
             output.add(s);
             outputReader.accept(s);
         };
-        final ExecutorService outputCollection = Executors.newSingleThreadExecutor();
-        final ExecutorService errorCollection = Executors.newSingleThreadExecutor();
+
         try {
             process = builder.start();
             outputFuture = outputCollection.submit(collectOutput(process.getInputStream(), shareOutput));
@@ -70,7 +71,7 @@ public class ShellExecutor {
             return Result.Failure(new ShellException(e));
         }
 
-        int exitCode;
+        final int exitCode;
         try {
             exitCode = process.waitFor();
             outputFuture.get();
@@ -78,9 +79,6 @@ public class ShellExecutor {
         } catch (final InterruptedException | ExecutionException e) {
             Logger.error("Interrupted while waiting for process to end.", e);
             return Result.Failure(new ShellException(e));
-        } finally {
-            outputCollection.shutdown();
-            errorCollection.shutdown();
         }
         return command.interpretResult(exitCode, output);
     }

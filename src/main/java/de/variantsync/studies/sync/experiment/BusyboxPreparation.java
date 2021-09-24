@@ -56,12 +56,12 @@ public class BusyboxPreparation {
      */
     private static void normalizeFile(@NonNull final File file) throws IOException {
         final File tempFile;
-        FileOutputStream fos = null;
         if (file.getName().contains("unicode") || file.getName().contains(".fnt")) {
             return;
         }
 
         List<@NonNull String> inputFile = new ArrayList<>();
+        final FileOutputStream fos;
         try (final BufferedReader br = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file.getPath()), StandardCharsets.UTF_8))) {
             String line;
@@ -75,7 +75,7 @@ public class BusyboxPreparation {
 
         inputFile = substituteLineContinuation(inputFile);
 
-        try (final BufferedWriter bwr = new BufferedWriter(new OutputStreamWriter(fos))) {
+        try (fos; final BufferedWriter bwr = new BufferedWriter(new OutputStreamWriter(fos))) {
             for (final String line : inputFile) {
                 bwr.write(normalizeLine(line));
                 bwr.write('\n');
