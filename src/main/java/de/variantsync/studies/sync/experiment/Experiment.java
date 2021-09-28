@@ -342,6 +342,8 @@ public abstract class Experiment {
         // Checkout the commits in the SPL repository
         try {
             // Stash all changes and drop the stash. This is a workaround as the JGit API does not support restore.
+            // TODO: Firstly, we do not have to do this for Linux
+            // TODO: Secondly, we can also try to checkout forced instead...
             Logger.status("Cleaning state of V0 repo.");
             splRepositoryV0.stashCreate(true);
             splRepositoryV0.dropStash();
