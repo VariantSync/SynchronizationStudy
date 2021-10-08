@@ -256,6 +256,9 @@ public abstract class Experiment {
                         final OriginalDiff actualVsExpectedFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
                         final OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
 
+                        if (actualVsExpectedFiltered != null && !actualVsExpectedFiltered.isEmpty() && (rejectsFiltered == null || rejectsFiltered.isEmpty())) {
+                            getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
+                        }
                         /* Result Evaluation */
                         final PatchOutcome patchOutcome = ResultAnalysis.processOutcome(
                                 experimentalSubject.name(),
@@ -462,9 +465,10 @@ public abstract class Experiment {
                 result.getSuccess().forEach(Logger::info);
             } else {
                 final List<String> lines = result.getFailure().getOutput();
-                Logger.error("Failed to apply part of patch.");
+                Logger.warning("Failed to apply part of patch.");
                 String oldFile;
                 for (final String nextLine : lines) {
+                    Logger.debug(nextLine);
                     if (nextLine.startsWith("|---")) {
                         oldFile = nextLine.split("\\s+")[1];
                         skipped.add(Path.of(oldFile));

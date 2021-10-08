@@ -59,7 +59,7 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
 
     @Override
     public boolean shouldKeep(final FileDiff fileDiff) {
-        return shouldKeep(targetVariant, oldTraces, fileDiff.oldFile()) && shouldKeep(targetVariant, newTraces, fileDiff.newFile());
+        return shouldKeep(targetVariant, oldTraces, fileDiff.oldFile()) || shouldKeep(targetVariant, newTraces, fileDiff.newFile());
     }
 
     @Override
