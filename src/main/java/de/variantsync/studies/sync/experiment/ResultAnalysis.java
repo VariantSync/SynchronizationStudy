@@ -6,6 +6,8 @@ import de.variantsync.evolution.util.Logger;
 import de.variantsync.evolution.variability.SPLCommit;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
+import de.variantsync.studies.sync.diff.lines.AddedLine;
+import de.variantsync.studies.sync.diff.lines.RemovedLine;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,7 +26,7 @@ public class ResultAnalysis {
                                               final String targetVariant,
                                               final SPLCommit commitV0, final SPLCommit commitV1,
                                               final FineDiff normalPatch, final FineDiff filteredPatch,
-                                              final OriginalDiff actualVsExpectedNormal, final OriginalDiff actualVsExpectedFiltered,
+                                              final FineDiff actualVsExpectedNormal, final FineDiff actualVsExpectedFiltered,
                                               final OriginalDiff rejectsNormal, final OriginalDiff rejectsFiltered,
                                               final List<Path> skippedFilesNormal) {
         // evaluate patch rejects
@@ -59,18 +61,26 @@ public class ResultAnalysis {
         selected -= normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
 
         // false negatives = relevant that failed
-        final int normalFN = lineFilteredFailed;
+//        final int normalFN = lineFilteredFailed;
+        final long normalFN = actualVsExpectedNormal.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof AddedLine).count();
         // true positives = relevant - false negatives
-        final int normalTP = lineFiltered - normalFN;
+//        final int normalTP = lineFiltered - normalFN;
+        final long normalTP = lineFiltered - normalFN;
         // false positive = selected - true positive
-        final int normalFP = selected - normalTP;
+//        final int normalFP = selected - normalTP;
+        final long normalFP = actualVsExpectedNormal.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof RemovedLine).count();
         // true negative = all - relevant - false positive
-        final int normalTN = lineNormal - lineFiltered - normalFP;
+//        final int normalTN = lineNormal - lineFiltered - normalFP;
+        final long normalTN = lineNormal - lineFiltered - normalFP;
 
-        final int filteredTP = lineFiltered - lineFilteredFailed;
-        final int filteredFP = 0;
-        final int filteredTN = lineNormal - lineFiltered;
-        final int filteredFN = lineFilteredFailed;
+//        final int filteredTP = lineFiltered - lineFilteredFailed;
+//        final int filteredFP = 0;
+//        final int filteredTN = lineNormal - lineFiltered;
+//        final int filteredFN = lineFilteredFailed;
+        final long filteredFP = actualVsExpectedFiltered.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof RemovedLine).count();
+        final long filteredTN = lineNormal - lineFiltered - filteredFP;
+        final long filteredFN = actualVsExpectedFiltered.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof AddedLine).count();
+        final long filteredTP = lineFiltered - filteredFN;
 
         assert normalTP + normalFP + normalFN + normalTN == filteredTP + filteredFP + filteredTN + filteredFN;
         assert filteredTP + filteredFN == lineFiltered;
@@ -79,6 +89,7 @@ public class ResultAnalysis {
         assert normalFP + normalTN == lineNormal - lineFiltered;
         assert normalTP <= filteredTP;
         assert normalTN <= filteredTN;
+        assert filteredFP == 0;
 
         return new PatchOutcome(dataset,
                 runID,
@@ -86,8 +97,8 @@ public class ResultAnalysis {
                 commitV1.id(),
                 sourceVariant,
                 targetVariant,
-                actualVsExpectedNormal.isEmpty(),
-                actualVsExpectedFiltered.isEmpty(),
+                actualVsExpectedNormal.content().size(),
+                actualVsExpectedFiltered.content().size(),
                 fileNormal,
                 lineNormal,
                 fileNormal - fileNormalFailed,
@@ -138,10 +149,12 @@ public class ResultAnalysis {
         System.out.println("Actual vs. Expected");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
-        final long countNormal = allOutcomes.stream().filter(PatchOutcome::normalAsExpected).count();
-        final long countFiltered = allOutcomes.stream().filter(PatchOutcome::filteredAsExpected).count();
-        System.out.printf("Normal patching achieved the expected result %d out of %d times.%n", countNormal, allOutcomes.size());
-        System.out.printf("Filtered patching achieved the expected result %d out of %d times.%n", countFiltered, allOutcomes.size());
+        final long countNormalAsExpected = allOutcomes.stream().mapToLong(PatchOutcome::countOfNormalAsExpected).sum();
+        final long countFilteredAsExpected = allOutcomes.stream().mapToLong(PatchOutcome::countOfFilteredAsExpected).sum();
+        final long countNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineNormal).sum();
+        final long countFiltered = allOutcomes.stream().mapToLong(PatchOutcome::lineFiltered).sum();
+        System.out.printf("Normal patching achieved the expected result %d out of %d times.%n", countNormalAsExpected, countNormal);
+        System.out.printf("Filtered patching achieved the expected result %d out of %d times.%n", countFilteredAsExpected, countFiltered);
         
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("++++++++++++++++++++++++++++++++++++++");

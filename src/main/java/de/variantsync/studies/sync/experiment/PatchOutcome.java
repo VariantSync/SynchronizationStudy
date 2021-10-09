@@ -14,8 +14,8 @@ public record PatchOutcome(String dataset,
                            String commitV1,
                            String sourceVariant,
                            String targetVariant,
-                           boolean normalAsExpected,
-                           boolean filteredAsExpected,
+                           long countOfNormalAsExpected,
+                           long countOfFilteredAsExpected,
                            long fileNormal,
                            long lineNormal,
                            long fileSuccessNormal,
@@ -62,8 +62,8 @@ public record PatchOutcome(String dataset,
                 object.get("commitV1").getAsString(),
                 object.get("sourceVariant").getAsString(),
                 object.get("targetVariant").getAsString(),
-                object.get("normalAsExpected").getAsBoolean(),
-                object.get("filteredAsExpected").getAsBoolean(),
+                object.get("normalAsExpected").getAsLong(),
+                object.get("filteredAsExpected").getAsLong(),
                 object.get("fileNormal").getAsLong(),
                 object.get("lineNormal").getAsLong(),
                 object.get("fileSuccessNormal").getAsLong(),
@@ -92,8 +92,8 @@ public record PatchOutcome(String dataset,
         jsonBuilder.append(toJSON("commitV1", commitV1)).append(",\n");
         jsonBuilder.append(toJSON("sourceVariant", sourceVariant)).append(",\n");
         jsonBuilder.append(toJSON("targetVariant", targetVariant)).append(",\n");
-        jsonBuilder.append(toJSON("normalAsExpected", normalAsExpected)).append(",\n");
-        jsonBuilder.append(toJSON("filteredAsExpected", filteredAsExpected)).append(",\n");
+        jsonBuilder.append(toJSON("normalAsExpected", countOfNormalAsExpected)).append(",\n");
+        jsonBuilder.append(toJSON("filteredAsExpected", countOfFilteredAsExpected)).append(",\n");
         jsonBuilder.append(toJSON("fileNormal", fileNormal)).append(",\n");
         jsonBuilder.append(toJSON("lineNormal", lineNormal)).append(",\n");
         jsonBuilder.append(toJSON("fileSuccessNormal", fileSuccessNormal)).append(",\n");

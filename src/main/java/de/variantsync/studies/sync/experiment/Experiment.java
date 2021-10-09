@@ -23,6 +23,8 @@ import de.variantsync.studies.sync.diff.components.FileDiff;
 import de.variantsync.studies.sync.diff.components.FineDiff;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.filter.EditFilter;
+import de.variantsync.studies.sync.diff.filter.ResultFilter;
+import de.variantsync.studies.sync.diff.lines.RemovedLine;
 import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
 import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
 import de.variantsync.studies.sync.diff.splitting.IContextProvider;
@@ -85,7 +87,7 @@ public abstract class Experiment {
         splCopyB = workDir.resolve("SPL-B");
         variantsDirV0 = new CaseSensitivePath(workDir.resolve("V0Variants"));
         variantsDirV1 = new CaseSensitivePath(workDir.resolve("V1Variants"));
-        patchDir = workDir.resolve("TARGET");
+        patchDir = workDir.resolve("TARGET/V0");
         normalPatchFile = workDir.resolve("patch.txt");
         filteredPatchFile = workDir.resolve("filtered-patch.txt");
         rejectsNormalFile = workDir.resolve("rejects-normal.txt");
@@ -231,7 +233,7 @@ public abstract class Experiment {
                             continue;
                         }
                         runID++;
-                        Logger.status("Considering variant " + target.getName() + " as next target.");
+                        Logger.warning(source.getName() + " --patch--> " + target.getName());
                         final Path pathToTarget = variantsDirV0.path().resolve(target.getName());
                         final Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
 
@@ -240,25 +242,27 @@ public abstract class Experiment {
                         // Apply the fine diff to the target variant
                         final List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget, rejectsNormalFile);
                         // Evaluate the patch result
-                        final OriginalDiff actualVsExpectedNormal = getOriginalDiff(patchDir, pathToExpectedResult);
+                        final FineDiff actualVsExpectedNormal = getActualVsExpected(pathToExpectedResult, groundTruthV0.get(target).artefact(), groundTruthV1.get(target).artefact(), source);
                         final OriginalDiff rejectsNormal = readRejects(rejectsNormalFile);
 
                         /* Application of patches with knowledge about PC of edit only */
                         Logger.info("Applying patch with knowledge about edits' PCs...");
                         // Create target variant specific patch that respects PCs
-                        final FineDiff filteredPatch = getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
+                        final FineDiff filteredPatch = getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target, variantsDirV0.path(), variantsDirV1.path());
                         final boolean emptyPatch = filteredPatch.content().isEmpty();
                         saveDiff(filteredPatch, filteredPatchFile);
                         // Apply the patch
                         final List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, rejectsFilteredFile, emptyPatch);
                         assert skippedFiltered.isEmpty();
                         // Evaluate the result
-                        final OriginalDiff actualVsExpectedFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
+                        final FineDiff actualVsExpectedFiltered = getActualVsExpected(pathToExpectedResult, groundTruthV0.get(target).artefact(), groundTruthV1.get(target).artefact(), source);
                         final OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
 
-                        if (actualVsExpectedFiltered != null && !actualVsExpectedFiltered.isEmpty() && (rejectsFiltered == null || rejectsFiltered.isEmpty())) {
-                            getFilteredDiff(originalDiff, groundTruthV0.get(source).artefact(), groundTruthV1.get(source).artefact(), target);
-                        }
+//                        final OriginalDiff tempActualFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
+//                        if (tempActualFiltered != null && !tempActualFiltered.isEmpty() && (rejectsFiltered == null || rejectsFiltered.isEmpty())) {
+//                            System.out.println("Difference");
+//                        }
+
                         /* Result Evaluation */
                         final PatchOutcome patchOutcome = ResultAnalysis.processOutcome(
                                 experimentalSubject.name(),
@@ -294,6 +298,26 @@ public abstract class Experiment {
             childCommit.forget();
         }
         Logger.status("All done.");
+    }
+
+    /**
+     * Get the difference between the target variant after patching and the target variant in the next evolution step.
+     * Then, filter all differences that do not belong to the source variant and could have therefore not been synchronized
+     * in any case.
+     */
+    private FineDiff getActualVsExpected(final Path pathToExpectedResult, final Artefact tracesV0, final Artefact tracesV1, final Variant target) {
+        final OriginalDiff originalDiff = getOriginalDiff(patchDir, pathToExpectedResult);
+        final ResultFilter resultFilter = new ResultFilter(tracesV0, tracesV1, target, patchDir.getParent(), pathToExpectedResult.getParent(), 2);
+        FineDiff filteredResult = getFilteredDiff(originalDiff, resultFilter);
+        if (inDebug) {
+            try {
+                Files.write(debugDir.resolve("resultDiffOriginal.txt"), originalDiff.toLines());
+                Files.write(debugDir.resolve("resultDiffFiltered.txt"), filteredResult.toLines());
+            } catch (final IOException e) {
+                Logger.error("Was not able to save result diff", e);
+            }
+        }
+        return filteredResult;
     }
 
     protected abstract Sample sample(SPLCommit parentCommit, SPLCommit childCommit);
@@ -449,6 +473,13 @@ public abstract class Experiment {
             shell.execute(new RmCommand(patchDir.toAbsolutePath()).recursive());
         }
 
+        try {
+            Files.createDirectories(patchDir.getParent());
+        } catch (IOException e) {
+            e.printStackTrace();
+            panic("Was not able to create patch directories: ", e);
+        }
+
         if (Files.exists(rejectFile)) {
             Logger.info("Cleaning old rejects file " + rejectFile);
             shell.execute(new RmCommand(rejectFile));
@@ -465,7 +496,7 @@ public abstract class Experiment {
                 result.getSuccess().forEach(Logger::info);
             } else {
                 final List<String> lines = result.getFailure().getOutput();
-                Logger.warning("Failed to apply part of patch.");
+                Logger.info("Failed to apply part of patch. See debug log and rejects file for more information");
                 String oldFile;
                 for (final String nextLine : lines) {
                     Logger.debug(nextLine);
@@ -485,11 +516,15 @@ public abstract class Experiment {
         return DiffSplitter.split(originalDiff, contextProvider);
     }
 
-    private FineDiff getFilteredDiff(final OriginalDiff originalDiff, final Artefact tracesV0, final Artefact tracesV1, final Variant target) {
-        final EditFilter editFilter = new EditFilter(tracesV0, tracesV1, target, variantsDirV0.path(), variantsDirV1.path(), 2);
+    private FineDiff getFilteredDiff(final OriginalDiff originalDiff, final Artefact tracesV0, final Artefact tracesV1, final Variant target, Path oldVersionRoot, Path newVersionRoot) {
+        final EditFilter editFilter = new EditFilter(tracesV0, tracesV1, target, oldVersionRoot, newVersionRoot, 2);
+        return getFilteredDiff(originalDiff, editFilter);
+    }
+
+    private FineDiff getFilteredDiff(final OriginalDiff originalDiff, final EditFilter filter) {
         // Create target variant specific patch that respects PCs
         final IContextProvider contextProvider = new DefaultContextProvider(workDir);
-        return DiffSplitter.split(originalDiff, editFilter, editFilter, contextProvider);
+        return DiffSplitter.split(originalDiff, filter, filter, contextProvider);
     }
 
     protected OriginalDiff getOriginalDiff(final Path v0Path, final Path v1Path) {

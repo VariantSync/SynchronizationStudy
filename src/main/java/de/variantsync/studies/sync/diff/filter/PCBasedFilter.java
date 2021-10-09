@@ -12,12 +12,12 @@ import org.prop4j.Node;
 import java.nio.file.Path;
 
 public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
-    private final Artefact oldTraces;
-    private final Artefact newTraces;
-    private final Variant targetVariant;
-    private final Path oldVersion;
-    private final Path newVersion;
-    private final int strip;
+    protected final Artefact oldTraces;
+    protected final Artefact newTraces;
+    protected final Variant targetVariant;
+    protected final Path oldVersion;
+    protected final Path newVersion;
+    protected final int strip;
 
     public PCBasedFilter(final Artefact oldTraces, final Artefact newTraces, final Variant targetVariant, final Path oldVersionRoot, final Path newVersionRoot) {
         this.oldTraces = oldTraces;
@@ -37,7 +37,7 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
         this.strip = strip;
     }
 
-    private boolean shouldKeep(final Variant targetVariant, final Artefact traces, Path filePath, final int index) {
+    protected boolean shouldKeep(final Variant targetVariant, final Artefact traces, Path filePath, final int index) {
         filePath = filePath.subpath(strip, filePath.getNameCount());
         final Node pc = traces
                 .getPresenceConditionOf(new CaseSensitivePath(filePath), index)
@@ -45,7 +45,7 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
         return targetVariant.isImplementing(pc);
     }
 
-    private boolean shouldKeep(final Variant targetVariant, final Artefact traces, Path filePath) {
+    protected boolean shouldKeep(final Variant targetVariant, final Artefact traces, Path filePath) {
         filePath = filePath.subpath(strip, filePath.getNameCount());
         final Result<Node, Exception> result = traces.getPresenceConditionOf(new CaseSensitivePath(filePath));
         if (result.isFailure()) {
