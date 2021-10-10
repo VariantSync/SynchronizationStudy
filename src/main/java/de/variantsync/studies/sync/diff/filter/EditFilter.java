@@ -33,7 +33,7 @@ public class EditFilter extends PCBasedFilter {
         return keepDecisions.getOrDefault(editLocation, true);
     }
     
-    private record EditLocation(Path filePath, int index) {
+    protected record EditLocation(Path filePath, int index) {
         @Override
         public boolean equals(final Object o) {
             if (this == o) return true;

@@ -1,5 +1,7 @@
 package de.variantsync.studies.sync.diff.lines;
 
+import java.util.Objects;
+
 public abstract class Line {
     private final String line;
 
@@ -14,5 +16,17 @@ public abstract class Line {
     @Override
     public String toString() {
         return this.line;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Line line1)) return false;
+        return Objects.equals(line, line1.line);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(line);
     }
 }

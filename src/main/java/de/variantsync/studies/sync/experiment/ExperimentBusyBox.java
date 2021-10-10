@@ -81,7 +81,7 @@ public class ExperimentBusyBox extends Experiment{
                 Files.write(debugDir.resolve("features-V1.txt"), modelV1.getFeatures().stream().map(IFeatureModelElement::getName).collect(Collectors.toSet()));
                 Files.write(debugDir.resolve("variables-in-difference.txt"), featuresInDifference);
             } catch (final IOException e) {
-                Logger.error("Was not able to write commit data.");
+                Logger.error("Was not able to write commit data.", e);
             }
         }
     }

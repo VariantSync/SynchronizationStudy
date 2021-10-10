@@ -21,9 +21,11 @@ import de.variantsync.evolution.variability.sequenceextraction.Domino;
 import de.variantsync.studies.sync.diff.DiffParser;
 import de.variantsync.studies.sync.diff.components.FileDiff;
 import de.variantsync.studies.sync.diff.components.FineDiff;
+import de.variantsync.studies.sync.diff.components.Hunk;
 import de.variantsync.studies.sync.diff.components.OriginalDiff;
-import de.variantsync.studies.sync.diff.filter.EditFilter;
-import de.variantsync.studies.sync.diff.filter.ResultFilter;
+import de.variantsync.studies.sync.diff.filter.*;
+import de.variantsync.studies.sync.diff.lines.AddedLine;
+import de.variantsync.studies.sync.diff.lines.Line;
 import de.variantsync.studies.sync.diff.lines.RemovedLine;
 import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
 import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
@@ -236,13 +238,14 @@ public abstract class Experiment {
                         Logger.warning(source.getName() + " --patch--> " + target.getName());
                         final Path pathToTarget = variantsDirV0.path().resolve(target.getName());
                         final Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
+                        final FineDiff evolutionDiff = getFineDiff(getOriginalDiff(pathToTarget, pathToExpectedResult));
 
                         /* Application of patches without knowledge about features */
                         Logger.info("Applying patch without knowledge about features...");
                         // Apply the fine diff to the target variant
                         final List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget, rejectsNormalFile);
                         // Evaluate the patch result
-                        final FineDiff actualVsExpectedNormal = getActualVsExpected(pathToExpectedResult, groundTruthV0.get(target).artefact(), groundTruthV1.get(target).artefact(), source);
+                        final FineDiff actualVsExpectedNormal = getActualVsExpected(variantsDirV0.path().resolve(target.getName()), pathToExpectedResult, groundTruthV0, groundTruthV1, source, target);
                         final OriginalDiff rejectsNormal = readRejects(rejectsNormalFile);
 
                         /* Application of patches with knowledge about PC of edit only */
@@ -255,7 +258,7 @@ public abstract class Experiment {
                         final List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, rejectsFilteredFile, emptyPatch);
                         assert skippedFiltered.isEmpty();
                         // Evaluate the result
-                        final FineDiff actualVsExpectedFiltered = getActualVsExpected(pathToExpectedResult, groundTruthV0.get(target).artefact(), groundTruthV1.get(target).artefact(), source);
+                        final FineDiff actualVsExpectedFiltered = getActualVsExpected(variantsDirV0.path().resolve(target.getName()), pathToExpectedResult, groundTruthV0, groundTruthV1, source, target);
                         final OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
 
 //                        final OriginalDiff tempActualFiltered = getOriginalDiff(patchDir, pathToExpectedResult);
@@ -273,6 +276,7 @@ public abstract class Experiment {
                                 normalPatch, filteredPatch,
                                 actualVsExpectedNormal, actualVsExpectedFiltered,
                                 rejectsNormal, rejectsFiltered,
+                                evolutionDiff,
                                 skippedNormal);
 
                         try {
@@ -305,19 +309,84 @@ public abstract class Experiment {
      * Then, filter all differences that do not belong to the source variant and could have therefore not been synchronized
      * in any case.
      */
-    private FineDiff getActualVsExpected(final Path pathToExpectedResult, final Artefact tracesV0, final Artefact tracesV1, final Variant target) {
-        final OriginalDiff originalDiff = getOriginalDiff(patchDir, pathToExpectedResult);
-        final ResultFilter resultFilter = new ResultFilter(tracesV0, tracesV1, target, patchDir.getParent(), pathToExpectedResult.getParent(), 2);
-        FineDiff filteredResult = getFilteredDiff(originalDiff, resultFilter);
+    private FineDiff getActualVsExpected(final Path pathToBefore, final Path pathToExpectedResult, final Map<Variant, GroundTruth> groundTruthV0, final Map<Variant, GroundTruth> groundTruthV1, final Variant source, final Variant target) {
+        final OriginalDiff resultDiff = getOriginalDiff(patchDir, pathToExpectedResult);
         if (inDebug) {
             try {
-                Files.write(debugDir.resolve("resultDiffOriginal.txt"), originalDiff.toLines());
-                Files.write(debugDir.resolve("resultDiffFiltered.txt"), filteredResult.toLines());
+                Files.write(debugDir.resolve("resultDiffOriginal.txt"), resultDiff.toLines());
             } catch (final IOException e) {
-                Logger.error("Was not able to save result diff", e);
+                Logger.error("Was not able to save resultDiffOriginal", e);
             }
         }
-        return filteredResult;
+//        final ResultFilter resultFilter = new ResultFilter(changesOnlyInTargetFine, groundTruthV0.get(target).artefact(), groundTruthV1.get(target).artefact(), source, patchDir.getParent(), pathToExpectedResult.getParent(), 2);
+        FineDiff fineResult = getFilteredDiff(resultDiff, null);
+        if (inDebug) {
+            try {
+                Files.write(debugDir.resolve("resultDiffFine.txt"), fineResult.toLines());
+            } catch (final IOException e) {
+                Logger.error("Was not able to save resultDiffFiltered", e);
+            }
+        }
+
+//        // We require the changes that only happened in the target variant, but not the source, so that we can determine
+//        // which changes in the result diff should have been synchronized and which could not have been
+//        final OriginalDiff expectedChangesInTarget = getOriginalDiff(pathToBefore, pathToExpectedResult);
+//        if (inDebug) {
+//            try {
+//                Files.write(debugDir.resolve("expectedChangesInTarget.txt"), expectedChangesInTarget.toLines());
+//            } catch (final IOException e) {
+//                Logger.error("Was not able to save expectedChangesInTarget", e);
+//            }
+//        }
+//        // The inverse filter will only keep the changes that do not belong to the source, so they could not have been synchronized.
+//        // We require these changes to determine whether a difference could have been synchronized or not.
+//        InverseEditFilter inverseEditFilter = new InverseEditFilter(groundTruthV0.get(target).artefact(), groundTruthV1.get(target).artefact(), source, pathToBefore.getParent(), pathToExpectedResult.getParent(), 2);
+//        final FineDiff changesOnlyInTargetFine = getFilteredDiff(expectedChangesInTarget, inverseEditFilter);
+//        if (inDebug) {
+//            try {
+//                Files.write(debugDir.resolve("changesOnlyInTargetFine.txt"), changesOnlyInTargetFine.toLines());
+//            } catch (final IOException e) {
+//                Logger.error("Was not able to save changesOnlyInTargetFine", e);
+//            }
+//        }
+//
+//        final List<Line> changedLines = new LinkedList<>();
+//        changesOnlyInTargetFine.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).forEach(line -> {
+//                    if (line instanceof AddedLine addedLine) {
+//                        changedLines.add(addedLine);
+//                    } else if (line instanceof RemovedLine removedLine) {
+//                        changedLines.add(removedLine);
+//                    }
+//                }
+//        );
+//
+//        // Remove all lines from the result diff that belong to changes which were only done in the target variant, but not the source.
+//        // These changes must not be counted in the result
+//        List<FileDiff> emptyFileDiffs = new LinkedList<>();
+//        for (FileDiff fd : fineResult.content()) {
+//            Hunk hunkToRemove = null;
+//            for (Hunk hunk : fd.hunks()) {
+//                if (hunk.content().stream().filter(line -> line instanceof AddedLine || line instanceof RemovedLine).anyMatch(changedLines::contains)) {
+//                    hunkToRemove = hunk;
+//                }
+//            }
+//            fd.hunks().remove(hunkToRemove);
+//            if (fd.hunks().isEmpty()) {
+//                emptyFileDiffs.add(fd);
+//            }
+//        }
+//        emptyFileDiffs.forEach(fd -> fineResult.content().remove(fd));
+
+        if (inDebug) {
+            try {
+                Files.write(debugDir.resolve("resultDiffFiltered.txt"), fineResult.toLines());
+            } catch (final IOException e) {
+                Logger.error("Was not able to save resultDiffFiltered", e);
+            }
+
+        }
+
+        return fineResult;
     }
 
     protected abstract Sample sample(SPLCommit parentCommit, SPLCommit childCommit);
@@ -384,7 +453,7 @@ public abstract class Experiment {
         groundTruthV1.put(variant, gtV1);
     }
 
-    protected SimpleFileFilter splRepoPreparation(final SPLRepository parentRepo, final SPLRepository childRepo, final SPLCommit parentCommit, final SPLCommit childCommit){
+    protected SimpleFileFilter splRepoPreparation(final SPLRepository parentRepo, final SPLRepository childRepo, final SPLCommit parentCommit, final SPLCommit childCommit) {
         Logger.info("Next V0 commit: " + parentCommit);
         Logger.info("Next V1 commit: " + childCommit);
         // Checkout the commits in the SPL repository
@@ -404,7 +473,7 @@ public abstract class Experiment {
         final OriginalDiff diff = getOriginalDiff(splCopyA, splCopyB);
         final Set<Path> filesToKeep = new HashSet<>();
         for (final FileDiff fileDiff : diff.fileDiffs()) {
-            if(!fileDiff.oldFile().getName(1).startsWith(".git")) {
+            if (!fileDiff.oldFile().getName(1).startsWith(".git")) {
                 filesToKeep.add(fileDiff.oldFile().subpath(1, fileDiff.oldFile().getNameCount()));
             }
         }
@@ -521,7 +590,7 @@ public abstract class Experiment {
         return getFilteredDiff(originalDiff, editFilter);
     }
 
-    private FineDiff getFilteredDiff(final OriginalDiff originalDiff, final EditFilter filter) {
+    private <T extends IFileDiffFilter & ILineFilter> FineDiff getFilteredDiff(final OriginalDiff originalDiff, final T filter) {
         // Create target variant specific patch that respects PCs
         final IContextProvider contextProvider = new DefaultContextProvider(workDir);
         return DiffSplitter.split(originalDiff, filter, filter, contextProvider);
