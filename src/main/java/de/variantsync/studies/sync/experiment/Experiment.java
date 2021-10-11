@@ -239,6 +239,9 @@ public abstract class Experiment {
                         final Path pathToTarget = variantsDirV0.path().resolve(target.getName());
                         final Path pathToExpectedResult = variantsDirV1.path().resolve(target.getName());
                         final FineDiff evolutionDiff = getFineDiff(getOriginalDiff(pathToTarget, pathToExpectedResult));
+                        if (inDebug) {
+                            saveDiff(evolutionDiff, debugDir.resolve("evolutionDiff.txt"));
+                        }
 
                         /* Application of patches without knowledge about features */
                         Logger.info("Applying patch without knowledge about features...");
@@ -256,7 +259,6 @@ public abstract class Experiment {
                         saveDiff(filteredPatch, filteredPatchFile);
                         // Apply the patch
                         final List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, rejectsFilteredFile, emptyPatch);
-                        assert skippedFiltered.isEmpty();
                         // Evaluate the result
                         final FineDiff actualVsExpectedFiltered = getActualVsExpected(variantsDirV0.path().resolve(target.getName()), pathToExpectedResult, groundTruthV0, groundTruthV1, source, target);
                         final OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
@@ -318,72 +320,13 @@ public abstract class Experiment {
                 Logger.error("Was not able to save resultDiffOriginal", e);
             }
         }
-//        final ResultFilter resultFilter = new ResultFilter(changesOnlyInTargetFine, groundTruthV0.get(target).artefact(), groundTruthV1.get(target).artefact(), source, patchDir.getParent(), pathToExpectedResult.getParent(), 2);
-        FineDiff fineResult = getFilteredDiff(resultDiff, null);
+        FineDiff fineResult = getFineDiff(resultDiff);
         if (inDebug) {
             try {
                 Files.write(debugDir.resolve("resultDiffFine.txt"), fineResult.toLines());
             } catch (final IOException e) {
                 Logger.error("Was not able to save resultDiffFiltered", e);
             }
-        }
-
-//        // We require the changes that only happened in the target variant, but not the source, so that we can determine
-//        // which changes in the result diff should have been synchronized and which could not have been
-//        final OriginalDiff expectedChangesInTarget = getOriginalDiff(pathToBefore, pathToExpectedResult);
-//        if (inDebug) {
-//            try {
-//                Files.write(debugDir.resolve("expectedChangesInTarget.txt"), expectedChangesInTarget.toLines());
-//            } catch (final IOException e) {
-//                Logger.error("Was not able to save expectedChangesInTarget", e);
-//            }
-//        }
-//        // The inverse filter will only keep the changes that do not belong to the source, so they could not have been synchronized.
-//        // We require these changes to determine whether a difference could have been synchronized or not.
-//        InverseEditFilter inverseEditFilter = new InverseEditFilter(groundTruthV0.get(target).artefact(), groundTruthV1.get(target).artefact(), source, pathToBefore.getParent(), pathToExpectedResult.getParent(), 2);
-//        final FineDiff changesOnlyInTargetFine = getFilteredDiff(expectedChangesInTarget, inverseEditFilter);
-//        if (inDebug) {
-//            try {
-//                Files.write(debugDir.resolve("changesOnlyInTargetFine.txt"), changesOnlyInTargetFine.toLines());
-//            } catch (final IOException e) {
-//                Logger.error("Was not able to save changesOnlyInTargetFine", e);
-//            }
-//        }
-//
-//        final List<Line> changedLines = new LinkedList<>();
-//        changesOnlyInTargetFine.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).forEach(line -> {
-//                    if (line instanceof AddedLine addedLine) {
-//                        changedLines.add(addedLine);
-//                    } else if (line instanceof RemovedLine removedLine) {
-//                        changedLines.add(removedLine);
-//                    }
-//                }
-//        );
-//
-//        // Remove all lines from the result diff that belong to changes which were only done in the target variant, but not the source.
-//        // These changes must not be counted in the result
-//        List<FileDiff> emptyFileDiffs = new LinkedList<>();
-//        for (FileDiff fd : fineResult.content()) {
-//            Hunk hunkToRemove = null;
-//            for (Hunk hunk : fd.hunks()) {
-//                if (hunk.content().stream().filter(line -> line instanceof AddedLine || line instanceof RemovedLine).anyMatch(changedLines::contains)) {
-//                    hunkToRemove = hunk;
-//                }
-//            }
-//            fd.hunks().remove(hunkToRemove);
-//            if (fd.hunks().isEmpty()) {
-//                emptyFileDiffs.add(fd);
-//            }
-//        }
-//        emptyFileDiffs.forEach(fd -> fineResult.content().remove(fd));
-
-        if (inDebug) {
-            try {
-                Files.write(debugDir.resolve("resultDiffFiltered.txt"), fineResult.toLines());
-            } catch (final IOException e) {
-                Logger.error("Was not able to save resultDiffFiltered", e);
-            }
-
         }
 
         return fineResult;
