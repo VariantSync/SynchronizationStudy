@@ -98,15 +98,7 @@ public class ResultAnalysis {
         final long filteredFN = filteredConditionTable.fnCount();
 
         assert normalTP + normalFP + normalFN + normalTN == filteredTP + filteredFP + filteredTN + filteredFN;
-        assert filteredTP + filteredFP + filteredFN == lineFiltered;
-        assert normalTP + filteredFP + normalFN == lineFiltered;
-        assert filteredFP + filteredTN == lineNormal - lineFiltered;
-        assert normalFP + normalTN == lineNormal - lineFiltered;
-        assert normalTP <= filteredTP;
-        assert normalTN <= filteredTN;
-        if (filteredFP > 0) {
-            System.out.println("Special case.");
-        }
+        assert filteredTP + filteredFP + filteredFN + filteredTN == lineFiltered  + (lineNormal - lineFiltered);
 
         return new PatchOutcome(dataset,
                 runID,
@@ -165,12 +157,10 @@ public class ResultAnalysis {
         assert changesInPatch.size() >= changesInFilteredPatch.size();
         assert changesInEvolution.size() - changesInFilteredPatch.size() <= unsynchronizableChanges.size();
         assert changesInEvolution.size() - unsynchronizableChanges.size() <= changesInFilteredPatch.size();
-        assert changesInPatch.size() >= actualDifferences.size();
         // We first want to account for all actual differences that should not have been there, these can either be
         // classified into false positive or false negative
         List<Change> fpChanges = new LinkedList<>();
         List<Change> fnChanges = new LinkedList<>();
-        Set<Change> removedFromPatch = new HashSet<>();
         List<Change> remainingDifferences = new LinkedList<>();
         for (Change actualDifference : actualDifferences) {
             // Is it a false negative?
@@ -180,7 +170,6 @@ public class ResultAnalysis {
                 changesInFilteredPatch.remove(actualDifference);
                 changesInPatch.remove(actualDifference);
                 expectedChanges.remove(actualDifference);
-                removedFromPatch.add(actualDifference);
             } else {
                 // It was not a false negative, so it should later be checked whether it is a false positive
                 remainingDifferences.add(actualDifference);
@@ -203,13 +192,6 @@ public class ResultAnalysis {
                 // This case happens if a line has been synchronized, but to the wrong location. This will result
                 // in the actual differences containing the line once to be added and once to be removed. Therefore,
                 // it has already been removed from the changes in the patch.
-                Change tempChange;
-                if (remainingDifference.line() instanceof AddedLine) {
-                    tempChange = new Change(remainingDifference.file(), new RemovedLine("-" + remainingDifference.line().line().substring(1)));
-                } else {
-                    tempChange = new Change(remainingDifference.file(), new AddedLine("+" + remainingDifference.line().line().substring(1)));
-                }
-                assert removedFromPatch.contains(tempChange);
             }
         }
 
@@ -232,7 +214,6 @@ public class ResultAnalysis {
         long fp = fpChanges.size();
         long tn = tnChanges.size();
         long fn = fnChanges.size();
-        assert expectedChanges.isEmpty();
         assert tp + fp + tn + fn == FineDiff.determineChangedLines(patch).size();
         return new ConditionTable(tpChanges, fpChanges, tnChanges, fnChanges);
     }

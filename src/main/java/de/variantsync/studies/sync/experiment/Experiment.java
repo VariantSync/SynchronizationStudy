@@ -213,7 +213,7 @@ public abstract class Experiment {
                     final OriginalDiff originalDiff = getOriginalDiff(variantsDirV0.path().resolve(source.getName()), variantsDirV1.path().resolve(source.getName()));
                     if (originalDiff.isEmpty()) {
                         // There was no change to this variant, so we can skip it as source
-                        Logger.status("Skipping " + source + " as diff source. Diff is empty");
+                        Logger.warning("Skipping " + source.getName() + " as diff source. Diff is empty.");
                         continue;
                     } else if (inDebug) {
                         try {
