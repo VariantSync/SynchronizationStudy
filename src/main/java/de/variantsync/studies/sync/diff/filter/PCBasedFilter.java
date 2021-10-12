@@ -39,10 +39,14 @@ public class PCBasedFilter implements IFileDiffFilter, ILineFilter {
 
     protected boolean shouldKeep(final Variant targetVariant, final Artefact traces, Path filePath, final int index) {
         filePath = filePath.subpath(strip, filePath.getNameCount());
-        final Node pc = traces
-                .getPresenceConditionOf(new CaseSensitivePath(filePath), index)
-                .expect("Was not able to load PC for line " + index + " of " + filePath);
-        return targetVariant.isImplementing(pc);
+        final Result<Node, Exception> pc = traces
+                .getPresenceConditionOf(new CaseSensitivePath(filePath), index);
+        if (pc.isSuccess()) {
+            return targetVariant.isImplementing(pc.getSuccess());
+        } else {
+            Logger.error("Was not able to load PC for line " + index + " of " + filePath);
+            return false;
+        }
     }
 
     protected boolean shouldKeep(final Variant targetVariant, final Artefact traces, Path filePath) {
