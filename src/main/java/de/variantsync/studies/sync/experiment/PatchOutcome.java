@@ -28,10 +28,12 @@ public record PatchOutcome(String dataset,
                            long normalFP,
                            long normalTN,
                            long normalFN,
+                           long normalWrongLocation,
                            long filteredTP,
                            long filteredFP,
                            long filteredTN,
-                           long filteredFN) {
+                           long filteredFN,
+                           long filteredWrongLocation) {
 
     public static String toJSON(final String key, final Object value) {
         return "\"" + key + "\": " + value;
@@ -76,10 +78,12 @@ public record PatchOutcome(String dataset,
                 object.get("normalFP").getAsLong(),
                 object.get("normalTN").getAsLong(),
                 object.get("normalFN").getAsLong(),
+                object.get("normalWrongLocation").getAsLong(),
                 object.get("filteredTP").getAsLong(),
                 object.get("filteredFP").getAsLong(),
                 object.get("filteredTN").getAsLong(),
-                object.get("filteredFN").getAsLong()
+                object.get("filteredFN").getAsLong(),
+                object.get("filteredWrongLocation").getAsLong()
         );
     }
 
@@ -106,10 +110,12 @@ public record PatchOutcome(String dataset,
         jsonBuilder.append(toJSON("normalFP", normalFP)).append(",\n");
         jsonBuilder.append(toJSON("normalTN", normalTN)).append(",\n");
         jsonBuilder.append(toJSON("normalFN", normalFN)).append(",\n");
+        jsonBuilder.append(toJSON("normalWrongLocation", normalWrongLocation)).append(",\n");
         jsonBuilder.append(toJSON("filteredTP", filteredTP)).append(",\n");
         jsonBuilder.append(toJSON("filteredFP", filteredFP)).append(",\n");
         jsonBuilder.append(toJSON("filteredTN", filteredTN)).append(",\n");
-        jsonBuilder.append(toJSON("filteredFN", filteredFN)).append("\n");
+        jsonBuilder.append(toJSON("filteredFN", filteredFN)).append(",\n");
+        jsonBuilder.append(toJSON("filteredWrongLocation", filteredWrongLocation)).append("\n");
         jsonBuilder.append("}").append("\n\n");
         if (!Files.exists(pathToFile)) {
             Files.createFile(pathToFile);

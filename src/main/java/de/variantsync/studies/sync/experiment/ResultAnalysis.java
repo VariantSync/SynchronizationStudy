@@ -30,18 +30,22 @@ public class ResultAnalysis {
                                               final FineDiff resultDiffNormal, final FineDiff resultDiffFiltered,
                                               final OriginalDiff rejectsNormal, final OriginalDiff rejectsFiltered,
                                               final FineDiff evolutionDiff,
-                                              final List<Path> skippedFilesNormal) {
+                                              final List<Path> skippedFilesNormal,
+                                              final List<Path> skippedFilesFiltered) {
         // evaluate patch rejects
         final int fileNormal = new HashSet<>(normalPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
         final int lineNormal = normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        var temp = normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
         int fileNormalFailed = 0;
         int lineNormalFailed = 0;
         if (rejectsNormal != null) {
             Logger.status("Commit-sized patch failed");
 
             fileNormalFailed = new HashSet<>(rejectsNormal.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
+            fileNormalFailed += normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).count();
             Logger.status("" + fileNormalFailed + " of " + fileNormal + " normal file-sized patches failed.");
             lineNormalFailed = rejectsNormal.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
+            lineNormalFailed += normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
             Logger.status("" + lineNormalFailed + " of " + lineNormal + " normal line-sized patches failed");
         } else {
             Logger.status("Commit-sized patch succeeded.");
@@ -53,51 +57,29 @@ public class ResultAnalysis {
         int lineFilteredFailed = 0;
         if (rejectsFiltered != null) {
             fileFilteredFailed = new HashSet<>(rejectsFiltered.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
+            fileNormalFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile())).count();
             Logger.status("" + fileFilteredFailed + " of " + fileFiltered + " filtered file-sized patches failed.");
             lineFilteredFailed = rejectsFiltered.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
+            lineNormalFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
             Logger.status("" + lineFilteredFailed + " of " + lineFiltered + " filtered line-sized patches failed");
         }
-
-        int selected = lineNormal;
-        selected -= lineNormalFailed;
-        selected -= normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
 
         final ConditionTable normalConditionTable = calculateConditionTable(normalPatch, normalPatch, resultDiffNormal, evolutionDiff);
         final long normalTP = normalConditionTable.tpCount();
         final long normalFP = normalConditionTable.fpCount();
         final long normalTN = normalConditionTable.tnCount();
         final long normalFN = normalConditionTable.fnCount();
-
-//        // false negatives = relevant that failed
-////        final int normalFN = lineFilteredFailed;
-//        final long normalFN = resultDiffNormal.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof AddedLine).count();
-//        // true positives = relevant - false negatives
-////        final int normalTP = lineFiltered - normalFN;
-//        final long normalTP = lineFiltered - normalFN;
-//        // false positive = selected - true positive
-////        final int normalFP = selected - normalTP;
-//        final long normalFP = resultDiffNormal.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof RemovedLine).count();
-//        // true negative = all - relevant - false positive
-////        final int normalTN = lineNormal - lineFiltered - normalFP;
-//        final long normalTN = lineNormal - lineFiltered - normalFP;
-
-//        final int filteredTP = lineFiltered - lineFilteredFailed;
-//        final int filteredFP = 0;
-//        final int filteredTN = lineNormal - lineFiltered;
-//        final int filteredFN = lineFilteredFailed;
-//        final long filteredFP = ResultDiffFiltered.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof RemovedLine).count();
-//        final long filteredTN = lineNormal - lineFiltered - filteredFP;
-//        final long filteredFN = ResultDiffFiltered.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof AddedLine).count();
-//        final long filteredTP = lineFiltered - filteredFN;
+        final long normalWrongLocation = normalConditionTable.wrongLocationCount();
 
         final ConditionTable filteredConditionTable = calculateConditionTable(filteredPatch, normalPatch, resultDiffFiltered, evolutionDiff);
         final long filteredTP = filteredConditionTable.tpCount();
         final long filteredFP = filteredConditionTable.fpCount();
         final long filteredTN = filteredConditionTable.tnCount();
         final long filteredFN = filteredConditionTable.fnCount();
+        final long filteredWrongLocation = filteredConditionTable.wrongLocationCount();
 
         assert normalTP + normalFP + normalFN + normalTN == filteredTP + filteredFP + filteredTN + filteredFN;
-        assert filteredTP + filteredFP + filteredFN + filteredTN == lineFiltered  + (lineNormal - lineFiltered);
+        assert filteredTP + filteredFP + filteredFN + filteredTN == lineFiltered + (lineNormal - lineFiltered);
 
         return new PatchOutcome(dataset,
                 runID,
@@ -119,10 +101,12 @@ public class ResultAnalysis {
                 normalFP,
                 normalTN,
                 normalFN,
+                normalWrongLocation,
                 filteredTP,
                 filteredFP,
                 filteredTN,
-                filteredFN);
+                filteredFN,
+                filteredWrongLocation);
     }
 
     private static ConditionTable calculateConditionTable(FineDiff evaluatedPatch, FineDiff unfilteredPatch, FineDiff resultDiff, FineDiff evolutionDiff) {
@@ -245,13 +229,15 @@ public class ResultAnalysis {
 
         long normalTP = allOutcomes.stream().mapToLong(PatchOutcome::normalTP).sum();
         long normalFP = allOutcomes.stream().mapToLong(PatchOutcome::normalFP).sum();
-                        long normalTN = allOutcomes.stream().mapToLong(PatchOutcome::normalTN).sum();
-                                long normalFN = allOutcomes.stream().mapToLong(PatchOutcome::normalFN).sum();
+        long normalTN = allOutcomes.stream().mapToLong(PatchOutcome::normalTN).sum();
+        long normalFN = allOutcomes.stream().mapToLong(PatchOutcome::normalFN).sum();
+        long normalWrongLocation = allOutcomes.stream().mapToLong(PatchOutcome::normalWrongLocation).sum();
 
         printPrecisionRecall(normalTP,
                 normalFP,
                 normalTN,
                 normalFN);
+
 
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
@@ -261,6 +247,7 @@ public class ResultAnalysis {
         long filteredFP = allOutcomes.stream().mapToLong(PatchOutcome::filteredFP).sum();
         long filteredTN = allOutcomes.stream().mapToLong(PatchOutcome::filteredTN).sum();
         long filteredFN = allOutcomes.stream().mapToLong(PatchOutcome::filteredFN).sum();
+        long filteredWrongLocation = allOutcomes.stream().mapToLong(PatchOutcome::filteredWrongLocation).sum();
 
         printPrecisionRecall(filteredTP,
                 filteredFP,
@@ -350,7 +337,8 @@ public class ResultAnalysis {
         return String.format("%3.1f%s", percentage, "%");
     }
 
-    private static record ConditionTable(List<Change> tp, List<Change> fp, List<Change> tn, List<Change> fn, List<Change> wrongLocation) {
+    private static record ConditionTable(List<Change> tp, List<Change> fp, List<Change> tn, List<Change> fn,
+                                         List<Change> wrongLocation) {
         public long tpCount() {
             return tp.size();
         }
@@ -368,7 +356,6 @@ public class ResultAnalysis {
         }
 
         /**
-         *
          * @return Number of false negatives applied in the wrong location
          */
         public long wrongLocationCount() {
