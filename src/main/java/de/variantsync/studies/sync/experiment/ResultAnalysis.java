@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ResultAnalysis {
@@ -63,7 +62,7 @@ public class ResultAnalysis {
         selected -= lineNormalFailed;
         selected -= normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
 
-        final ConditionTable normalConditionTable = calculateConditionTable(normalPatch, filteredPatch, resultDiffNormal, evolutionDiff);
+        final ConditionTable normalConditionTable = calculateConditionTable(normalPatch, normalPatch, resultDiffNormal, evolutionDiff);
         final long normalTP = normalConditionTable.tpCount();
         final long normalFP = normalConditionTable.fpCount();
         final long normalTN = normalConditionTable.tnCount();
@@ -91,10 +90,10 @@ public class ResultAnalysis {
 //        final long filteredFN = ResultDiffFiltered.content().stream().flatMap(fd -> fd.hunks().stream()).flatMap(hunk -> hunk.content().stream()).filter(l -> l instanceof AddedLine).count();
 //        final long filteredTP = lineFiltered - filteredFN;
 
-        final ConditionTable filteredConditionTable = calculateConditionTable(filteredPatch, filteredPatch, resultDiffFiltered, evolutionDiff);
+        final ConditionTable filteredConditionTable = calculateConditionTable(filteredPatch, normalPatch, resultDiffFiltered, evolutionDiff);
         final long filteredTP = filteredConditionTable.tpCount();
         final long filteredFP = filteredConditionTable.fpCount();
-        final long filteredTN = filteredConditionTable.tnCount() + (lineNormal - lineFiltered);
+        final long filteredTN = filteredConditionTable.tnCount();
         final long filteredFN = filteredConditionTable.fnCount();
 
         assert normalTP + normalFP + normalFN + normalTN == filteredTP + filteredFP + filteredTN + filteredFN;
@@ -126,17 +125,16 @@ public class ResultAnalysis {
                 filteredFN);
     }
 
-    private static ConditionTable calculateConditionTable(FineDiff patch, FineDiff filteredPatch, FineDiff resultDiff, FineDiff evolutionDiff) {
-        List<Change> changesInPatch = FineDiff.determineChangedLines(patch);
-        List<Change> changesInFilteredPatch = FineDiff.determineChangedLines(filteredPatch);
+    private static ConditionTable calculateConditionTable(FineDiff evaluatedPatch, FineDiff unfilteredPatch, FineDiff resultDiff, FineDiff evolutionDiff) {
+        List<Change> changesInPatch = FineDiff.determineChangedLines(evaluatedPatch);
+        List<Change> changesInUnfilteredPatch = FineDiff.determineChangedLines(unfilteredPatch);
         List<Change> changesInResult = FineDiff.determineChangedLines(resultDiff);
         List<Change> changesInEvolution = FineDiff.determineChangedLines(evolutionDiff);
-//        List<Change> changesInRejects = FineDiff.determineChangedLines(rejects);
 
         // Determine changes in the target variant's evolution that cannot be synchronized, because they are not part of the source variant and therefore not of the patch
         final List<Change> unsynchronizableChanges = new LinkedList<>();
         {
-            final List<Change> tempChanges = new LinkedList<>(changesInFilteredPatch);
+            final List<Change> tempChanges = new LinkedList<>(changesInUnfilteredPatch);
             for (Change evolutionChange : changesInEvolution) {
                 if (!tempChanges.contains(evolutionChange)) {
                     unsynchronizableChanges.add(evolutionChange);
@@ -150,13 +148,14 @@ public class ResultAnalysis {
         final List<Change> expectedChanges = new LinkedList<>(changesInEvolution);
         unsynchronizableChanges.forEach(expectedChanges::remove);
 
-        // Determine actual differences between result and expected result, i.e., changes that should have been synchronized but were not
+        // Determine actual differences between result and expected result,
+        // i.e., changes that should have been synchronized but were not or changes that should not have been synchronized
         final List<Change> actualDifferences = new LinkedList<>(changesInResult);
         unsynchronizableChanges.forEach(actualDifferences::remove);
 
-        assert changesInPatch.size() >= changesInFilteredPatch.size();
-        assert changesInEvolution.size() - changesInFilteredPatch.size() <= unsynchronizableChanges.size();
-        assert changesInEvolution.size() - unsynchronizableChanges.size() <= changesInFilteredPatch.size();
+        assert changesInUnfilteredPatch.size() >= changesInPatch.size();
+        assert changesInEvolution.size() - changesInUnfilteredPatch.size() <= unsynchronizableChanges.size();
+        assert changesInEvolution.size() - unsynchronizableChanges.size() <= changesInUnfilteredPatch.size();
         // We first want to account for all actual differences that should not have been there, these can either be
         // classified into false positive or false negative
         List<Change> fpChanges = new LinkedList<>();
@@ -167,7 +166,7 @@ public class ResultAnalysis {
             if (expectedChanges.contains(actualDifference)) {
                 fnChanges.add(actualDifference);
                 // Each line in the patch must only be considered once, all additional difference are false positives
-                changesInFilteredPatch.remove(actualDifference);
+                changesInUnfilteredPatch.remove(actualDifference);
                 changesInPatch.remove(actualDifference);
                 expectedChanges.remove(actualDifference);
             } else {
@@ -175,6 +174,10 @@ public class ResultAnalysis {
                 remainingDifferences.add(actualDifference);
             }
         }
+        // Now account for the remaining differences between the actual and the expected result. They are either
+        // false positives, i.e. changes in the patch that were applied but should not have been, or the mirror change
+        // of a false negative that was applied to the wrong location.
+        List<Change> wrongLocation = new LinkedList<>();
         for (Change remainingDifference : remainingDifferences) {
             String changedText = remainingDifference.line().line().substring(1);
             Change foundLine = null;
@@ -186,19 +189,29 @@ public class ResultAnalysis {
             if (foundLine != null) {
                 // The patch contained a false positive, as the difference was not expected.
                 changesInPatch.remove(foundLine);
-                changesInFilteredPatch.remove(foundLine);
+                changesInUnfilteredPatch.remove(foundLine);
                 fpChanges.add(remainingDifference);
             } else {
                 // This case happens if a line has been synchronized, but to the wrong location. This will result
                 // in the actual differences containing the line once to be added and once to be removed. Therefore,
                 // it has already been removed from the changes in the patch.
+                Change tempChange;
+                if (remainingDifference.line() instanceof AddedLine) {
+                    tempChange = new Change(remainingDifference.file(), new RemovedLine("-" + changedText));
+                } else {
+                    tempChange = new Change(remainingDifference.file(), new AddedLine("+" + changedText));
+                }
+                if (changesInPatch.contains(tempChange)) {
+                    wrongLocation.add(tempChange);
+                    changesInPatch.remove(tempChange);
+                }
             }
         }
 
         // Now account for the remaining lines in the patch file and determine whether they are true positive or true negative
         List<Change> tpChanges = new LinkedList<>();
         List<Change> tnChanges = new LinkedList<>();
-        for (var patchLine : changesInPatch) {
+        for (var patchLine : changesInUnfilteredPatch) {
             if (expectedChanges.contains(patchLine)) {
                 // In Patch & Expected: It is a true positive
                 tpChanges.add(patchLine);
@@ -207,15 +220,14 @@ public class ResultAnalysis {
                 tnChanges.add(patchLine);
             }
             // Remove the line from the expected changes to account for similar changes
-            changesInFilteredPatch.remove(patchLine);
             expectedChanges.remove(patchLine);
         }
         long tp = tpChanges.size();
         long fp = fpChanges.size();
         long tn = tnChanges.size();
         long fn = fnChanges.size();
-        assert tp + fp + tn + fn == FineDiff.determineChangedLines(patch).size();
-        return new ConditionTable(tpChanges, fpChanges, tnChanges, fnChanges);
+        assert tp + fp + tn + fn == FineDiff.determineChangedLines(unfilteredPatch).size();
+        return new ConditionTable(tpChanges, fpChanges, tnChanges, fnChanges, wrongLocation);
     }
 
     public static void main(final String... args) throws IOException {
@@ -231,31 +243,37 @@ public class ResultAnalysis {
         System.out.println("Precision / Recall");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
-        printPrecisionRecall(allOutcomes.stream().mapToLong(PatchOutcome::normalTP).sum(),
-                allOutcomes.stream().mapToLong(PatchOutcome::normalFP).sum(),
-                allOutcomes.stream().mapToLong(PatchOutcome::normalTN).sum(),
-                allOutcomes.stream().mapToLong(PatchOutcome::normalFN).sum());
+        long normalTP = allOutcomes.stream().mapToLong(PatchOutcome::normalTP).sum();
+        long normalFP = allOutcomes.stream().mapToLong(PatchOutcome::normalFP).sum();
+                        long normalTN = allOutcomes.stream().mapToLong(PatchOutcome::normalTN).sum();
+                                long normalFN = allOutcomes.stream().mapToLong(PatchOutcome::normalFN).sum();
+
+        printPrecisionRecall(normalTP,
+                normalFP,
+                normalTN,
+                normalFN);
 
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println();
 
-        printPrecisionRecall(allOutcomes.stream().mapToLong(PatchOutcome::filteredTP).sum(),
-                allOutcomes.stream().mapToLong(PatchOutcome::filteredFP).sum(),
-                allOutcomes.stream().mapToLong(PatchOutcome::filteredTN).sum(),
-                allOutcomes.stream().mapToLong(PatchOutcome::filteredFN).sum());
+        long filteredTP = allOutcomes.stream().mapToLong(PatchOutcome::filteredTP).sum();
+        long filteredFP = allOutcomes.stream().mapToLong(PatchOutcome::filteredFP).sum();
+        long filteredTN = allOutcomes.stream().mapToLong(PatchOutcome::filteredTN).sum();
+        long filteredFN = allOutcomes.stream().mapToLong(PatchOutcome::filteredFN).sum();
+
+        printPrecisionRecall(filteredTP,
+                filteredFP,
+                filteredTN,
+                filteredFN);
 
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("Actual vs. Expected");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
-        final long countNormalAsExpected = allOutcomes.stream().mapToLong(PatchOutcome::countOfNormalAsExpected).sum();
-        final long countFilteredAsExpected = allOutcomes.stream().mapToLong(PatchOutcome::countOfFilteredAsExpected).sum();
-        final long countNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineNormal).sum();
-        final long countFiltered = allOutcomes.stream().mapToLong(PatchOutcome::lineFiltered).sum();
-        System.out.printf("Normal patching achieved the expected result %d out of %d times.%n", countNormalAsExpected, countNormal);
-        System.out.printf("Filtered patching achieved the expected result %d out of %d times.%n", countFilteredAsExpected, countFiltered);
+        System.out.printf("Normal patching achieved the expected result %d out of %d times.%n", normalTP + normalTN, normalTP + normalFP + normalTN + normalFN);
+        System.out.printf("Filtered patching achieved the expected result %d out of %d times.%n", filteredTP + filteredTN, filteredTP + filteredFP + filteredTN + filteredFN);
 
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
@@ -332,7 +350,7 @@ public class ResultAnalysis {
         return String.format("%3.1f%s", percentage, "%");
     }
 
-    private static record ConditionTable(List<Change> tp, List<Change> fp, List<Change> tn, List<Change> fn) {
+    private static record ConditionTable(List<Change> tp, List<Change> fp, List<Change> tn, List<Change> fn, List<Change> wrongLocation) {
         public long tpCount() {
             return tp.size();
         }
@@ -347,6 +365,14 @@ public class ResultAnalysis {
 
         public long fnCount() {
             return fn.size();
+        }
+
+        /**
+         *
+         * @return Number of false negatives applied in the wrong location
+         */
+        public long wrongLocationCount() {
+            return wrongLocation.size();
         }
     }
 }
