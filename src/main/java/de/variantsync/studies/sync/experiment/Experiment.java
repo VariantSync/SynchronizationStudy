@@ -124,8 +124,9 @@ public abstract class Experiment {
         long runID = 0;
         int pairCount = 0;
         final long historySize = history.commitSequences().stream().mapToLong(Collection::size).sum();
-        Logger.status("There are " + historySize + " commits to work on.");
+        Logger.status("There are " + historySize + " commit pairs to work on.");
         for (final NonEmptyList<SPLCommit> relatedCommits : history.commitSequences()) {
+            // TODO: Switch the SPLRepository instances, so that only the new child commit has to be checked out
             // Increase one extra time for the first parent in the sequence
             pairCount++;
             SPLCommit parentCommit;
@@ -135,14 +136,6 @@ public abstract class Experiment {
                 parentCommit = childCommit;
                 // The next descendant is selected as new child
                 childCommit = relatedCommits.get(childID);
-
-                // Switch the SPLRepository instances, so that only the new child commit has to be checked out
-                // TODO: There is something missing, so this is not working on its own.
-//                if (childID % 2 == 0) {
-//                    final var temp = parentRepo;
-//                    parentRepo = childRepo;
-//                    childRepo = temp;
-//                }
 
                 final SimpleFileFilter fileFilter = splRepoPreparation(parentRepo, childRepo, parentCommit, childCommit);
 
@@ -282,7 +275,7 @@ public abstract class Experiment {
                     }
                 }
                 pairCount++;
-                Logger.warning(String.format("Finished commit %d of %d.%n", pairCount, historySize));
+                Logger.warning(String.format("Finished commit pair %d of %d.%n", pairCount, historySize));
                 Logger.status(String.format("Cleaning data of commit %s", parentCommit.id()));
                 shell.execute(new RmCommand(parentCommit.getCommitDataDirectory()).recursive());
                 Logger.status(String.format("Cleaning data of commit %s", childCommit.id()));

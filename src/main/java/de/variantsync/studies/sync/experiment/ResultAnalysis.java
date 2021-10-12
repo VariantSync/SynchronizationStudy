@@ -236,7 +236,8 @@ public class ResultAnalysis {
         printPrecisionRecall(normalTP,
                 normalFP,
                 normalTN,
-                normalFN);
+                normalFN,
+                normalWrongLocation);
 
 
         System.out.println();
@@ -252,15 +253,20 @@ public class ResultAnalysis {
         printPrecisionRecall(filteredTP,
                 filteredFP,
                 filteredTN,
-                filteredFN);
+                filteredFN,
+                filteredWrongLocation);
 
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("Actual vs. Expected");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
-        System.out.printf("Normal patching achieved the expected result %d out of %d times.%n", normalTP + normalTN, normalTP + normalFP + normalTN + normalFN);
-        System.out.printf("Filtered patching achieved the expected result %d out of %d times.%n", filteredTP + filteredTN, filteredTP + filteredFP + filteredTN + filteredFN);
+        long expectedCountNormal = normalTP + normalTN;
+        long allNormal = normalTP + normalFP + normalTN + normalFN;
+        System.out.printf("Normal patching achieved the expected result %d out of %d times (Accuracy: %s).%n", expectedCountNormal, allNormal, percentage(expectedCountNormal, allNormal));
+        long expectedCountFiltered = filteredTP + filteredTN;
+        long allFiltered = filteredTP + filteredFP + filteredTN + filteredFN;
+        System.out.printf("Filtered patching achieved the expected result %d out of %d times (Accuracy: %s).%n", expectedCountFiltered, allFiltered, percentage(expectedCountFiltered, allFiltered));
 
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
@@ -268,8 +274,8 @@ public class ResultAnalysis {
 
     private static void printTechnicalSuccess(final List<PatchOutcome> allOutcomes) {
         final long commitPatches = allOutcomes.size();
-        final long commitSuccess = allOutcomes.stream().filter(o -> o.lineSuccessNormal() == o.lineNormal()).count();
-        System.out.printf("%d of %d commit-sized patch applications succeeded (%s)%n", commitSuccess, commitPatches, percentage(commitSuccess, commitPatches));
+        final long commitSuccessNormal = allOutcomes.stream().filter(o -> o.lineSuccessNormal() == o.lineNormal()).count();
+        System.out.printf("%d of %d commit-sized patch applications succeeded (%s)%n", commitSuccessNormal, commitPatches, percentage(commitSuccessNormal, commitPatches));
 
         final long fileNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileNormal).sum();
         final long fileSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessNormal).sum();
@@ -279,6 +285,10 @@ public class ResultAnalysis {
         final long lineNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineNormal).sum();
         final long lineSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineSuccessNormal).sum();
         System.out.printf("%d of %d line-sized patch applications succeeded (%s)%n", lineSuccessNormal, lineNormal, percentage(lineSuccessNormal, lineNormal));
+
+        // -------------------
+        final long commitSuccessFiltered = allOutcomes.stream().filter(o -> o.lineSuccessFiltered() == o.lineFiltered()).count();
+        System.out.printf("%d of %d filtered commit-sized patch applications succeeded (%s)%n", commitSuccessFiltered, commitPatches, percentage(commitSuccessFiltered, commitPatches));
 
         final long fileFiltered = allOutcomes.stream().mapToLong(PatchOutcome::fileFiltered).sum();
         final long fileSuccessFiltered = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessFiltered).sum();
@@ -290,7 +300,7 @@ public class ResultAnalysis {
 
     }
 
-    private static void printPrecisionRecall(final long tp, final long fp, final long tn, final long fn) {
+    private static void printPrecisionRecall(final long tp, final long fp, final long tn, final long fn, final long wrongLocation) {
         final double precision = (double) tp / ((double) tp + fp);
         final double recall = (double) tp / ((double) tp + fn);
         final double f_measure = (2 * precision * recall) / (precision + recall);
@@ -302,6 +312,7 @@ public class ResultAnalysis {
         System.out.printf("Precision: %1.2f%n", precision);
         System.out.printf("Recall: %1.2f%n", recall);
         System.out.printf("F-Measure: %1.2f%n", f_measure);
+        System.out.printf("%d of %d false negatives are due to the patch being applied in the wrong place (%s).",wrongLocation, fn, percentage(wrongLocation, fn));
     }
 
     public static List<PatchOutcome> loadResultObjects(final Path path) throws IOException {
