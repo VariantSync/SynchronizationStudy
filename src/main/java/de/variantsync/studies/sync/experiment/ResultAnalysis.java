@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ResultAnalysis {
-    static Path resultPath = Path.of("empirical-study").toAbsolutePath().resolve("results-busybox.txt");
+    static Path resultPath = Path.of("empirical-study").toAbsolutePath().resolve("results.txt");
 
     public static PatchOutcome processOutcome(final String dataset,
                                               final long runID,
@@ -225,7 +225,8 @@ public class ResultAnalysis {
         printPrecisionRecall(normalTP,
                 normalFP,
                 normalTN,
-                normalFN);
+                normalFN,
+                allOutcomes.normalWrongLocation);
 
 
         System.out.println();
@@ -240,7 +241,8 @@ public class ResultAnalysis {
         printPrecisionRecall(filteredTP,
                 filteredFP,
                 filteredTN,
-                filteredFN);
+                filteredFN,
+                allOutcomes.filteredWrongLocation);
 
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
@@ -286,7 +288,7 @@ public class ResultAnalysis {
 
     }
 
-    private static void printPrecisionRecall(final long tp, final long fp, final long tn, final long fn) {
+    private static void printPrecisionRecall(final long tp, final long fp, final long tn, final long fn, final long wrongLocation) {
         final double precision = (double) tp / ((double) tp + fp);
         final double recall = (double) tp / ((double) tp + fn);
         final double f_measure = (2 * precision * recall) / (precision + recall);
@@ -298,6 +300,7 @@ public class ResultAnalysis {
         System.out.printf("Precision: %1.2f%n", precision);
         System.out.printf("Recall: %1.2f%n", recall);
         System.out.printf("F-Measure: %1.2f%n", f_measure);
+        System.out.printf("-------------%nApplied to wrong location: %d%nPercentage of FN: %s%nPercentage total: %s%n", wrongLocation, percentage(wrongLocation, fn), percentage(wrongLocation, tp + fp + tn + fn));
     }
 
     public static AccumulatedOutcome loadResultObjects(final Path path) throws IOException {
@@ -310,6 +313,9 @@ public class ResultAnalysis {
         long filteredFP = 0;
         long filteredTN = 0;
         long filteredFN = 0;
+
+        long normalWrongLocation = 0;
+        long filteredWrongLocation = 0;
 
         long commitPatches = 0;
         long commitSuccessNormal = 0;
@@ -339,6 +345,9 @@ public class ResultAnalysis {
                     filteredFP += outcome.filteredFP();
                     filteredTN += outcome.filteredTN();
                     filteredFN += outcome.filteredFN();
+
+                    normalWrongLocation += outcome.normalWrongLocation();
+                    filteredWrongLocation += outcome.filteredWrongLocation();
 
                     commitPatches++;
                     if (outcome.lineSuccessNormal() == outcome.lineNormal()) {
@@ -370,6 +379,7 @@ public class ResultAnalysis {
         return new AccumulatedOutcome(
                 normalTP, normalFP, normalTN, normalFN,
                 filteredTP, filteredFP, filteredTN, filteredFN,
+                normalWrongLocation, filteredWrongLocation,
                 commitPatches, commitSuccessNormal, commitSuccessFiltered,
                 fileNormal, fileFiltered, fileSuccessNormal, fileSuccessFiltered,
                 lineNormal, lineFiltered, lineSuccessNormal, lineSuccessFiltered
@@ -429,6 +439,8 @@ public class ResultAnalysis {
             long filteredFP,
             long filteredTN,
             long filteredFN,
+            long normalWrongLocation,
+            long filteredWrongLocation,
             long commitPatches,
             long commitSuccessNormal,
             long commitSuccessFiltered,
