@@ -10,6 +10,7 @@ import de.variantsync.studies.sync.diff.lines.AddedLine;
 import de.variantsync.studies.sync.diff.lines.Change;
 import de.variantsync.studies.sync.diff.lines.RemovedLine;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ResultAnalysis {
-    static Path resultPath = Path.of("empirical-study").toAbsolutePath().resolve("results.txt");
+    static Path resultPath = Path.of("empirical-study").toAbsolutePath().resolve("results-busybox.txt");
 
     public static PatchOutcome processOutcome(final String dataset,
                                               final long runID,
@@ -35,7 +36,6 @@ public class ResultAnalysis {
         // evaluate patch rejects
         final int fileNormal = new HashSet<>(normalPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
         final int lineNormal = normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        var temp = normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
         int fileNormalFailed = 0;
         int lineNormalFailed = 0;
         if (rejectsNormal != null) {
@@ -116,30 +116,29 @@ public class ResultAnalysis {
         List<Change> changesInEvolution = FineDiff.determineChangedLines(evolutionDiff);
 
         // Determine changes in the target variant's evolution that cannot be synchronized, because they are not part of the source variant and therefore not of the patch
-        final List<Change> unsynchronizableChanges = new LinkedList<>();
+        final List<Change> unpatchableChanges = new LinkedList<>();
+        // Determine expected changes, i.e., changes in the target variant's evolution that can be synchronized
+        final List<Change> expectedChanges = new LinkedList<>(changesInEvolution);
         {
             final List<Change> tempChanges = new LinkedList<>(changesInUnfilteredPatch);
             for (Change evolutionChange : changesInEvolution) {
                 if (!tempChanges.contains(evolutionChange)) {
-                    unsynchronizableChanges.add(evolutionChange);
+                    unpatchableChanges.add(evolutionChange);
                 } else {
+                    expectedChanges.add(evolutionChange);
                     tempChanges.remove(evolutionChange);
                 }
             }
         }
 
-        // Determine expected changes, i.e., changes in the target variant's evolution that can be synchronized
-        final List<Change> expectedChanges = new LinkedList<>(changesInEvolution);
-        unsynchronizableChanges.forEach(expectedChanges::remove);
-
         // Determine actual differences between result and expected result,
-        // i.e., changes that should have been synchronized but were not or changes that should not have been synchronized
+        // i.e., changes that should have been synchronized but were not, or changes that should not have been synchronized
         final List<Change> actualDifferences = new LinkedList<>(changesInResult);
-        unsynchronizableChanges.forEach(actualDifferences::remove);
+        unpatchableChanges.forEach(actualDifferences::remove);
 
         assert changesInUnfilteredPatch.size() >= changesInPatch.size();
-        assert changesInEvolution.size() - changesInUnfilteredPatch.size() <= unsynchronizableChanges.size();
-        assert changesInEvolution.size() - unsynchronizableChanges.size() <= changesInUnfilteredPatch.size();
+        assert changesInEvolution.size() - changesInUnfilteredPatch.size() <= unpatchableChanges.size();
+        assert changesInEvolution.size() - unpatchableChanges.size() <= changesInUnfilteredPatch.size();
         // We first want to account for all actual differences that should not have been there, these can either be
         // classified into false positive or false negative
         List<Change> fpChanges = new LinkedList<>();
@@ -150,7 +149,6 @@ public class ResultAnalysis {
             if (expectedChanges.contains(actualDifference)) {
                 fnChanges.add(actualDifference);
                 // Each line in the patch must only be considered once, all additional difference are false positives
-                changesInUnfilteredPatch.remove(actualDifference);
                 changesInPatch.remove(actualDifference);
                 expectedChanges.remove(actualDifference);
             } else {
@@ -164,38 +162,28 @@ public class ResultAnalysis {
         List<Change> wrongLocation = new LinkedList<>();
         for (Change remainingDifference : remainingDifferences) {
             String changedText = remainingDifference.line().line().substring(1);
-            Change foundLine = null;
-            for (Change patchLine : changesInPatch) {
-                if (patchLine.line().line().substring(1).equals(changedText)) {
-                    foundLine = patchLine;
-                }
+            Change oppositeChange;
+            if (remainingDifference.line() instanceof AddedLine) {
+                oppositeChange = new Change(remainingDifference.file(), new RemovedLine("-" + changedText));
+            } else {
+                oppositeChange = new Change(remainingDifference.file(), new AddedLine("+" + changedText));
             }
-            if (foundLine != null) {
+            if (changesInPatch.contains(oppositeChange)) {
                 // The patch contained a false positive, as the difference was not expected.
-                changesInPatch.remove(foundLine);
-                changesInUnfilteredPatch.remove(foundLine);
-                fpChanges.add(remainingDifference);
+                changesInPatch.remove(oppositeChange);
+                fpChanges.add(oppositeChange);
             } else {
                 // This case happens if a line has been synchronized, but to the wrong location. This will result
                 // in the actual differences containing the line once to be added and once to be removed. Therefore,
-                // it has already been removed from the changes in the patch.
-                Change tempChange;
-                if (remainingDifference.line() instanceof AddedLine) {
-                    tempChange = new Change(remainingDifference.file(), new RemovedLine("-" + changedText));
-                } else {
-                    tempChange = new Change(remainingDifference.file(), new AddedLine("+" + changedText));
-                }
-                if (changesInPatch.contains(tempChange)) {
-                    wrongLocation.add(tempChange);
-                    changesInPatch.remove(tempChange);
-                }
+                // it's opposite change has already been removed from the changes in the patch.
+                wrongLocation.add(remainingDifference);
             }
         }
 
         // Now account for the remaining lines in the patch file and determine whether they are true positive or true negative
         List<Change> tpChanges = new LinkedList<>();
         List<Change> tnChanges = new LinkedList<>();
-        for (var patchLine : changesInUnfilteredPatch) {
+        for (var patchLine : changesInPatch) {
             if (expectedChanges.contains(patchLine)) {
                 // In Patch & Expected: It is a true positive
                 tpChanges.add(patchLine);
@@ -215,7 +203,7 @@ public class ResultAnalysis {
     }
 
     public static void main(final String... args) throws IOException {
-        final List<PatchOutcome> allOutcomes = loadResultObjects(resultPath);
+        final AccumulatedOutcome allOutcomes = loadResultObjects(resultPath);
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("Patch Success");
@@ -227,34 +215,30 @@ public class ResultAnalysis {
         System.out.println("Precision / Recall");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
-        long normalTP = allOutcomes.stream().mapToLong(PatchOutcome::normalTP).sum();
-        long normalFP = allOutcomes.stream().mapToLong(PatchOutcome::normalFP).sum();
-        long normalTN = allOutcomes.stream().mapToLong(PatchOutcome::normalTN).sum();
-        long normalFN = allOutcomes.stream().mapToLong(PatchOutcome::normalFN).sum();
-        long normalWrongLocation = allOutcomes.stream().mapToLong(PatchOutcome::normalWrongLocation).sum();
+        long normalTP = allOutcomes.normalTP;
+        long normalFP = allOutcomes.normalFP;
+        long normalTN = allOutcomes.normalTN;
+        long normalFN = allOutcomes.normalFN;
 
         printPrecisionRecall(normalTP,
                 normalFP,
                 normalTN,
-                normalFN,
-                normalWrongLocation);
+                normalFN);
 
 
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println();
 
-        long filteredTP = allOutcomes.stream().mapToLong(PatchOutcome::filteredTP).sum();
-        long filteredFP = allOutcomes.stream().mapToLong(PatchOutcome::filteredFP).sum();
-        long filteredTN = allOutcomes.stream().mapToLong(PatchOutcome::filteredTN).sum();
-        long filteredFN = allOutcomes.stream().mapToLong(PatchOutcome::filteredFN).sum();
-        long filteredWrongLocation = allOutcomes.stream().mapToLong(PatchOutcome::filteredWrongLocation).sum();
+        long filteredTP = allOutcomes.filteredTP;
+        long filteredFP = allOutcomes.filteredFP;
+        long filteredTN = allOutcomes.filteredTN;
+        long filteredFN = allOutcomes.filteredFN;
 
         printPrecisionRecall(filteredTP,
                 filteredFP,
                 filteredTN,
-                filteredFN,
-                filteredWrongLocation);
+                filteredFN);
 
         System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
@@ -272,35 +256,35 @@ public class ResultAnalysis {
         System.out.println("++++++++++++++++++++++++++++++++++++++");
     }
 
-    private static void printTechnicalSuccess(final List<PatchOutcome> allOutcomes) {
-        final long commitPatches = allOutcomes.size();
-        final long commitSuccessNormal = allOutcomes.stream().filter(o -> o.lineSuccessNormal() == o.lineNormal()).count();
+    private static void printTechnicalSuccess(final AccumulatedOutcome allOutcomes) {
+        final long commitPatches = allOutcomes.commitPatches();
+        final long commitSuccessNormal = allOutcomes.commitSuccessNormal();
         System.out.printf("%d of %d commit-sized patch applications succeeded (%s)%n", commitSuccessNormal, commitPatches, percentage(commitSuccessNormal, commitPatches));
 
-        final long fileNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileNormal).sum();
-        final long fileSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessNormal).sum();
+        final long fileNormal = allOutcomes.fileNormal;
+        final long fileSuccessNormal = allOutcomes.fileSuccessNormal;
 
         System.out.printf("%d of %d file-sized patch applications succeeded (%s)%n", fileSuccessNormal, fileNormal, percentage(fileSuccessNormal, fileNormal));
 
-        final long lineNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineNormal).sum();
-        final long lineSuccessNormal = allOutcomes.stream().mapToLong(PatchOutcome::lineSuccessNormal).sum();
+        final long lineNormal = allOutcomes.lineNormal;
+        final long lineSuccessNormal = allOutcomes.lineSuccessNormal;
         System.out.printf("%d of %d line-sized patch applications succeeded (%s)%n", lineSuccessNormal, lineNormal, percentage(lineSuccessNormal, lineNormal));
 
         // -------------------
-        final long commitSuccessFiltered = allOutcomes.stream().filter(o -> o.lineSuccessFiltered() == o.lineFiltered()).count();
+        final long commitSuccessFiltered = allOutcomes.commitSuccessFiltered;
         System.out.printf("%d of %d filtered commit-sized patch applications succeeded (%s)%n", commitSuccessFiltered, commitPatches, percentage(commitSuccessFiltered, commitPatches));
 
-        final long fileFiltered = allOutcomes.stream().mapToLong(PatchOutcome::fileFiltered).sum();
-        final long fileSuccessFiltered = allOutcomes.stream().mapToLong(PatchOutcome::fileSuccessFiltered).sum();
+        final long fileFiltered = allOutcomes.fileFiltered;
+        final long fileSuccessFiltered = allOutcomes.fileSuccessFiltered;
         System.out.printf("%d of %d filtered file-sized patch applications succeeded (%s)%n", fileSuccessFiltered, fileFiltered, percentage(fileSuccessFiltered, fileFiltered));
 
-        final long lineFiltered = allOutcomes.stream().mapToLong(PatchOutcome::lineFiltered).sum();
-        final long lineSuccessFiltered = allOutcomes.stream().mapToLong(PatchOutcome::lineSuccessFiltered).sum();
+        final long lineFiltered = allOutcomes.lineFiltered;
+        final long lineSuccessFiltered = allOutcomes.lineSuccessFiltered;
         System.out.printf("%d of %d filtered line-sized patch applications succeeded (%s)%n", lineSuccessFiltered, lineFiltered, percentage(lineSuccessFiltered, lineFiltered));
 
     }
 
-    private static void printPrecisionRecall(final long tp, final long fp, final long tn, final long fn, final long wrongLocation) {
+    private static void printPrecisionRecall(final long tp, final long fp, final long tn, final long fn) {
         final double precision = (double) tp / ((double) tp + fp);
         final double recall = (double) tp / ((double) tp + fn);
         final double f_measure = (2 * precision * recall) / (precision + recall);
@@ -312,22 +296,82 @@ public class ResultAnalysis {
         System.out.printf("Precision: %1.2f%n", precision);
         System.out.printf("Recall: %1.2f%n", recall);
         System.out.printf("F-Measure: %1.2f%n", f_measure);
-        System.out.printf("%d of %d false negatives are due to the patch being applied in the wrong place (%s).",wrongLocation, fn, percentage(wrongLocation, fn));
     }
 
-    public static List<PatchOutcome> loadResultObjects(final Path path) throws IOException {
-        final List<PatchOutcome> results = new LinkedList<>();
-        final List<String> lines = Files.readAllLines(path);
-        List<String> currentResult = new LinkedList<>();
-        for (final String l : lines) {
-            if (l.isEmpty()) {
-                results.add(parseResult(currentResult));
-                currentResult = new LinkedList<>();
-            } else {
-                currentResult.add(l);
+    public static AccumulatedOutcome loadResultObjects(final Path path) throws IOException {
+        long normalTP = 0;
+        long normalFP = 0;
+        long normalTN = 0;
+        long normalFN = 0;
+
+        long filteredTP = 0;
+        long filteredFP = 0;
+        long filteredTN = 0;
+        long filteredFN = 0;
+
+        long commitPatches = 0;
+        long commitSuccessNormal = 0;
+        long commitSuccessFiltered = 0;
+
+        long fileNormal = 0;
+        long fileFiltered = 0;
+        long fileSuccessNormal = 0;
+        long fileSuccessFiltered = 0;
+
+        long lineNormal = 0;
+        long lineFiltered = 0;
+        long lineSuccessNormal = 0;
+        long lineSuccessFiltered = 0;
+
+        try(BufferedReader reader = Files.newBufferedReader(path)) {
+            List<String> outcomeLines = new LinkedList<>();
+            for(String line = reader.readLine(); line != null; line= reader.readLine()) {
+                if (line.isEmpty()) {
+                    PatchOutcome outcome = parseResult(outcomeLines);
+                    normalTP += outcome.normalTP();
+                    normalFP += outcome.normalFP();
+                    normalTN += outcome.normalTN();
+                    normalFN += outcome.normalFN();
+
+                    filteredTP += outcome.filteredTP();
+                    filteredFP += outcome.filteredFP();
+                    filteredTN += outcome.filteredTN();
+                    filteredFN += outcome.filteredFN();
+
+                    commitPatches++;
+                    if (outcome.lineSuccessNormal() == outcome.lineNormal()) {
+                        commitSuccessNormal++;
+                    }
+                    if (outcome.lineSuccessFiltered() == outcome.lineFiltered()) {
+                        commitSuccessFiltered++;
+                    }
+
+                    fileNormal += outcome.fileNormal();
+                    fileSuccessNormal += outcome.fileSuccessNormal();
+                    fileFiltered += outcome.fileFiltered();
+                    fileSuccessFiltered += outcome.fileSuccessFiltered();
+
+                    lineNormal += outcome.lineNormal();
+                    lineSuccessNormal += outcome.lineSuccessNormal();
+                    lineFiltered += outcome.lineFiltered();
+                    lineSuccessFiltered += outcome.lineSuccessFiltered();
+
+                    outcomeLines.clear();
+                } else {
+                    outcomeLines.add(line);
+                }
             }
         }
-        return results;
+
+        System.out.printf("Read a total of %d results.", commitPatches);
+
+        return new AccumulatedOutcome(
+                normalTP, normalFP, normalTN, normalFN,
+                filteredTP, filteredFP, filteredTN, filteredFN,
+                commitPatches, commitSuccessNormal, commitSuccessFiltered,
+                fileNormal, fileFiltered, fileSuccessNormal, fileSuccessFiltered,
+                lineNormal, lineFiltered, lineSuccessNormal, lineSuccessFiltered
+        );
     }
 
     public static PatchOutcome parseResult(final List<String> lines) {
@@ -373,4 +417,26 @@ public class ResultAnalysis {
             return wrongLocation.size();
         }
     }
+
+    private static record AccumulatedOutcome(
+            long normalTP,
+            long normalFP,
+            long normalTN,
+            long normalFN,
+            long filteredTP,
+            long filteredFP,
+            long filteredTN,
+            long filteredFN,
+            long commitPatches,
+            long commitSuccessNormal,
+            long commitSuccessFiltered,
+            long fileNormal,
+            long fileFiltered,
+            long fileSuccessNormal,
+            long fileSuccessFiltered,
+            long lineNormal,
+            long lineFiltered,
+            long lineSuccessNormal,
+            long lineSuccessFiltered
+    ){}
 }
