@@ -57,10 +57,10 @@ public class ResultAnalysis {
         int lineFilteredFailed = 0;
         if (rejectsFiltered != null) {
             fileFilteredFailed = new HashSet<>(rejectsFiltered.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-            fileNormalFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile())).count();
+            fileFilteredFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile())).count();
             Logger.status("" + fileFilteredFailed + " of " + fileFiltered + " filtered file-sized patches failed.");
             lineFilteredFailed = rejectsFiltered.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
-            lineNormalFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
+            lineFilteredFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
             Logger.status("" + lineFilteredFailed + " of " + lineFiltered + " filtered line-sized patches failed");
         }
 
@@ -118,7 +118,7 @@ public class ResultAnalysis {
         // Determine changes in the target variant's evolution that cannot be synchronized, because they are not part of the source variant and therefore not of the patch
         final List<Change> unpatchableChanges = new LinkedList<>();
         // Determine expected changes, i.e., changes in the target variant's evolution that can be synchronized
-        final List<Change> expectedChanges = new LinkedList<>(changesInEvolution);
+        final List<Change> expectedChanges = new LinkedList<>();
         {
             final List<Change> tempChanges = new LinkedList<>(changesInUnfilteredPatch);
             for (Change evolutionChange : changesInEvolution) {
@@ -150,6 +150,7 @@ public class ResultAnalysis {
                 fnChanges.add(actualDifference);
                 // Each line in the patch must only be considered once, all additional difference are false positives
                 changesInPatch.remove(actualDifference);
+                changesInUnfilteredPatch.remove(actualDifference);
                 expectedChanges.remove(actualDifference);
             } else {
                 // It was not a false negative, so it should later be checked whether it is a false positive
@@ -171,6 +172,7 @@ public class ResultAnalysis {
             if (changesInPatch.contains(oppositeChange)) {
                 // The patch contained a false positive, as the difference was not expected.
                 changesInPatch.remove(oppositeChange);
+                changesInUnfilteredPatch.remove(oppositeChange);
                 fpChanges.add(oppositeChange);
             } else {
                 // This case happens if a line has been synchronized, but to the wrong location. This will result
@@ -183,7 +185,7 @@ public class ResultAnalysis {
         // Now account for the remaining lines in the patch file and determine whether they are true positive or true negative
         List<Change> tpChanges = new LinkedList<>();
         List<Change> tnChanges = new LinkedList<>();
-        for (var patchLine : changesInPatch) {
+        for (var patchLine : changesInUnfilteredPatch) {
             if (expectedChanges.contains(patchLine)) {
                 // In Patch & Expected: It is a true positive
                 tpChanges.add(patchLine);
