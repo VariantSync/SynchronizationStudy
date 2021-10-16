@@ -244,20 +244,28 @@ public class ResultAnalysis {
                 filteredFN,
                 allOutcomes.filteredWrongLocation);
 
-        System.out.println();
         System.out.println("++++++++++++++++++++++++++++++++++++++");
-        System.out.println("Actual vs. Expected");
+        System.out.println("Accuracy");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
-        long expectedCountNormal = normalTP + normalTN;
-        long allNormal = normalTP + normalFP + normalTN + normalFN;
-        System.out.printf("Normal patching achieved the expected result %d out of %d times (Accuracy: %s).%n", expectedCountNormal, allNormal, percentage(expectedCountNormal, allNormal));
-        long expectedCountFiltered = filteredTP + filteredTN;
-        long allFiltered = filteredTP + filteredFP + filteredTN + filteredFN;
-        System.out.printf("Filtered patching achieved the expected result %d out of %d times (Accuracy: %s).%n", expectedCountFiltered, allFiltered, percentage(expectedCountFiltered, allFiltered));
+       printAccuracy(normalTP, normalFP, normalTN, normalFN, "Normal");
+       printAccuracy(filteredTP, filteredFP, filteredTN, filteredFN, "Filtered");
 
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
+    }
+
+    private static void printAccuracy(long tp, long fp, long tn, long fn, String name) {
+        long expectedCount = tp + tn;
+        long allPositives = tp + fn;
+        long allNegative = fp + tn;
+        double truePositiveRate = (double)tp / (double)allPositives;
+        double trueNegativeRate = (double)tn / (double)allNegative;
+        long all = tp + fp + tn + fn;
+
+        System.out.printf("%s patching achieved the expected result %d out of %d times%n", name, expectedCount, all);
+        System.out.printf("Accuracy: %s%n", percentage(expectedCount, all));
+        System.out.printf("Balanced Accuracy: %1.2f%n%n", ((truePositiveRate + trueNegativeRate) / 2.0));
     }
 
     private static void printTechnicalSuccess(final AccumulatedOutcome allOutcomes) {
