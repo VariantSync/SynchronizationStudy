@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ResultAnalysis {
@@ -29,40 +30,41 @@ public class ResultAnalysis {
                                               final SPLCommit commitV0, final SPLCommit commitV1,
                                               final FineDiff normalPatch, final FineDiff filteredPatch,
                                               final FineDiff resultDiffNormal, final FineDiff resultDiffFiltered,
-                                              final OriginalDiff rejectsNormal, final OriginalDiff rejectsFiltered,
+                                              OriginalDiff rejectsNormal, OriginalDiff rejectsFiltered,
                                               final FineDiff evolutionDiff,
-                                              final List<Path> skippedFilesNormal,
-                                              final List<Path> skippedFilesFiltered) {
+                                              final Set<String> skippedFilesNormal,
+                                              final Set<String> skippedFilesFiltered) {
         // evaluate patch rejects
         final int fileNormal = new HashSet<>(normalPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
         final int lineNormal = normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
         int fileNormalFailed = 0;
         int lineNormalFailed = 0;
-        if (rejectsNormal != null) {
-            Logger.status("Commit-sized patch failed");
-
-            fileNormalFailed = new HashSet<>(rejectsNormal.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-            fileNormalFailed += normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).count();
-            Logger.status("" + fileNormalFailed + " of " + fileNormal + " normal file-sized patches failed.");
-            lineNormalFailed = rejectsNormal.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
-            lineNormalFailed += normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
-            Logger.status("" + lineNormalFailed + " of " + lineNormal + " normal line-sized patches failed");
-        } else {
-            Logger.status("Commit-sized patch succeeded.");
+        if (rejectsNormal == null) {
+            rejectsNormal = new OriginalDiff(new LinkedList<>());
         }
+        Logger.status("Commit-sized patch failed");
+
+        fileNormalFailed = new HashSet<>(rejectsNormal.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toSet())).size();
+        fileNormalFailed += skippedFilesNormal.size();
+        Logger.status("" + fileNormalFailed + " of " + fileNormal + " normal file-sized patches failed.");
+        lineNormalFailed = rejectsNormal.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        lineNormalFailed += normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile().toString())).mapToInt(fd -> fd.hunks().size()).sum();
+        Logger.status("" + lineNormalFailed + " of " + lineNormal + " normal line-sized patches failed");
+
 
         final int fileFiltered = new HashSet<>(filteredPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
         final int lineFiltered = filteredPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
         int fileFilteredFailed = 0;
         int lineFilteredFailed = 0;
-        if (rejectsFiltered != null) {
-            fileFilteredFailed = new HashSet<>(rejectsFiltered.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
-            fileFilteredFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile())).count();
-            Logger.status("" + fileFilteredFailed + " of " + fileFiltered + " filtered file-sized patches failed.");
-            lineFilteredFailed = rejectsFiltered.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
-            lineFilteredFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile())).mapToInt(fd -> fd.hunks().size()).sum();
-            Logger.status("" + lineFilteredFailed + " of " + lineFiltered + " filtered line-sized patches failed");
+        if (rejectsFiltered == null) {
+            rejectsFiltered = new OriginalDiff(new LinkedList<>());
         }
+        fileFilteredFailed = new HashSet<>(rejectsFiltered.fileDiffs().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
+        fileFilteredFailed += skippedFilesFiltered.size();
+        Logger.status("" + fileFilteredFailed + " of " + fileFiltered + " filtered file-sized patches failed.");
+        lineFilteredFailed = rejectsFiltered.fileDiffs().stream().mapToInt(fd -> fd.hunks().size()).sum();
+        lineFilteredFailed += filteredPatch.content().stream().filter(fd -> skippedFilesFiltered.contains(fd.oldFile().toString())).mapToInt(fd -> fd.hunks().size()).sum();
+        Logger.status("" + lineFilteredFailed + " of " + lineFiltered + " filtered line-sized patches failed");
 
         final ConditionTable normalConditionTable = calculateConditionTable(normalPatch, normalPatch, resultDiffNormal, evolutionDiff);
         final long normalTP = normalConditionTable.tpCount();
@@ -111,22 +113,35 @@ public class ResultAnalysis {
 
     private static ConditionTable calculateConditionTable(FineDiff evaluatedPatch, FineDiff unfilteredPatch, FineDiff resultDiff, FineDiff evolutionDiff) {
         List<Change> changesInPatch = FineDiff.determineChangedLines(evaluatedPatch);
-        List<Change> changesInUnfilteredPatch = FineDiff.determineChangedLines(unfilteredPatch);
+        List<Change> changesToClassify = FineDiff.determineChangedLines(unfilteredPatch);
         List<Change> changesInResult = FineDiff.determineChangedLines(resultDiff);
         List<Change> changesInEvolution = FineDiff.determineChangedLines(evolutionDiff);
 
         // Determine changes in the target variant's evolution that cannot be synchronized, because they are not part of the source variant and therefore not of the patch
         final List<Change> unpatchableChanges = new LinkedList<>();
         // Determine expected changes, i.e., changes in the target variant's evolution that can be synchronized
-        final List<Change> expectedChanges = new LinkedList<>();
+        final List<Change> requiredChanges = new LinkedList<>();
         {
-            final List<Change> tempChanges = new LinkedList<>(changesInUnfilteredPatch);
+            final List<Change> tempChanges = new LinkedList<>(changesToClassify);
             for (Change evolutionChange : changesInEvolution) {
                 if (!tempChanges.contains(evolutionChange)) {
                     unpatchableChanges.add(evolutionChange);
                 } else {
-                    expectedChanges.add(evolutionChange);
+                    requiredChanges.add(evolutionChange);
                     tempChanges.remove(evolutionChange);
+                }
+            }
+        }
+
+        // Determine undesired changes, i.e., changes in the patch but not evolution
+        final List<Change> undesiredChanges = new LinkedList<>();
+        {
+            final List<Change> tempChanges = new LinkedList<>(requiredChanges);
+            for (Change patchChange : changesInPatch) {
+                if (!tempChanges.contains(patchChange)) {
+                    undesiredChanges.add(patchChange);
+                } else {
+                    tempChanges.remove(patchChange);
                 }
             }
         }
@@ -136,65 +151,66 @@ public class ResultAnalysis {
         final List<Change> actualDifferences = new LinkedList<>(changesInResult);
         unpatchableChanges.forEach(actualDifferences::remove);
 
-        assert changesInUnfilteredPatch.size() >= changesInPatch.size();
-        assert changesInEvolution.size() - changesInUnfilteredPatch.size() <= unpatchableChanges.size();
-        assert changesInEvolution.size() - unpatchableChanges.size() <= changesInUnfilteredPatch.size();
-        // We first want to account for all actual differences that should not have been there, these can either be
-        // classified into false positive or false negative
-        List<Change> fpChanges = new LinkedList<>();
-        List<Change> fnChanges = new LinkedList<>();
-        List<Change> remainingDifferences = new LinkedList<>();
-        for (Change actualDifference : actualDifferences) {
-            // Is it a false negative?
-            if (expectedChanges.contains(actualDifference)) {
-                fnChanges.add(actualDifference);
-                // Each line in the patch must only be considered once, all additional difference are false positives
-                changesInPatch.remove(actualDifference);
-                changesInUnfilteredPatch.remove(actualDifference);
-                expectedChanges.remove(actualDifference);
-            } else {
-                // It was not a false negative, so it should later be checked whether it is a false positive
-                remainingDifferences.add(actualDifference);
-            }
-        }
-        // Now account for the remaining differences between the actual and the expected result. They are either
+        assert changesToClassify.size() >= changesInPatch.size();
+        assert changesInEvolution.size() - changesToClassify.size() <= unpatchableChanges.size();
+        assert changesInEvolution.size() - unpatchableChanges.size() <= changesToClassify.size();
+
+        // We first want to account for the remaining differences between the actual and the expected result. They are either
         // false positives, i.e. changes in the patch that were applied but should not have been, or the mirror change
         // of a false negative that was applied to the wrong location.
         List<Change> wrongLocation = new LinkedList<>();
-        for (Change remainingDifference : remainingDifferences) {
-            String changedText = remainingDifference.line().line().substring(1);
+        List<Change> remainingDifferences = new LinkedList<>();
+        List<Change> fpChanges = new LinkedList<>();
+        for (Change actualDifference : actualDifferences) {
+            String changedText = actualDifference.line().line().substring(1);
             Change oppositeChange;
-            if (remainingDifference.line() instanceof AddedLine) {
-                oppositeChange = new Change(remainingDifference.file(), new RemovedLine("-" + changedText));
+            if (actualDifference.line() instanceof AddedLine) {
+                oppositeChange = new Change(actualDifference.file(), new RemovedLine("-" + changedText));
             } else {
-                oppositeChange = new Change(remainingDifference.file(), new AddedLine("+" + changedText));
+                oppositeChange = new Change(actualDifference.file(), new AddedLine("+" + changedText));
             }
-            if (changesInPatch.contains(oppositeChange)) {
+            if (undesiredChanges.contains(oppositeChange)) {
                 // The patch contained a false positive, as the difference was not expected.
                 changesInPatch.remove(oppositeChange);
-                changesInUnfilteredPatch.remove(oppositeChange);
+                changesToClassify.remove(oppositeChange);
+                undesiredChanges.remove(oppositeChange);
                 fpChanges.add(oppositeChange);
+            } else {
+                remainingDifferences.add(actualDifference);
+            }
+        }
+
+        // Now account for false negative
+        List<Change> fnChanges = new LinkedList<>();
+        for (Change actualDifference : remainingDifferences) {
+            // Is it a false negative?
+            if (requiredChanges.contains(actualDifference)) {
+                fnChanges.add(actualDifference);
+                // Each line in the patch must only be considered once, all additional difference are false positives
+                changesInPatch.remove(actualDifference);
+                changesToClassify.remove(actualDifference);
+                requiredChanges.remove(actualDifference);
             } else {
                 // This case happens if a line has been synchronized, but to the wrong location. This will result
                 // in the actual differences containing the line once to be added and once to be removed. Therefore,
                 // it's opposite change has already been removed from the changes in the patch.
-                wrongLocation.add(remainingDifference);
+                wrongLocation.add(actualDifference);
             }
         }
 
         // Now account for the remaining lines in the patch file and determine whether they are true positive or true negative
         List<Change> tpChanges = new LinkedList<>();
         List<Change> tnChanges = new LinkedList<>();
-        for (var patchLine : changesInUnfilteredPatch) {
-            if (expectedChanges.contains(patchLine)) {
+        for (var patchLine : changesToClassify) {
+            if (requiredChanges.contains(patchLine)) {
                 // In Patch & Expected: It is a true positive
                 tpChanges.add(patchLine);
+                // Remove the line from the expected changes to account for similar changes
+                requiredChanges.remove(patchLine);
             } else {
                 // In Patch & Unexpected: It is a true negative
                 tnChanges.add(patchLine);
             }
-            // Remove the line from the expected changes to account for similar changes
-            expectedChanges.remove(patchLine);
         }
         long tp = tpChanges.size();
         long fp = fpChanges.size();
@@ -248,8 +264,8 @@ public class ResultAnalysis {
         System.out.println("Accuracy");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
 
-       printAccuracy(normalTP, normalFP, normalTN, normalFN, "Normal");
-       printAccuracy(filteredTP, filteredFP, filteredTN, filteredFN, "Filtered");
+        printAccuracy(normalTP, normalFP, normalTN, normalFN, "Normal");
+        printAccuracy(filteredTP, filteredFP, filteredTN, filteredFN, "Filtered");
 
         System.out.println("++++++++++++++++++++++++++++++++++++++");
         System.out.println("++++++++++++++++++++++++++++++++++++++");
@@ -259,8 +275,8 @@ public class ResultAnalysis {
         long expectedCount = tp + tn;
         long allPositives = tp + fn;
         long allNegative = fp + tn;
-        double truePositiveRate = (double)tp / (double)allPositives;
-        double trueNegativeRate = (double)tn / (double)allNegative;
+        double truePositiveRate = (double) tp / (double) allPositives;
+        double trueNegativeRate = (double) tn / (double) allNegative;
         long all = tp + fp + tn + fn;
 
         System.out.printf("%s patching achieved the expected result %d out of %d times%n", name, expectedCount, all);
@@ -339,9 +355,9 @@ public class ResultAnalysis {
         long lineSuccessNormal = 0;
         long lineSuccessFiltered = 0;
 
-        try(BufferedReader reader = Files.newBufferedReader(path)) {
+        try (BufferedReader reader = Files.newBufferedReader(path)) {
             List<String> outcomeLines = new LinkedList<>();
-            for(String line = reader.readLine(); line != null; line= reader.readLine()) {
+            for (String line = reader.readLine(); line != null; line = reader.readLine()) {
                 if (line.isEmpty()) {
                     PatchOutcome outcome = parseResult(outcomeLines);
                     normalTP += outcome.normalTP();
@@ -460,5 +476,6 @@ public class ResultAnalysis {
             long lineFiltered,
             long lineSuccessNormal,
             long lineSuccessFiltered
-    ){}
+    ) {
+    }
 }

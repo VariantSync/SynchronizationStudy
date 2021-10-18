@@ -233,7 +233,7 @@ public abstract class Experiment {
                             /* Application of patches without knowledge about features */
                             Logger.info("Applying patch without knowledge about features...");
                             // Apply the fine diff to the target variant
-                            final List<Path> skippedNormal = applyPatch(normalPatchFile, pathToTarget, rejectsNormalFile);
+                            final Set<String> skippedNormal = applyPatch(normalPatchFile, pathToTarget, rejectsNormalFile);
                             // Evaluate the patch result
                             final FineDiff actualVsExpectedNormal = getActualVsExpected(pathToExpectedResult);
                             final OriginalDiff rejectsNormal = readRejects(rejectsNormalFile);
@@ -245,7 +245,7 @@ public abstract class Experiment {
                             final boolean emptyPatch = filteredPatch.content().isEmpty();
                             saveDiff(filteredPatch, filteredPatchFile);
                             // Apply the patch
-                            final List<Path> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, rejectsFilteredFile, emptyPatch);
+                            final Set<String> skippedFiltered = applyPatch(filteredPatchFile, pathToTarget, rejectsFilteredFile, emptyPatch);
                             // Evaluate the result
                             final FineDiff actualVsExpectedFiltered = getActualVsExpected(pathToExpectedResult);
                             final OriginalDiff rejectsFiltered = readRejects(rejectsFilteredFile);
@@ -459,11 +459,11 @@ public abstract class Experiment {
         }
     }
 
-    private List<Path> applyPatch(final Path patchFile, final Path targetVariant, final Path rejectFile) {
+    private Set<String> applyPatch(final Path patchFile, final Path targetVariant, final Path rejectFile) {
         return applyPatch(patchFile, targetVariant, rejectFile, false);
     }
 
-    private List<Path> applyPatch(final Path patchFile, final Path targetVariant, final Path rejectFile, final boolean emptyPatch) {
+    private Set<String> applyPatch(final Path patchFile, final Path targetVariant, final Path rejectFile, final boolean emptyPatch) {
         // Clean patch directory
         if (Files.exists(patchDir.toAbsolutePath())) {
             shell.execute(new RmCommand(patchDir.toAbsolutePath()).recursive());
@@ -485,7 +485,7 @@ public abstract class Experiment {
         shell.execute(new CpCommand(targetVariant, patchDir).recursive()).expect("Was not able to copy variant " + targetVariant);
 
         // apply patch to copied target variant
-        final List<Path> skipped = new LinkedList<>();
+        final Set<String> skipped = new HashSet<>();
         if (!emptyPatch) {
             final Result<List<String>, ShellException> result = shell.execute(PatchCommand.Recommended(patchFile).strip(2).rejectFile(rejectFile).force(), patchDir);
             if (result.isSuccess()) {
@@ -498,7 +498,7 @@ public abstract class Experiment {
                     Logger.debug(nextLine);
                     if (nextLine.startsWith("|---")) {
                         oldFile = nextLine.split("\\s+")[1];
-                        skipped.add(Path.of(oldFile));
+                        skipped.add(oldFile);
                     }
                 }
             }
