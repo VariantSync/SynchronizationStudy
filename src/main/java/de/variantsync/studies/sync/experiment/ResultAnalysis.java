@@ -9,6 +9,7 @@ import de.variantsync.studies.sync.diff.components.OriginalDiff;
 import de.variantsync.studies.sync.diff.lines.AddedLine;
 import de.variantsync.studies.sync.diff.lines.Change;
 import de.variantsync.studies.sync.diff.lines.RemovedLine;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -37,8 +38,8 @@ public class ResultAnalysis {
         // evaluate patch rejects
         final int fileNormal = new HashSet<>(normalPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
         final int lineNormal = normalPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        int fileNormalFailed = 0;
-        int lineNormalFailed = 0;
+        int fileNormalFailed;
+        int lineNormalFailed;
         if (rejectsNormal == null) {
             rejectsNormal = new OriginalDiff(new LinkedList<>());
         }
@@ -51,11 +52,10 @@ public class ResultAnalysis {
         lineNormalFailed += normalPatch.content().stream().filter(fd -> skippedFilesNormal.contains(fd.oldFile().toString())).mapToInt(fd -> fd.hunks().size()).sum();
         Logger.status("" + lineNormalFailed + " of " + lineNormal + " normal line-sized patches failed");
 
-
         final int fileFiltered = new HashSet<>(filteredPatch.content().stream().map(fd -> fd.oldFile().toString()).collect(Collectors.toList())).size();
         final int lineFiltered = filteredPatch.content().stream().mapToInt(fd -> fd.hunks().size()).sum();
-        int fileFilteredFailed = 0;
-        int lineFilteredFailed = 0;
+        int fileFilteredFailed;
+        int lineFilteredFailed;
         if (rejectsFiltered == null) {
             rejectsFiltered = new OriginalDiff(new LinkedList<>());
         }
@@ -71,16 +71,17 @@ public class ResultAnalysis {
         final long normalFP = normalConditionTable.fpCount();
         final long normalTN = normalConditionTable.tnCount();
         final long normalFN = normalConditionTable.fnCount();
-        final long normalWrongLocation = normalConditionTable.wrongLocationCount();
+        final long normalWrongLocation = normalTN + normalFN - lineNormalFailed;
 
         final ConditionTable filteredConditionTable = calculateConditionTable(filteredPatch, normalPatch, resultDiffFiltered, evolutionDiff);
         final long filteredTP = filteredConditionTable.tpCount();
         final long filteredFP = filteredConditionTable.fpCount();
         final long filteredTN = filteredConditionTable.tnCount();
         final long filteredFN = filteredConditionTable.fnCount();
-        final long filteredWrongLocation = filteredConditionTable.wrongLocationCount();
+        final long filteredWrongLocation = filteredTN + filteredFN - (/*filtered lines*/ lineNormal - lineFiltered) - lineFilteredFailed;
 
         assert normalTP + normalFP + normalFN + normalTN == filteredTP + filteredFP + filteredTN + filteredFN;
+        assert normalTN + normalFN - normalWrongLocation <= lineNormalFailed;
         assert filteredTP + filteredFP + filteredFN + filteredTN == lineFiltered + (lineNormal - lineFiltered);
 
         return new PatchOutcome(dataset,
@@ -137,7 +138,7 @@ public class ResultAnalysis {
         final List<Change> undesiredChanges = new LinkedList<>();
         {
             final List<Change> tempChanges = new LinkedList<>(requiredChanges);
-            for (Change patchChange : changesInPatch) {
+            for (Change patchChange : changesToClassify) {
                 if (!tempChanges.contains(patchChange)) {
                     undesiredChanges.add(patchChange);
                 } else {
@@ -148,7 +149,7 @@ public class ResultAnalysis {
 
         // Determine actual differences between result and expected result,
         // i.e., changes that should have been synchronized but were not, or changes that should not have been synchronized
-        final List<Change> actualDifferences = new LinkedList<>(changesInResult);
+        List<Change> actualDifferences = new LinkedList<>(changesInResult);
         unpatchableChanges.forEach(actualDifferences::remove);
 
         assert changesToClassify.size() >= changesInPatch.size();
@@ -158,17 +159,10 @@ public class ResultAnalysis {
         // We first want to account for the remaining differences between the actual and the expected result. They are either
         // false positives, i.e. changes in the patch that were applied but should not have been, or the mirror change
         // of a false negative that was applied to the wrong location.
-        List<Change> wrongLocation = new LinkedList<>();
         List<Change> remainingDifferences = new LinkedList<>();
         List<Change> fpChanges = new LinkedList<>();
         for (Change actualDifference : actualDifferences) {
-            String changedText = actualDifference.line().line().substring(1);
-            Change oppositeChange;
-            if (actualDifference.line() instanceof AddedLine) {
-                oppositeChange = new Change(actualDifference.file(), new RemovedLine("-" + changedText));
-            } else {
-                oppositeChange = new Change(actualDifference.file(), new AddedLine("+" + changedText));
-            }
+            Change oppositeChange = getOppositeChange(actualDifference);
             if (undesiredChanges.contains(oppositeChange)) {
                 // The patch contained a false positive, as the difference was not expected.
                 changesInPatch.remove(oppositeChange);
@@ -181,20 +175,18 @@ public class ResultAnalysis {
         }
 
         // Now account for false negative
+        actualDifferences = remainingDifferences;
+        remainingDifferences = new LinkedList<>();
         List<Change> fnChanges = new LinkedList<>();
-        for (Change actualDifference : remainingDifferences) {
+        for (Change actualDifference : actualDifferences) {
             // Is it a false negative?
             if (requiredChanges.contains(actualDifference)) {
-                fnChanges.add(actualDifference);
                 // Each line in the patch must only be considered once, all additional difference are false positives
-                changesInPatch.remove(actualDifference);
                 changesToClassify.remove(actualDifference);
                 requiredChanges.remove(actualDifference);
+                fnChanges.add(actualDifference);
             } else {
-                // This case happens if a line has been synchronized, but to the wrong location. This will result
-                // in the actual differences containing the line once to be added and once to be removed. Therefore,
-                // it's opposite change has already been removed from the changes in the patch.
-                wrongLocation.add(actualDifference);
+                remainingDifferences.add(actualDifference);
             }
         }
 
@@ -207,7 +199,7 @@ public class ResultAnalysis {
                 tpChanges.add(patchLine);
                 // Remove the line from the expected changes to account for similar changes
                 requiredChanges.remove(patchLine);
-            } else {
+            } else if (undesiredChanges.contains(patchLine)){
                 // In Patch & Unexpected: It is a true negative
                 tnChanges.add(patchLine);
             }
@@ -217,7 +209,19 @@ public class ResultAnalysis {
         long tn = tnChanges.size();
         long fn = fnChanges.size();
         assert tp + fp + tn + fn == FineDiff.determineChangedLines(unfilteredPatch).size();
-        return new ConditionTable(tpChanges, fpChanges, tnChanges, fnChanges, wrongLocation);
+        return new ConditionTable(tpChanges, fpChanges, tnChanges, fnChanges);
+    }
+
+    @NotNull
+    private static Change getOppositeChange(Change actualDifference) {
+        String changedText = actualDifference.line().line().substring(1);
+        Change oppositeChange;
+        if (actualDifference.line() instanceof AddedLine) {
+            oppositeChange = new Change(actualDifference.file(), new RemovedLine("-" + changedText));
+        } else {
+            oppositeChange = new Change(actualDifference.file(), new AddedLine("+" + changedText));
+        }
+        return oppositeChange;
     }
 
     public static void main(final String... args) throws IOException {
@@ -428,8 +432,7 @@ public class ResultAnalysis {
         return String.format("%3.1f%s", percentage, "%");
     }
 
-    private static record ConditionTable(List<Change> tp, List<Change> fp, List<Change> tn, List<Change> fn,
-                                         List<Change> wrongLocation) {
+    private static record ConditionTable(List<Change> tp, List<Change> fp, List<Change> tn, List<Change> fn) {
         public long tpCount() {
             return tp.size();
         }
@@ -444,13 +447,6 @@ public class ResultAnalysis {
 
         public long fnCount() {
             return fn.size();
-        }
-
-        /**
-         * @return Number of false negatives applied in the wrong location
-         */
-        public long wrongLocationCount() {
-            return wrongLocation.size();
         }
     }
 
