@@ -26,8 +26,41 @@ normal = Experiment()
 filtered = Experiment()
 
 def consume(json_object):
+    global commitPatches
+    global normal
+    global filtered
+
     outcome = json.loads(json_object)
-    print(outcome)
+
+    normal.tp += outcome['normalTP']
+    normal.fp += outcome['normalFP']
+    normal.tn += outcome['normalTN']
+    normal.fn += outcome['normalFN']
+
+    filtered.tp += outcome['filteredTP']
+    filtered.fp += outcome['filteredFP']
+    filtered.tn += outcome['filteredTN']
+    filtered.fn += outcome['filteredFN']
+
+    normal.wrongLocation += outcome['normalWrongLocation']
+    filtered.wrongLocation += outcome['filteredWrongLocation']
+
+    commitPatches = commitPatches + 1
+    if outcome['lineSuccessNormal'] == outcome['lineNormal']:
+        normal.commitSuccess = normal.commitSuccess + 1
+    if outcome['lineSuccessFiltered'] == outcome['lineFiltered']:
+        filtered.commitSuccess = filtered.commitSuccess + 1
+
+    normal.file += outcome['fileNormal']
+    normal.fileSuccess += outcome['fileSuccessNormal']
+    filtered.file += outcome['fileFiltered']
+    filtered.fileSuccess += outcome['fileSuccessFiltered']
+
+    normal.line += outcome['lineNormal']
+    normal.lineSuccess += outcome['lineSuccessNormal']
+    filtered.line += outcome['lineFiltered']
+    filtered.lineSuccess += outcome['lineSuccessFiltered']
+
 
 if __name__ == "__main__":
     path = sys.argv[1]
@@ -56,5 +89,15 @@ if __name__ == "__main__":
                 stripped += "\n"
 
                 json_object += stripped
+
+        if len(json_object) > 0:
+            consume(json_object)
     
+    print()
+    print("Parsed Values:")
+    print("commitPatches =", commitPatches)
+    print("normal =", vars(normal))
+    print("filtered =", vars(filtered))
+    print()
+
     print("Done")
