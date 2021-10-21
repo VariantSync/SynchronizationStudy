@@ -1,4 +1,7 @@
 ﻿class PatchStrategy:
+    def __init__(self, name):
+        self.name = name
+
     tp = 0
     fp = 0
     tn = 0
@@ -15,15 +18,15 @@
     line = 0
     lineSuccess = 0
 
+    def getNumCommitFailures(self):
+        return self.commitPatches - self.commitSuccess
+
     def getNumFilePatchFailures(self):
         return self.file - self.fileSuccess
 
     def getNumLinePatchFailures(self):
         return self.line - self.lineSuccess
 
-    def getNumCommitFailures(self):
-        return self.commitPatches - self.commitSuccess
-
 class Experiment:
-    normal = PatchStrategy()
-    filtered = PatchStrategy()
+    normal = PatchStrategy("normal")
+    filtered = PatchStrategy("filtered")
