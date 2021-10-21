@@ -488,28 +488,18 @@ public abstract class Experiment {
         final Set<String> skipped = new HashSet<>();
         if (!emptyPatch) {
             final Result<List<String>, ShellException> result = shell.execute(PatchCommand.Recommended(patchFile).strip(2).rejectFile(rejectFile).force(), patchDir);
-            Path debugPatchFile = debugDir.resolve("patchResult.txt");
-            List<String> debugPatchOutput;
             if (result.isSuccess()) {
                 result.getSuccess().forEach(Logger::info);
-                debugPatchOutput = result.getSuccess();
             } else {
-                debugPatchOutput = result.getFailure().getOutput();
+                final List<String> lines = result.getFailure().getOutput();
                 Logger.info("Failed to apply part of patch. See debug log and rejects file for more information");
                 String oldFile;
-                for (final String nextLine : debugPatchOutput) {
+                for (final String nextLine : lines) {
                     Logger.debug(nextLine);
                     if (nextLine.startsWith("|---")) {
                         oldFile = nextLine.split("\\s+")[1];
                         skipped.add(oldFile);
                     }
-                }
-            }
-            if (inDebug) {
-                try {
-                    Files.write(debugPatchFile, debugPatchOutput);
-                } catch (IOException e) {
-                    Logger.error("Was not able to write patch result to debug file.", e);
                 }
             }
         }
