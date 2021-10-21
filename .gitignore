@@ -31,3 +31,6 @@ hs_err_pid*
 
 # Python caches
 __pycache__
+
+# generated files
+plots/out/*
