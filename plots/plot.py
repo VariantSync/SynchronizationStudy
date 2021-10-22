@@ -1,12 +1,13 @@
 ﻿import matplotlib.pyplot as plt
 from matplotlib.sankey import Sankey
 import os
-
+import numpy
 
 def piechart(failure, success, outputPath, dpi=200):
     labels = 'Failure', 'Success'
     colors = 'darkorange' , 'forestgreen'
     sizes = [failure, success]
+    total = numpy.sum(sizes)
     # explode = (0, 0.1, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
 
     fig1, ax1 = plt.subplots()
@@ -15,7 +16,8 @@ def piechart(failure, success, outputPath, dpi=200):
         # explode=explode,
         labels=labels,
         colors=colors,
-        autopct='%1.1f%%',
+        # how to produce inner labels of the pie pieces. We take the percentage of the pie we get, display it and the total value.
+        autopct=lambda percentage: str(round(percentage,2)) + "%\n" + str(round((total * float(percentage)) / 100.0)) + " patches",#'%1.1f%%',
         shadow=False,
         counterclock=True,
         startangle=90)
