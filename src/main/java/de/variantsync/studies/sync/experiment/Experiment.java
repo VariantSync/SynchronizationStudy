@@ -58,6 +58,7 @@ public abstract class Experiment {
     protected final LogLevel logLevel;
     protected final int randomRepeats;
     protected final int numVariants;
+    protected final int startID;
     protected final EExperimentalSubject experimentalSubject;
     protected final Path splRepositoryPath;
     protected final Path datasetPath;
@@ -94,6 +95,7 @@ public abstract class Experiment {
         logLevel = config.EXPERIMENT_LOGGER_LEVEL();
         randomRepeats = config.EXPERIMENT_REPEATS();
         numVariants = config.EXPERIMENT_VARIANT_COUNT();
+        startID = config.EXPERIMENT_START_ID();
         experimentalSubject = config.EXPERIMENT_SUBJECT();
 
         history = init();
@@ -132,6 +134,11 @@ public abstract class Experiment {
             SPLCommit parentCommit;
             SPLCommit childCommit = relatedCommits.get(0);
             for (int childID = 1; childID < relatedCommits.size(); childID++) {
+                // Skip pairs until the start ID has been reached.
+                if (pairCount < startID) {
+                    pairCount++;
+                    continue;
+                }
                 // The old child becomes the next parent
                 parentCommit = childCommit;
                 // The next descendant is selected as new child

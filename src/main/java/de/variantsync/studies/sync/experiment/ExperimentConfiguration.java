@@ -20,6 +20,7 @@ public class ExperimentConfiguration {
     private static final String EXPERIMENT_DIR_SPL = "experiment.dir.spl";
     private static final String EXPERIMENT_DEBUG = "experiment.debug";
     private static final String EXPERIMENT_LOGGER_LEVEL = "experiment.logger.level";
+    private static final String EXPERIMENT_STARTID = "experiment.startid";
 
     public ExperimentConfiguration(final File propertiesFile) {
         final Parameters params = new Parameters();
@@ -67,4 +68,6 @@ public class ExperimentConfiguration {
     public LogLevel EXPERIMENT_LOGGER_LEVEL() {
         return LogLevel.valueOf(config.getString(EXPERIMENT_LOGGER_LEVEL));
     }
+
+    public int EXPERIMENT_START_ID() {return config.getInt(EXPERIMENT_STARTID, 0);}
 }
