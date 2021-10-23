@@ -136,6 +136,7 @@ public abstract class Experiment {
             for (int childID = 1; childID < relatedCommits.size(); childID++) {
                 // Skip pairs until the start ID has been reached.
                 if (pairCount < startID) {
+                    Logger.warning("Skipped pair " + pairCount);
                     pairCount++;
                     continue;
                 }
