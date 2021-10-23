@@ -13,30 +13,59 @@ def percentageToAmount(percentage, total):
     return round((total * float(percentage)) / 100.0)
 
 
-def piechart(failure, success, outputPath, dpi=300):
-    plt.rc('font', size=14)
+def labelPrecentageAndAmount(total):
+    return lambda percentage: str(round(percentage,2)) + "%\n" + toThousandsFormattedString(percentageToAmount(percentage, total)) + " patches"
 
-    labels = 'Failure', 'Success'
-    colors = 'darkorange' , 'forestgreen'
-    sizes = [failure, success]
-    total = numpy.sum(sizes)
+
+def labelPrecentage():
+    return lambda percentage: '{:.1f}%'.format(percentage)
+
+
+def piechart(labels, colors, sizes, labelfunction, outputPath, dpi=300, labelfix=lambda texts:{}):
+    plt.rc('font', size=14)
     # explode = (0, 0.1, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
 
     fig1, ax1 = plt.subplots()
-    ax1.pie(
+    patches, texts, autotexts = ax1.pie(
         sizes,
-        # explode=explode,
+        # explode=numpy.full(shape=len(sizes), fill_value=0.02, dtype=numpy.float),
         labels=labels,
         colors=colors,
         # how to produce inner labels of the pie pieces. We take the percentage of the pie we get, display it and the total value.
-        autopct=lambda percentage: str(round(percentage,2)) + "%\n" + toThousandsFormattedString(percentageToAmount(percentage, total)) + " patches",#'%1.1f%%',
+        autopct=labelfunction,
         shadow=False,
         counterclock=True,
-        startangle=90)
-
+        startangle=90,
+        wedgeprops = {"edgecolor" : "lightgray",
+                      'linewidth': 0.5,
+                      'antialiased': True})
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    labelfix(autotexts)
 
     plt.savefig(outputPath, dpi=dpi, bbox_inches='tight')
+
+
+def rq1_piechart(failure, success, outputPath):
+    labels = 'Failure', 'Success'
+    colors = 'darkorange' , 'forestgreen'
+    sizes = [failure, success]
+    piechart(labels, colors, sizes, labelPrecentageAndAmount(numpy.sum(sizes)), outputPath)
+
+
+def rq2_fixlabels(autotexts):
+    autotexts[1]._y = autotexts[1]._y - 0.08
+
+
+def rq2_piechart(patchstrategy, colourscheme, outDir):
+    labels = 'TP (correct)', 'FP (invalid)', 'FN (wrong location)'
+    colors =  colourscheme.tp, colourscheme.fp, colourscheme.fn_wronglocation
+    sizes = [patchstrategy.tp, patchstrategy.fp, patchstrategy.wrongLocation]
+    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_rq2_applicable.png"), labelfix=rq2_fixlabels)
+
+    labels = 'TN (not required)', 'FN (missing)'
+    colors =  colourscheme.tn, colourscheme.fn_missing
+    sizes = [patchstrategy.tn, patchstrategy.fn - patchstrategy.wrongLocation]
+    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_rq2_failed.png"))
 
 
 def sankey(patchstrategy):
@@ -124,16 +153,16 @@ def sankey(patchstrategy):
 
 def rq1(patchstrategy, outDir):
     print("RQ1")
-    piechart(patchstrategy.getNumCommitFailures(),    patchstrategy.commitSuccess, os.path.join(outDir, patchstrategy.name + "_commit.png"))
-    piechart(patchstrategy.getNumFilePatchFailures(), patchstrategy.fileSuccess,   os.path.join(outDir, patchstrategy.name + "_file.png"))
-    piechart(patchstrategy.getNumLinePatchFailures(), patchstrategy.lineSuccess,   os.path.join(outDir, patchstrategy.name + "_lines.png"))
+    rq1_piechart(patchstrategy.getNumCommitFailures(),    patchstrategy.commitSuccess, os.path.join(outDir, patchstrategy.name + "_commit.png"))
+    rq1_piechart(patchstrategy.getNumFilePatchFailures(), patchstrategy.fileSuccess,   os.path.join(outDir, patchstrategy.name + "_file.png"))
+    rq1_piechart(patchstrategy.getNumLinePatchFailures(), patchstrategy.lineSuccess,   os.path.join(outDir, patchstrategy.name + "_lines.png"))
 
 
-def rq2(patchstrategy, outDir):
+def rq2(patchstrategy, colourscheme, outDir):
     print("RQ2")
-    sankey(patchstrategy)
+    rq2_piechart(patchstrategy, colourscheme, outDir)
 
 
 def rq3(patchstrategy, outDir):
     print("RQ3")
-    sankey(patchstrategy)
+    # sankey(patchstrategy)
