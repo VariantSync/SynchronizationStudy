@@ -4,6 +4,9 @@ import os
 import numpy
 
 
+OUTPUT_FORMAT = ".pdf"
+
+
 def toThousandsFormattedString(intval):
     return f"{intval:,}"
 
@@ -21,7 +24,7 @@ def labelPrecentage():
     return lambda percentage: '{:.1f}%'.format(percentage)
 
 
-def piechart(labels, colors, sizes, labelfunction, outputPath, dpi=300, labelfix=lambda texts:{}):
+def piechart(labels, colors, sizes, labelfunction, outputPath, dpi=300, labelfix=lambda autotexts:{}, outerlabelfix=lambda texts:{}):
     plt.rc('font', size=14)
     # explode = (0, 0.1, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
 
@@ -36,11 +39,12 @@ def piechart(labels, colors, sizes, labelfunction, outputPath, dpi=300, labelfix
         shadow=False,
         counterclock=True,
         startangle=90,
-        wedgeprops = {"edgecolor" : "lightgray",
-                      'linewidth': 0.5,
+        wedgeprops = {"edgecolor" : "white",
+                      'linewidth': 1,
                       'antialiased': True})
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
     labelfix(autotexts)
+    outerlabelfix(texts)
 
     plt.savefig(outputPath, dpi=dpi, bbox_inches='tight')
 
@@ -56,16 +60,39 @@ def rq2_fixlabels(autotexts):
     autotexts[1]._y = autotexts[1]._y - 0.08
 
 
-def rq2_piechart(patchstrategy, colourscheme, outDir):
+def accuracy_piecharts(patchstrategy, colourscheme, rq, outDir, labelfix1=lambda texts:{}, outerlabelfix1=lambda texts:{}):
     labels = 'TP (correct)', 'FP (invalid)', 'FN (wrong location)'
     colors =  colourscheme.tp, colourscheme.fp, colourscheme.fn_wronglocation
     sizes = [patchstrategy.tp, patchstrategy.fp, patchstrategy.wrongLocation]
-    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_rq2_applicable.png"), labelfix=rq2_fixlabels)
+    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_" + rq + "_applicable" + OUTPUT_FORMAT), labelfix=labelfix1, outerlabelfix=outerlabelfix1)
 
     labels = 'TN (not required)', 'FN (missing)'
     colors =  colourscheme.tn, colourscheme.fn_missing
     sizes = [patchstrategy.tn, patchstrategy.fn - patchstrategy.wrongLocation]
-    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_rq2_failed.png"))
+    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_" + rq + "_failed" + OUTPUT_FORMAT))
+
+
+def rq2_piechart(patchstrategy, colourscheme, outDir):
+    accuracy_piecharts(patchstrategy, colourscheme, "rq2", outDir, labelfix1=rq2_fixlabels)
+
+
+def rq3_fixlabels1(autotexts):
+    autotexts[1]._y = autotexts[1]._y - 0.1
+
+
+def rq3_fixlabels2(texts):
+    texts[0]._y = texts[0]._y + 0.09
+    texts[1]._y = texts[1]._y - 0.09
+
+
+
+def rq3_piechart(patchstrategy, colourscheme, outDir):
+    accuracy_piecharts(patchstrategy, colourscheme, "rq3", outDir, labelfix1=rq3_fixlabels1, outerlabelfix1=rq3_fixlabels2)
+
+    labels = 'TN (not required)', 'FN (wrong location + missing)'
+    colors =  colourscheme.tn, colourscheme.fn_missing
+    sizes = [patchstrategy.tn, patchstrategy.fn]
+    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_rq3_filtered" + OUTPUT_FORMAT))
 
 
 def sankey(patchstrategy):
@@ -153,9 +180,9 @@ def sankey(patchstrategy):
 
 def rq1(patchstrategy, outDir):
     print("RQ1")
-    rq1_piechart(patchstrategy.getNumCommitFailures(),    patchstrategy.commitSuccess, os.path.join(outDir, patchstrategy.name + "_commit.png"))
-    rq1_piechart(patchstrategy.getNumFilePatchFailures(), patchstrategy.fileSuccess,   os.path.join(outDir, patchstrategy.name + "_file.png"))
-    rq1_piechart(patchstrategy.getNumLinePatchFailures(), patchstrategy.lineSuccess,   os.path.join(outDir, patchstrategy.name + "_lines.png"))
+    rq1_piechart(patchstrategy.getNumCommitFailures(),    patchstrategy.commitSuccess, os.path.join(outDir, patchstrategy.name + "_commit" + OUTPUT_FORMAT))
+    rq1_piechart(patchstrategy.getNumFilePatchFailures(), patchstrategy.fileSuccess,   os.path.join(outDir, patchstrategy.name + "_file" + OUTPUT_FORMAT))
+    rq1_piechart(patchstrategy.getNumLinePatchFailures(), patchstrategy.lineSuccess,   os.path.join(outDir, patchstrategy.name + "_lines" + OUTPUT_FORMAT))
 
 
 def rq2(patchstrategy, colourscheme, outDir):
@@ -163,6 +190,8 @@ def rq2(patchstrategy, colourscheme, outDir):
     rq2_piechart(patchstrategy, colourscheme, outDir)
 
 
-def rq3(patchstrategy, outDir):
+def rq3(patchstrategy, colourscheme, outDir):
     print("RQ3")
+    rq3_piechart(patchstrategy, colourscheme, outDir)
+    rq1_piechart(patchstrategy.getNumLinePatchFailures(), patchstrategy.lineSuccess, os.path.join(outDir, patchstrategy.name + "_rq3_lines" + OUTPUT_FORMAT))
     # sankey(patchstrategy)
