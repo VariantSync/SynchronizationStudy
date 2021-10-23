@@ -2,21 +2,21 @@
     def __init__(self, name):
         self.name = name
 
-    tp = 0
-    fp = 0
-    tn = 0
-    fn = 0
+        self.tp = 0
+        self.fp = 0
+        self.tn = 0
+        self.fn = 0
 
-    wrongLocation = 0
+        self.wrongLocation = 0
 
-    commitPatches = 0
-    commitSuccess = 0
+        self.commitPatches = 0
+        self.commitSuccess = 0
 
-    file = 0
-    fileSuccess = 0
+        self.file = 0
+        self.fileSuccess = 0
 
-    line = 0
-    lineSuccess = 0
+        self.line = 0
+        self.lineSuccess = 0
 
     def getNumCommitFailures(self):
         return self.commitPatches - self.commitSuccess
@@ -28,5 +28,6 @@
         return self.line - self.lineSuccess
 
 class Experiment:
-    normal = PatchStrategy("normal")
-    filtered = PatchStrategy("filtered")
+    def __init__(self):
+        self.normal = PatchStrategy("normal")
+        self.filtered = PatchStrategy("filtered")

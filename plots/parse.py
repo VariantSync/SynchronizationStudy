@@ -2,24 +2,26 @@
 import re
 import data
 
+
 REGEX_JSON_FIELD = "^(.*)\s*:\s*([^,]*)\s*(,)?\s*$"
 REGEX_PATTERN_JSON_FIELD = re.compile(REGEX_JSON_FIELD)
+
 
 def parseJsonAndAddToExperiment(json_object, experiment):
     outcome = json.loads(json_object)
 
-    experiment.normal.tp += outcome['normalTP']
-    experiment.normal.fp += outcome['normalFP']
-    experiment.normal.tn += outcome['normalTN']
-    experiment.normal.fn += outcome['normalFN']
+    experiment.normal.tp += int(outcome['normalTP'])
+    experiment.normal.fp += int(outcome['normalFP'])
+    experiment.normal.tn += int(outcome['normalTN'])
+    experiment.normal.fn += int(outcome['normalFN'])
 
-    experiment.filtered.tp += outcome['filteredTP']
-    experiment.filtered.fp += outcome['filteredFP']
-    experiment.filtered.tn += outcome['filteredTN']
-    experiment.filtered.fn += outcome['filteredFN']
+    experiment.filtered.tp += int(outcome['filteredTP'])
+    experiment.filtered.fp += int(outcome['filteredFP'])
+    experiment.filtered.tn += int(outcome['filteredTN'])
+    experiment.filtered.fn += int(outcome['filteredFN'])
 
-    experiment.normal.wrongLocation += outcome['normalWrongLocation']
-    experiment.filtered.wrongLocation += outcome['filteredWrongLocation']
+    experiment.normal.wrongLocation += int(outcome['normalWrongLocation'])
+    experiment.filtered.wrongLocation += int(outcome['filteredWrongLocation'])
 
     experiment.normal.commitPatches = experiment.normal.commitPatches + 1
     experiment.filtered.commitPatches = experiment.filtered.commitPatches + 1
@@ -28,15 +30,16 @@ def parseJsonAndAddToExperiment(json_object, experiment):
     if outcome['lineSuccessFiltered'] == outcome['lineFiltered']:
         experiment.filtered.commitSuccess = experiment.filtered.commitSuccess + 1
 
-    experiment.normal.file += outcome['fileNormal']
-    experiment.normal.fileSuccess += outcome['fileSuccessNormal']
-    experiment.filtered.file += outcome['fileFiltered']
-    experiment.filtered.fileSuccess += outcome['fileSuccessFiltered']
+    experiment.normal.file += int(outcome['fileNormal'])
+    experiment.normal.fileSuccess += int(outcome['fileSuccessNormal'])
+    experiment.filtered.file += int(outcome['fileFiltered'])
+    experiment.filtered.fileSuccess += int(outcome['fileSuccessFiltered'])
 
-    experiment.normal.line += outcome['lineNormal']
-    experiment.normal.lineSuccess += outcome['lineSuccessNormal']
-    experiment.filtered.line += outcome['lineFiltered']
-    experiment.filtered.lineSuccess += outcome['lineSuccessFiltered']
+    experiment.normal.line += int(outcome['lineNormal'])
+    experiment.normal.lineSuccess += int(outcome['lineSuccessNormal'])
+    experiment.filtered.line += int(outcome['lineFiltered'])
+    experiment.filtered.lineSuccess += int(outcome['lineSuccessFiltered'])
+
 
 def parseFileAt(path):
     experiment = data.Experiment()

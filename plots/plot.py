@@ -3,7 +3,19 @@ from matplotlib.sankey import Sankey
 import os
 import numpy
 
-def piechart(failure, success, outputPath, dpi=200):
+
+def toThousandsFormattedString(intval):
+    return f"{intval:,}"
+
+
+def percentageToAmount(percentage, total):
+    # Is round correct here?
+    return round((total * float(percentage)) / 100.0)
+
+
+def piechart(failure, success, outputPath, dpi=300):
+    plt.rc('font', size=14)
+
     labels = 'Failure', 'Success'
     colors = 'darkorange' , 'forestgreen'
     sizes = [failure, success]
@@ -17,14 +29,14 @@ def piechart(failure, success, outputPath, dpi=200):
         labels=labels,
         colors=colors,
         # how to produce inner labels of the pie pieces. We take the percentage of the pie we get, display it and the total value.
-        autopct=lambda percentage: str(round(percentage,2)) + "%\n" + str(round((total * float(percentage)) / 100.0)) + " patches",#'%1.1f%%',
+        autopct=lambda percentage: str(round(percentage,2)) + "%\n" + toThousandsFormattedString(percentageToAmount(percentage, total)) + " patches",#'%1.1f%%',
         shadow=False,
         counterclock=True,
         startangle=90)
 
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
 
-    plt.savefig(outputPath, dpi=dpi)
+    plt.savefig(outputPath, dpi=dpi, bbox_inches='tight')
 
 
 def sankey(patchstrategy):
