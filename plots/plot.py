@@ -4,8 +4,8 @@ import os
 import numpy
 
 
+# OUTPUT_FORMAT = ".png"
 OUTPUT_FORMAT = ".pdf"
-# OUTPUT_FORMAT = ".pdf"
 DPI = 300
 
 
@@ -56,7 +56,10 @@ def rq1_piechart(failure, success, outputPath):
     piechart(labels, colors, sizes, labelPrecentageAndAmount(numpy.sum(sizes)), outputPath)
 
 
-def accuracy_piecharts(patchstrategy, colourscheme, rq, outDir, innerlabelfix1=lambda texts:{}, outerlabelfix1=lambda texts:{}):
+def accuracy_piecharts(patchstrategy, colourscheme, rq, outDir,
+innerlabelfix1=lambda texts:{}, outerlabelfix1=lambda texts:{},
+innerlabelfix2=lambda texts:{}, outerlabelfix2=lambda texts:{}
+):
     labels = 'TP (correct)', 'FP (invalid)', 'FN (wrong location)'
     colors =  colourscheme.tp, colourscheme.fp, colourscheme.fn_wronglocation
     sizes = [patchstrategy.tp, patchstrategy.fp, patchstrategy.wrongLocation]
@@ -65,13 +68,20 @@ def accuracy_piecharts(patchstrategy, colourscheme, rq, outDir, innerlabelfix1=l
     labels = 'TN (not required)', 'FN (missing)'
     colors =  colourscheme.tn, colourscheme.fn_missing
     sizes = [patchstrategy.tn, patchstrategy.fn - patchstrategy.wrongLocation]
-    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_" + rq + "_failed" + OUTPUT_FORMAT))
+    piechart(labels, colors, sizes, labelPrecentage(), os.path.join(outDir, patchstrategy.name + "_" + rq + "_failed" + OUTPUT_FORMAT), innerlabelfix=innerlabelfix2, outerlabelfix=outerlabelfix2)
 
 
 def rq2_innerlabelfix1(autotexts):
-    autotexts[1]._y = autotexts[1]._y - 0.08
+    autotexts[2]._x = autotexts[2]._x + 0.07
+    autotexts[2]._y = autotexts[2]._y + 0.2
+    # autotexts[1]._y = autotexts[1]._y - 0.08
+    autotexts[0].set_color('white')
+def rq2_innerlabelfix2(autotexts):
+    autotexts[1]._x = autotexts[1]._x + 0.05
+    autotexts[1]._y = autotexts[1]._y + 0.2
+    autotexts[1].set_color('white')
 def rq2_piechart(patchstrategy, colourscheme, outDir):
-    accuracy_piecharts(patchstrategy, colourscheme, "rq2", outDir, innerlabelfix1=rq2_innerlabelfix1)
+    accuracy_piecharts(patchstrategy, colourscheme, "rq2", outDir, innerlabelfix1=rq2_innerlabelfix1, innerlabelfix2=rq2_innerlabelfix2)
 
 
 def rq3_innerlabelfix1(autotexts):
