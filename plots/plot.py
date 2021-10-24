@@ -5,6 +5,8 @@ import numpy
 
 
 OUTPUT_FORMAT = ".pdf"
+# OUTPUT_FORMAT = ".pdf"
+DPI = 300
 
 
 def toThousandsFormattedString(intval):
@@ -22,7 +24,7 @@ def labelPrecentage():
     return lambda percentage: '{:.1f}%'.format(percentage)
 
 
-def piechart(labels, colors, sizes, labelfunction, outputPath, dpi=300, innerlabelfix=lambda autotexts:{}, outerlabelfix=lambda texts:{}):
+def piechart(labels, colors, sizes, labelfunction, outputPath, innerlabelfix=lambda autotexts:{}, outerlabelfix=lambda texts:{}):
     plt.rc('font', size=14)
     # explode = (0, 0.1, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
 
@@ -44,7 +46,7 @@ def piechart(labels, colors, sizes, labelfunction, outputPath, dpi=300, innerlab
     innerlabelfix(autotexts)
     outerlabelfix(texts)
 
-    plt.savefig(outputPath, dpi=dpi, bbox_inches='tight')
+    plt.savefig(outputPath, dpi=DPI, bbox_inches='tight')
 
 
 def rq1_piechart(failure, success, outputPath):
@@ -96,6 +98,49 @@ def rq3_granularity_piechart(experiment, outDir):
 
     sizes = [failure, failureFiltered, successFiltered, success]
     piechart(labels, colors, sizes, labelPrecentageAndAmount(numpy.sum(sizes)), os.path.join(outDir, experiment.filtered.name + "_lines" + OUTPUT_FORMAT), innerlabelfix=rq3_granularity_innerlabelfix, outerlabelfix=rq3_granularity_outerlabelfix)
+
+
+def rq3_barchart(experiment, colourscheme, outDir):
+    n = experiment.normal
+    f = experiment.filtered
+
+    labels = ['TP', 'FP', 'TN', 'FN']
+    nvals = [n.tp, n.fp, n.tn, n.fn]
+    ntotal = numpy.sum(nvals)
+    fvals = [f.tp, f.fp, f.tn, f.fn]
+    ftotal = numpy.sum(fvals)
+
+    # normalize values
+    # def normalize(vals, total):
+    #     return list(map(lambda x: float(x)/float(total), vals))
+    # nvals = normalize(nvals, ntotal)
+    # fvals = normalize(fvals, ftotal)
+
+    x = numpy.arange(len(labels))
+    widthOfBars = 0.35
+
+    fig, ax = plt.subplots()
+    nrects = ax.bar(x - widthOfBars/2, nvals, widthOfBars, label='Normal')
+    frects = ax.bar(x + widthOfBars/2, fvals, widthOfBars, label='Filtered')
+    
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel('Number of Patches')
+    # ax.set_yscale('log')
+    # ax.set_title('Scores by group and gender')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend()
+
+    ax.bar_label(nrects,
+        labels=map(lambda x: "", nvals),
+        padding=3)
+    ax.bar_label(frects,
+        labels=map(lambda x: "", fvals),
+        padding=3)
+
+    fig.tight_layout()
+
+    plt.savefig(os.path.join(outDir, "metrics" + OUTPUT_FORMAT), dpi=DPI, bbox_inches='tight')
 
 
 def sankey(patchstrategy):
@@ -197,4 +242,5 @@ def rq3(experiment, colourscheme, outDir):
     print("RQ3")
     rq3_piechart(experiment.filtered, colourscheme, outDir)
     rq3_granularity_piechart(experiment, outDir)
+    rq3_barchart(experiment, colourscheme, outDir)
     # sankey(patchstrategy)
