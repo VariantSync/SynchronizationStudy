@@ -31,6 +31,6 @@ if __name__ == "__main__":
 
     plot.rq1(experiment.normal, outputDirectory)
     plot.rq2(experiment.normal, colourscheme, outputDirectory)
-    plot.rq3(experiment.filtered, colourscheme, outputDirectory)
+    plot.rq3(experiment, colourscheme, outputDirectory)
 
     print("Done")
