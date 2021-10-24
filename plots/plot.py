@@ -120,6 +120,7 @@ def rq3_barchart(experiment, colourscheme, outDir):
     ntotal = numpy.sum(nvals)
     fvals = [f.tp, f.fp, f.tn, f.fn]
     ftotal = numpy.sum(fvals)
+    # print(numpy.sum(fvals))
 
     # normalize values
     # def normalize(vals, total):
@@ -127,7 +128,9 @@ def rq3_barchart(experiment, colourscheme, outDir):
     # nvals = normalize(nvals, ntotal)
     # fvals = normalize(fvals, ftotal)
 
-    x = numpy.arange(len(labels))
+    _scalefactor = 1
+    x = numpy.arange(_scalefactor*len(labels), step = _scalefactor)
+    # print(x)
     widthOfBars = 0.35
 
     fig, ax = plt.subplots()
