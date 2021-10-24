@@ -73,6 +73,7 @@ innerlabelfix2=lambda texts:{}, outerlabelfix2=lambda texts:{}
 
 def rq2_innerlabelfix1(autotexts):
     autotexts[2]._x = autotexts[2]._x + 0.07
+    autotexts[1]._x = autotexts[1]._x + 0.01
     autotexts[2]._y = autotexts[2]._y + 0.2
     # autotexts[1]._y = autotexts[1]._y - 0.08
     autotexts[0].set_color('white')
