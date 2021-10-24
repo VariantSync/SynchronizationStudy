@@ -120,8 +120,8 @@ def rq3_barchart(experiment, colourscheme, outDir):
     widthOfBars = 0.35
 
     fig, ax = plt.subplots()
-    nrects = ax.bar(x - widthOfBars/2, nvals, widthOfBars, label='Normal')
-    frects = ax.bar(x + widthOfBars/2, fvals, widthOfBars, label='Filtered')
+    nrects = ax.bar(x - widthOfBars/2, nvals, widthOfBars, label='without domain knowledge')
+    frects = ax.bar(x + widthOfBars/2, fvals, widthOfBars, label='with domain knowledge')
     
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax.set_ylabel('Number of Patches')
