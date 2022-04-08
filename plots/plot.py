@@ -56,6 +56,72 @@ def rq1_piechart(failure, success, outputPath):
     piechart(labels, colors, sizes, labelPrecentageAndAmount(numpy.sum(sizes)), outputPath)
 
 
+def rq1_barchart(experiment, outputPath):
+    colourscheme = 'forestgreen', 'darkorange'
+    commit_success = experiment.commitSuccess
+    commit_failed = experiment.getNumCommitFailures()
+    file_success = experiment.fileSuccess
+    file_failed = experiment.getNumFilePatchFailures()
+    line_success = experiment.lineSuccess
+    line_failed = experiment.getNumLinePatchFailures()
+
+    labels = ['(a) commit-sized', '(b) file-sized', '(c) line-sized']
+    success_vals = [commit_success, file_success, line_success]
+    failed_vals = [commit_failed, file_failed, line_failed]
+    sum_vals = numpy.sum([success_vals, failed_vals], axis=0)
+    # print(numpy.sum(fvals))
+
+    # normalize values
+    # def normalize(vals, total):
+    #     return list(map(lambda x: float(x)/float(total), vals))
+    # nvals = normalize(nvals, ntotal)
+    # fvals = normalize(fvals, ftotal)
+
+    _scalefactor = 1
+    x = numpy.arange(_scalefactor * len(labels), step=_scalefactor)
+    # print(x)
+    widthOfBars = 0.2
+
+    fig, ax = plt.subplots()
+    success_percentage = numpy.divide(success_vals, sum_vals)
+    failed_percentage = numpy.divide(failed_vals, sum_vals)
+    success_rects = ax.bar(x - 0.05 - widthOfBars / 2, 100*success_percentage, widthOfBars, label='applicable', color=colourscheme[0])
+    failed_rects = ax.bar(x + 0.05 + widthOfBars / 2, 100*failed_percentage, widthOfBars, label='failed', color=colourscheme[1])
+
+    def label_values(percentage, absolute, offset, c):
+        for i, v in enumerate(percentage):
+            v = 100*v
+            label = str(numpy.round(v, 2))
+            label += "%"
+            ax.text(i+offset+0.1, v + 5, label, color=c, fontweight='bold')
+            label = "({:,.0f})".format(absolute[i])
+            ax.text(i+offset, v + 1, label, color=c, fontweight='bold')
+
+    label_values(success_percentage, success_vals, -0.4, colourscheme[0])
+    label_values(failed_percentage, failed_vals, -0.05, colourscheme[1])
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel('Percentage of patches')
+    ax.set_ylim([0, 100])
+    ax.set_xlim([-0.5, 2.6])
+    # ax.set_yscale('log')
+    # ax.set_title('Scores by group and gender')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend(loc=1)
+
+    ax.bar_label(success_rects,
+                 labels=map(lambda x: "", success_vals),
+                 padding=3)
+    ax.bar_label(failed_rects,
+                 labels=map(lambda x: "", failed_vals),
+                 padding=3)
+
+    fig.tight_layout()
+
+    plt.savefig(outputPath, dpi=DPI, bbox_inches='tight')
+
+
 def accuracy_piecharts(patchstrategy, colourscheme, rq, outDir,
 innerlabelfix1=lambda texts:{}, outerlabelfix1=lambda texts:{},
 innerlabelfix2=lambda texts:{}, outerlabelfix2=lambda texts:{}
@@ -242,9 +308,9 @@ def sankey(patchstrategy):
 
 def rq1(patchstrategy, outDir):
     print("RQ1")
-    rq1_piechart(patchstrategy.getNumCommitFailures(),    patchstrategy.commitSuccess, os.path.join(outDir, patchstrategy.name + "_commit" + OUTPUT_FORMAT))
-    rq1_piechart(patchstrategy.getNumFilePatchFailures(), patchstrategy.fileSuccess,   os.path.join(outDir, patchstrategy.name + "_file" + OUTPUT_FORMAT))
-    rq1_piechart(patchstrategy.getNumLinePatchFailures(), patchstrategy.lineSuccess,   os.path.join(outDir, patchstrategy.name + "_lines" + OUTPUT_FORMAT))
+    rq1_barchart(patchstrategy, os.path.join(outDir, patchstrategy.name + "_applicability" + OUTPUT_FORMAT))
+    # rq1_barchart(patchstrategy, os.path.join(outDir, patchstrategy.name + "_file" + OUTPUT_FORMAT))
+    # rq1_barchart(patchstrategy, os.path.join(outDir, patchstrategy.name + "_lines" + OUTPUT_FORMAT))
 
 
 def rq2(patchstrategy, colourscheme, outDir):
@@ -254,6 +320,7 @@ def rq2(patchstrategy, colourscheme, outDir):
 
 def rq3(experiment, colourscheme, outDir):
     print("RQ3")
+    # rq1_barchart(experiment.filtered, os.path.join(outDir, "filtered_applicability" + OUTPUT_FORMAT))
     rq3_piechart(experiment.filtered, colourscheme, outDir)
     rq3_granularity_piechart(experiment, outDir)
     rq3_barchart(experiment, colourscheme, outDir)

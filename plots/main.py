@@ -7,7 +7,10 @@ import serialization
 import colours
 
 if __name__ == "__main__":
-    path = sys.argv[1]
+    if len(sys.argv) < 1:
+        path = "testdata.txt"
+    else:
+        path = sys.argv[1]
     cachedFile = path + ".cache"
     outputDirectory = "out"
 
