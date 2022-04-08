@@ -122,6 +122,61 @@ def rq1_barchart(experiment, outputPath):
     plt.savefig(outputPath, dpi=DPI, bbox_inches='tight')
 
 
+def correctness_barchart(experiment, outputPath):
+    colourscheme = 'forestgreen', 'darkorange'
+
+    labels = ['correct\n(TP)', 'invalid\n(FP)', 'wrong location\n(FN)', 'not required\n(TN)', 'missing\n(FN)']
+    success_vals = [experiment.tp, experiment.fp, experiment.wrongLocation]
+    failed_vals = [experiment.tn, experiment.fn - experiment.wrongLocation]
+
+    _scalefactor = 1
+    s = numpy.arange(_scalefactor * len(success_vals), step=_scalefactor)
+    start = _scalefactor * len(success_vals) + 0.3
+    stop = start + _scalefactor * len(failed_vals)
+    f = numpy.arange(start=start, stop=stop, step=_scalefactor)
+    widthOfBars = 0.35
+
+    fig, ax = plt.subplots()
+    success_percentage = 100 * numpy.divide(success_vals, numpy.sum(success_vals))
+    failed_percentage = 100 * numpy.divide(failed_vals, numpy.sum(failed_vals))
+    success_rects = ax.bar(s, success_percentage, widthOfBars, label='applicable', color=colourscheme[0])
+    failed_rects = ax.bar(f, failed_percentage, widthOfBars, label='failed', color=colourscheme[1])
+    ax.vlines(2.65, ymin=0, ymax=105, color='black')
+
+    def label_values(percentage, absolute, offset, c):
+        for i, v in enumerate(percentage):
+            v = v
+            label = str(numpy.round(v, 2))
+            label += "%"
+            ax.text(i+offset+0.2, v + 5, label, color=c, fontweight='bold')
+            label = "({:,.0f})".format(absolute[i])
+            ax.text(i+offset, v + 1, label, color=c, fontweight='bold')
+
+    label_values(success_percentage, success_vals, -0.42, colourscheme[0])
+    label_values(failed_percentage, failed_vals, 2.72, colourscheme[1])
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel('Percentage of patches')
+    ax.set_ylim([0, 105])
+    ax.set_xlim([-0.5, 5.2])
+    # ax.set_yscale('log')
+    # ax.set_title('Scores by group and gender')
+    ax.set_xticks(numpy.append(s, f))
+    ax.set_xticklabels(labels)
+    ax.legend(loc=1)
+
+    ax.bar_label(success_rects,
+                 labels=map(lambda x: "", success_vals),
+                 padding=3)
+    ax.bar_label(failed_rects,
+                 labels=map(lambda x: "", failed_vals),
+                 padding=3)
+
+    fig.tight_layout()
+
+    plt.savefig(outputPath, dpi=DPI, bbox_inches='tight')
+
+
 def accuracy_piecharts(patchstrategy, colourscheme, rq, outDir,
 innerlabelfix1=lambda texts:{}, outerlabelfix1=lambda texts:{},
 innerlabelfix2=lambda texts:{}, outerlabelfix2=lambda texts:{}
@@ -315,7 +370,7 @@ def rq1(patchstrategy, outDir):
 
 def rq2(patchstrategy, colourscheme, outDir):
     print("RQ2")
-    rq2_piechart(patchstrategy, colourscheme, outDir)
+    correctness_barchart(patchstrategy, os.path.join(outDir, patchstrategy.name + "_correctness" + OUTPUT_FORMAT))
 
 
 def rq3(experiment, colourscheme, outDir):
