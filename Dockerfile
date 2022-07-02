@@ -35,6 +35,7 @@ COPY --from=0 /home/user/busybox ./busybox
 
 
 # Adjust permissions
+RUN mkdir "/home/user/simulation-files"
 RUN ls -l
 RUN chown user:user /home/user -R
 RUN chmod +x run-simulation.sh
