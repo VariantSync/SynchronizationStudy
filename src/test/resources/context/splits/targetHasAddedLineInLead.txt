@@ -3,7 +3,7 @@ diff -Naur version-A/DiffParser.txt version-B/DiffParser.txt
 +++ version-B/DiffParser.txt	2021-07-28 18:01:03.147025193 +0000
 @@ -6,6 +6,7 @@
  import Added.Lead
- import de.variantsync.studies.sync.diff.lines.*;
+ import simulation.sync.diff.lines.*;
  
 +import java.util.ArrayList;
  import java.util.LinkedList;

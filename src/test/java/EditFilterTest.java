@@ -1,10 +1,9 @@
-import de.variantsync.studies.sync.diff.DiffParser;
-import de.variantsync.studies.sync.diff.components.FineDiff;
-import de.variantsync.studies.sync.diff.filter.IFileDiffFilter;
-import de.variantsync.studies.sync.diff.filter.ILineFilter;
-import de.variantsync.studies.sync.diff.splitting.DefaultContextProvider;
-import de.variantsync.studies.sync.diff.splitting.DiffSplitter;
-import de.variantsync.studies.sync.diff.splitting.IContextProvider;
+import de.variantsync.studies.evolution.simulation.diff.DiffParser;
+import de.variantsync.studies.evolution.simulation.diff.components.FineDiff;
+import de.variantsync.studies.evolution.simulation.diff.filter.ILineFilter;
+import de.variantsync.studies.evolution.simulation.diff.splitting.DefaultContextProvider;
+import de.variantsync.studies.evolution.simulation.diff.splitting.DiffSplitter;
+import de.variantsync.studies.evolution.simulation.diff.splitting.IContextProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

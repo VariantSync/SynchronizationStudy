@@ -1,10 +1,10 @@
-package de.variantsync.studies.sync.diff;
+package simulation.sync.diff;
 
-import de.variantsync.studies.sync.diff.components.FileDiff;
-import de.variantsync.studies.sync.diff.components.Hunk;
-import de.variantsync.studies.sync.diff.components.HunkLocation;
-import de.variantsync.studies.sync.diff.components.OriginalDiff;
-import de.variantsync.studies.sync.diff.lines.*;
+import FileDiff;
+import Hunk;
+import HunkLocation;
+import OriginalDiff;
+import simulation.sync.diff.lines.*;
 
 import java.util.LinkedList;
 import java.util.List;
