@@ -2,3 +2,7 @@ push.sh
 .idea
 *.iml
 target
+/reported-results-part1.txt
+/reported-results-part2.txt
+/reported-results.txt
+/reported-results.txt.cache
